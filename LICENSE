@@ -1,0 +1,9 @@
+Copyright (c) 2026 AGTN. Todos os direitos reservados.
+
+Este software e sua documentação são propriedade da AGTN. É proibida a cópia,
+distribuição, modificação ou uso, total ou parcial, sem autorização prévia e por
+escrito da AGTN.
+
+Componentes de terceiros mantêm suas próprias licenças (ver package.json e
+apps/desktop/src-tauri/Cargo.toml): Tauri (MIT/Apache-2.0), React (MIT),
+rbush (MIT), Vite (MIT), Vitest (MIT).

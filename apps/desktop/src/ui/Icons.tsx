@@ -1,0 +1,67 @@
+/** Ícones técnicos minimalistas (traço 1.5, 24×24), desenhados para o AGTN CAD. */
+const P: Record<string, string> = {
+  new: "M6 3h8l4 4v14H6z M14 3v4h4 M12 11v6 M9 14h6",
+  open: "M3 7h6l2 2h10v10H3z M3 7V5h6",
+  save: "M5 4h11l3 3v13H5z M8 4v5h7V4 M8 20v-6h8v6",
+  undo: "M9 5L4 10l5 5 M4 10h10a5 5 0 0 1 0 10h-4",
+  redo: "M15 5l5 5-5 5 M20 10H10a5 5 0 0 0 0 10h4",
+  import: "M12 3v11 M8 10l4 4 4-4 M4 15v5h16v-5",
+  export: "M12 14V3 M8 7l4-4 4 4 M4 15v5h16v-5",
+  line: "M5 19L19 5 M4 18h2v2H4z M18 4h2v2h-2z",
+  pline: "M4 19l5-9 5 5 6-11 M3 18h2v2H3z M19 3h2v2h-2z",
+  rect: "M4 6h16v12H4z",
+  circle: "M12 4a8 8 0 1 0 0.01 0z M12 11.5v1",
+  arc: "M4 18a8 8 0 0 1 16 0 M3 17h2v2H3z M19 17h2v2h-2z",
+  polygon: "M12 3l8 6-3 10H7L4 9z",
+  point: "M12 8v8 M8 12h8 M11 11h2v2h-2z",
+  text: "M5 6V4h14v2 M12 4v16 M9 20h6",
+  move: "M12 3v18 M3 12h18 M12 3l-3 3 M12 3l3 3 M12 21l-3-3 M12 21l3-3 M3 12l3-3 M3 12l3 3 M21 12l-3-3 M21 12l-3 3",
+  copy: "M8 8h11v11H8z M5 16V5h11",
+  rotate: "M19 12a7 7 0 1 1-2.05-4.95 M19 4v4h-4",
+  scale: "M4 20V10h10v10z M14 10l6-6 M15 4h5v5",
+  mirror: "M12 3v18 M9 6L4 18h5z M15 6l5 12h-5z",
+  offset: "M4 17c3-8 13-8 16 0 M4 12c3-6 13-6 16 0",
+  trim: "M4 12h6 M14 12h6 M12 4v16 M7 9l-3 3 3 3",
+  extend: "M4 12h10 M20 4v16 M14 9l3 3-3 3",
+  fillet: "M4 20V12a8 8 0 0 1 8-8h8",
+  chamfer: "M4 20v-9l7-7h9",
+  stretch: "M3 6h8v12H3z M11 6h10 M11 18h10 M17 9l3 3-3 3",
+  explode: "M12 2v5 M12 17v5 M2 12h5 M17 12h5 M5 5l3 3 M16 16l3 3 M19 5l-3 3 M8 16l-3 3",
+  join: "M4 16l6-8 M14 8l6 8 M10 8h4",
+  erase: "M4 7h16 M9 7V4h6v3 M6 7l1 13h10l1-13",
+  select: "M5 3l13 8-6 1.5L9 19z",
+  dimlin: "M4 6v12 M20 6v12 M4 12h16 M4 12l3-2 M4 12l3 2 M20 12l-3-2 M20 12l-3 2",
+  dimal: "M5 19L19 5 M3 15l4 4 M15 3l4 4 M7 13l4 4",
+  dimrad: "M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0-16 0 M12 12l6-6 M18 6l-3 0.5 M18 6l-0.5 3",
+  dimang: "M4 20h16 M4 20L16 6 M12 20a8 8 0 0 0-2.4-5.7",
+  dist: "M3 9h18v6H3z M7 9v3 M11 9v3 M15 9v3 M19 9v3",
+  zoomext: "M4 9V4h5 M15 4h5v5 M20 15v5h-5 M9 20H4v-5 M9 9h6v6H9z",
+  zoomwin: "M10 10m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0 M15 15l6 6",
+  layers: "M12 3l9 5-9 5-9-5z M3 13l9 5 9-5",
+  eye: "M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z M12 9a3 3 0 1 0 0.01 0z",
+  eyeoff: "M2 12s4-7 10-7c2 0 3.6.6 5 1.5 M22 12s-4 7-10 7c-2 0-3.6-.6-5-1.5 M4 4l16 16",
+  lock: "M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3",
+  unlock: "M6 11h12v9H6z M8 11V8a4 4 0 0 1 7.5-2",
+  plus: "M12 5v14 M5 12h14",
+  trash: "M5 7h14 M10 7V4h4v3 M7 7l1 13h8l1-13",
+  panelL: "M3 4h18v16H3z M9 4v16",
+  panelR: "M3 4h18v16H3z M15 4v16",
+  panelB: "M3 4h18v16H3z M3 15h18",
+  sheet: "M3 17l5-10h8l5 10 M8 7v-3 M16 7v-3",
+  profL: "M6 4v16h14 M9 4v13h11",
+  profU: "M4 4v16h16V4 M7 4v13h10V4",
+  profC: "M8 4H4v16h16V4h-4 M8 7H7v10h10V7h-1",
+  info: "M12 3a9 9 0 1 0 0.01 0z M12 10v7 M12 7v.5",
+  close: "M6 6l12 12 M18 6L6 18",
+  check: "M5 12l5 5 9-10",
+  moveTo: "M4 12h12 M12 8l4 4-4 4 M20 4v16",
+};
+
+export function Icon({ name, title }: { name: keyof typeof P | string; title?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden={!title}>
+      {title ? <title>{title}</title> : null}
+      <path d={P[name] ?? P.info} />
+    </svg>
+  );
+}

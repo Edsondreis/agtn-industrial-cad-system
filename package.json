@@ -1,0 +1,26 @@
+{
+  "name": "agtn-industrial-cad-system",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "AGTN CAD — Industrial CAD System (AGTN)",
+  "workspaces": [
+    "core/*",
+    "modules/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "npm run dev -w @agtn/desktop",
+    "build": "npm run build -w @agtn/desktop",
+    "tauri": "npm run tauri -w @agtn/desktop --",
+    "validate:dxf": "python3 tests/dxf/validate_with_ezdxf.py"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.0"
+  }
+}

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AGTN CAD</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #16181c; }
+      #splash { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column;
+        background: #16181c; color: #e6e9ee; font-family: "Segoe UI", system-ui, sans-serif; z-index: 9999; transition: opacity .25s; }
+      #splash .mark { font-size: 34px; font-weight: 700; letter-spacing: 6px; }
+      #splash .mark span { color: #3d8bfd; font-weight: 500; }
+      #splash .sub { margin-top: 6px; font-size: 12px; letter-spacing: 3px; color: #8a94a3; text-transform: uppercase; }
+      #splash .bar { margin-top: 22px; width: 180px; height: 2px; background: #2a2f37; overflow: hidden; }
+      #splash .bar::after { content: ""; display: block; width: 40%; height: 100%; background: #3d8bfd; animation: s 1s linear infinite; }
+      @keyframes s { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+    </style>
+  </head>
+  <body>
+    <div id="splash"><div class="mark">AGTN <span>CAD</span></div><div class="sub">Industrial CAD System</div><div class="bar"></div></div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
