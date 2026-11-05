@@ -115,3 +115,22 @@ Camadas (nomes sem acento por compatibilidade com DXF R12):
 `PROFILE_DEFS` declara abas, dobras e sentidos; o motor resolve qualquer sequência, inclusive sentidos alternados
 (Z, cartola, ômega). Para esses perfis é preciso mapear explicitamente cada dimensão para a face medida
 (`refToFace` recusa mapeamento implícito em perfis com sentidos alternados).
+
+## Calandra
+
+```
+Ri = D/2 (diâmetro interno) ou D/2 − T (diâmetro externo)
+Re = Ri + T        Rn = Ri + K·T
+Desenvolvido = θ · Rn        (volta completa: π · (Di + 2·K·T))
+```
+
+- K padrão 0,50 (eixo neutro no meio da espessura; estimativa de partida, ajustável em CONFIGURAÇÕES).
+- Segmento (< 360°): informa corda e flecha externas.
+- Avisos: R/T < 5 (capacidade da calandra) e volta completa (pré-dobra das pontas / folga de solda).
+- Como a calandra não marca a chapa, a planificação leva, na camada `MARCACAO`:
+  `CALANDRAR RAIO EXTERNO|INTERNO R…` (a referência escolhida), os raios/diâmetros interno e externo, ângulo,
+  espessura e desenvolvimento. Com “Marcação como geometria” ligada, o texto vira contorno para o laser gravar.
+
+## Marcação de dobra
+
+Cada linha de dobra recebe ao lado, na camada `MARCACAO`, `D1 CIMA 90,0° RI3,00` (sentido, ângulo, raio interno).

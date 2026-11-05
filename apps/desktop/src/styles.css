@@ -42,7 +42,7 @@ input, select, textarea { user-select: text; }
 /* ------------------------------------------------------------ top bar */
 .topbar { display: flex; align-items: center; gap: 2px; padding: 0 8px; background: var(--bg-0); border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: baseline; gap: 6px; padding: 0 12px 0 4px; margin-right: 6px; border-right: 1px solid var(--line); height: 24px; }
-.brand-logo { height: 20px; }
+.brand-logo { height: 19px; display: block; align-self: center; }
 .brand b { font-size: 14px; letter-spacing: 2.5px; font-weight: 700; color: #e6e9ee; }
 .brand span { font-size: 14px; letter-spacing: 2px; font-weight: 500; color: var(--accent); }
 .tb-sep { width: 1px; height: 20px; background: var(--line); margin: 0 6px; }
@@ -149,7 +149,7 @@ input, select, textarea { user-select: text; }
 .modal-h { display: flex; align-items: center; height: 34px; padding: 0 6px 0 14px; border-bottom: 1px solid var(--line); background: var(--bg-0); font-weight: 600; letter-spacing: .5px; }
 .modal-b { padding: 14px; overflow: auto; }
 .modal-f { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--line); }
-.btn { height: 28px; padding: 0 14px; border-radius: var(--r); border: 1px solid var(--line-2); background: var(--bg-3); cursor: pointer; }
+.btn { height: 28px; padding: 0 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-radius: var(--r); border: 1px solid var(--line-2); background: var(--bg-3); cursor: pointer; }
 .btn:hover:not(:disabled) { border-color: var(--accent); }
 .btn.primary { background: var(--accent-2); border-color: var(--accent); color: #fff; }
 .btn.primary:hover:not(:disabled) { background: var(--accent); }
@@ -214,3 +214,12 @@ input, select, textarea { user-select: text; }
 .legend i { display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 4px; }
 .chk { display: flex; align-items: center; gap: 6px; padding: 2px 0; cursor: pointer; }
 .chk input { accent-color: var(--accent); }
+
+.sm-tabs { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 3; background: var(--bg-0); }
+.sm-tabs button { height: 32px; border: none; background: none; color: var(--text-dim); font-size: 11px; font-weight: 600; letter-spacing: 1.2px; cursor: pointer; border-bottom: 2px solid transparent; }
+.sm-tabs button.on { color: #dbe8ff; border-bottom-color: var(--accent); background: var(--bg-2); }
+.part-item { display: block; width: 100%; text-align: left; padding: 6px 8px; margin-bottom: 3px; border: 1px solid transparent; border-radius: var(--r); background: none; cursor: pointer; color: var(--text); }
+.part-item:hover { background: var(--bg-3); }
+.part-item.on { background: var(--accent-soft); border-color: rgba(61,139,253,.45); color: #fff; }
+.modal-f .btn { flex-shrink: 0; }
+.modal-f .note { flex: 1; min-width: 0; }

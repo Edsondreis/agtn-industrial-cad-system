@@ -6,7 +6,7 @@ Plataforma inicial: Windows 10/11 (desktop). Arquitetura preparada para evoluç�
 
 > Desenvolvido pela AGTN. Uso interno/comercial da AGTN — veja `LICENSE`.
 
-## Funcionalidades (v0.1.0)
+## Funcionalidades (v0.2.0)
 
 Tudo abaixo está implementado sobre geometria real (coordenadas em mm, float64) e coberto por testes
 automatizados (ver “Qualidade”).
@@ -43,6 +43,11 @@ configurável (altura do texto, casas decimais, separador, tipo/tamanho de seta,
   suportadas. Detalhes em [`docs/DXF.md`](docs/DXF.md).
 
 **AGTN SHEET METAL — Planificação** (aba `PLANIFICAÇÃO` ou comando `SM`)
+- Aba **PEÇA** só com o básico (tipo, medidas, espessura, comprimento, material, ângulo e raio de cada dobra);
+  aba **CONFIGURAÇÕES** com fator K, tabelas, calibração, processo/ferramental, referência por dimensão e saída.
+- **Calandra**: diâmetro externo ou interno, espessura, largura e ângulo (volta completa ou segmento) →
+  desenvolvimento pelo eixo neutro e **marcação na chapa** com o raio de referência (interno/externo) e os raios da peça.
+- Marcações (dobra e calandra) saem na camada `MARCACAO` convertidas em **geometria** para o laser gravar.
 - Perfis L, U e U enrijecido, com abas, raios, ângulos e fator K independentes por dobra.
 - Dimensões **externas** ou **internas** (globais ou por dimensão), convertidas explicitamente.
 - Ângulo informado como ângulo de dobra θ ou ângulo interno α.
@@ -55,10 +60,23 @@ configurável (altura do texto, casas decimais, separador, tipo/tamanho de seta,
   (`CONTORNO_CORTE`, `LINHAS_DOBRA`, `REGIAO_DOBRA`, `COTAS`, `CENTROS`, `ANOTACOES`).
 - Convenções e fórmulas: [`docs/SHEET_METAL.md`](docs/SHEET_METAL.md).
 
+**Biblioteca de chapas** (aba `PEÇAS` ou comando `PECAS`) — peças paramétricas prontas para corte, com validação,
+área, peso, comprimento de corte e nº de perfurações: flange com furação em círculo (e flange cego), bolacha/arruela/disco,
+setor de anel, chapa de base com furos e raio de canto, chapa com oblongos, polígono/sextavado, cartela (mão-francesa),
+olhal de içamento e gabarito de boca de lobo (tubo × tubo a 90°, com excentricidade).
+
+**Texto para laser** (comando `T`) — converte o texto em **contornos fechados** (elemento, não entidade de texto):
+- **Vazado** (letras como furos na chapa): pontes automáticas nas ilhas (O, A, B, R, 8…) sem perder a tipografia;
+  placa opcional com margem e raio.
+- **Emendado** (letras como uma peça): união dos glifos, barra de ligação opcional, contagem de peças soltas.
+- **Marcação**: contorno para gravação.
+- 10 fontes livres (SIL OFL): 5 stencil, 3 industriais, 2 cursivas. Verificação de traço mínimo × espessura.
+  Detalhes em [`docs/TEXTO_LASER.md`](docs/TEXTO_LASER.md). Texto de anotação comum: comando `DT`.
+
 ## Instalação (usuário)
 
 Baixe o instalador gerado pelo GitHub Actions (aba **Actions** → execução mais recente de *Build Windows* →
-artefato `AGTN-CAD-windows`): `AGTN CAD_0.1.0_x64-setup.exe` (NSIS) ou `.msi`. O instalador NSIS instala para o
+artefato `AGTN-CAD-windows`): `AGTN CAD_0.2.0_x64-setup.exe` (NSIS) ou `.msi`. O instalador NSIS instala para o
 usuário atual (sem administrador). Requer WebView2 (já presente no Windows 10 atualizado e no Windows 11; o
 instalador baixa automaticamente se faltar).
 
@@ -69,7 +87,7 @@ Pré-requisitos: Node.js 22+, Rust estável (MSVC no Windows), e para o shell de
 
 ```bash
 npm install            # instala todos os workspaces
-npm test               # 112 testes (geometria, documento, DXF, chapas, linha de comando)
+npm test               # 138 testes (geometria, documento, DXF, chapas, linha de comando)
 npm run typecheck      # TypeScript estrito
 npm run dev            # interface no navegador em http://localhost:1420 (sem recursos nativos)
 npm run tauri dev      # aplicativo desktop com recarga automática
@@ -94,8 +112,8 @@ npm run tauri build
 
 Saídas:
 - `apps\desktop\src-tauri\target\release\agtn-cad.exe` — executável
-- `apps\desktop\src-tauri\target\release\bundle\nsis\AGTN CAD_0.1.0_x64-setup.exe` — instalador
-- `apps\desktop\src-tauri\target\release\bundle\msi\AGTN CAD_0.1.0_x64_pt-BR.msi` — pacote MSI
+- `apps\desktop\src-tauri\target\release\bundle\nsis\AGTN CAD_0.2.0_x64-setup.exe` — instalador
+- `apps\desktop\src-tauri\target\release\bundle\msi\AGTN CAD_0.2.0_x64_pt-BR.msi` — pacote MSI
 
 O mesmo processo roda automaticamente em `.github/workflows/build-windows.yml` a cada push na `main`.
 
@@ -113,7 +131,9 @@ agtn-industrial-cad-system/
 ├── core/geometry/           Motor geométrico 2D puro (entidades, interseções, snap, offset, trim...)
 ├── core/document/           Documento, camadas, transações Undo/Redo, índice espacial, seleção, .agtncad
 ├── modules/dxf/             Leitor e escritor DXF
-├── modules/sheetmetal/      SheetMetalEngine (cálculo de dobras e planificação)
+├── modules/sheetmetal/      SheetMetalEngine (dobras, calandra e planificação)
+├── modules/parts/           Biblioteca de chapas paramétricas
+├── modules/lasertext/       Texto → geometria de corte (fontes OFL em fonts/)
 ├── assets/brand/            Identidade visual (local reservado para o logotipo oficial)
 ├── docs/                    Arquitetura, convenções, DXF, roadmap
 └── tests/                   Validação DXF externa (ezdxf) e saídas de teste
@@ -121,7 +141,7 @@ agtn-industrial-cad-system/
 
 ## Qualidade
 
-- `npm test`: 112 testes — interseções, distâncias, ângulos, transformações, offset, trim/extend, fillet/chanfro,
+- `npm test`: 138 testes — interseções, distâncias, ângulos, transformações, offset, trim/extend, fillet/chanfro,
   snap, Undo/Redo, camadas, cotas associativas, formato nativo (ida e volta exata), DXF (escrita, leitura, round-trip,
   unidades, blocos, OCS, entidades não suportadas), planificação (casos 45°/90°/135°, L/U interno/externo, U
   assimétrico, enrijecido, tangência, espessura, consistência seção × planificação, autointerseção, calibração,

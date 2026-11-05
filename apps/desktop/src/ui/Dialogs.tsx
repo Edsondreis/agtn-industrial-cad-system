@@ -30,7 +30,7 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
   return (
     <Modal title="Sobre" onClose={onClose} footer={<button className="btn primary" onClick={onClose}>OK</button>}>
       <div className="about">
-        {/* Espaço reservado para o logotipo oficial da AGTN (assets/brand) */}
+        <img src="/brand/agtn-logo-dark.svg" alt="AGTN Indústria Metalúrgica" style={{ width: 260, display: "block", margin: "0 auto 14px" }} />
         <div className="t1">
           AGTN <span>CAD</span>
         </div>
@@ -62,7 +62,9 @@ export function ShortcutsDialog({ onClose }: { onClose: () => void }) {
     ["@dx,dy", "Coordenada relativa"],
     ["@dist<ângulo", "Coordenada polar relativa"],
     ["número", "Distância direta na direção do cursor"],
-    ["SM / PLANIFICACAO", "Abrir planificação de chapas"],
+    ["T", "Texto para laser (vira geometria de corte)"],
+    ["SM / PLANIFICACAO", "Planificação de chapas e calandra"],
+    ["PECAS", "Biblioteca de chapas pré-definidas"],
     ["LA", "Camadas"],
   ];
   return (

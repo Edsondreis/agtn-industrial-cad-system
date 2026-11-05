@@ -17,6 +17,8 @@ export default defineConfig({
       "@agtn/document": r("../../core/document/src/index.ts"),
       "@agtn/dxf": r("../../modules/dxf/src/index.ts"),
       "@agtn/sheetmetal": r("../../modules/sheetmetal/src/index.ts"),
+      "@agtn/lasertext": r("../../modules/lasertext/src/index.ts"),
+      "@agtn/parts": r("../../modules/parts/src/index.ts"),
     },
   },
   server: { port: 1420, strictPort: true, watch: { ignored: ["**/src-tauri/**"] } },

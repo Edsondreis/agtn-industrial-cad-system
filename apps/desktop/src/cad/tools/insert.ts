@@ -12,11 +12,12 @@ export class InsertTool extends Tool {
     private readonly layerChanges: () => Change[],
     private readonly label: string,
     private readonly ref: Vec2,
+    private readonly refLabel = "canto inferior esquerdo",
   ) {
     super(h);
   }
   prompt(): string {
-    return `INSERIR ${this.label.toUpperCase()}: Ponto de inserção (canto inferior esquerdo) — Esc cancela`;
+    return `INSERIR ${this.label.toUpperCase()}: Ponto de inserção (${this.refLabel}) — Esc cancela`;
   }
   private placed(p: Vec2): Entity[] {
     const m = translation(p.x - this.ref.x, p.y - this.ref.y);

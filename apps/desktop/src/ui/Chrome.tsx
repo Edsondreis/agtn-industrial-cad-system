@@ -4,7 +4,7 @@ import type { FileActions } from "../app/files";
 import { Icon } from "./Icons";
 import { useCtl } from "./hooks";
 
-export type Workspace = "desenho" | "planificacao";
+export type Workspace = "desenho" | "planificacao" | "pecas";
 
 export interface MenuItem {
   label?: string;
@@ -34,8 +34,7 @@ export function TopBar({
   return (
     <div className="topbar">
       <div className="brand" title="AGTN CAD — Industrial CAD System">
-        {/* Logotipo oficial da AGTN: substituir por <img className="brand-logo" src="/brand/agtn-logo.svg" /> (ver assets/brand/README.md) */}
-        <b>AGTN</b>
+        <img className="brand-logo" src="/brand/agtn-mark-dark.svg" alt="AGTN" />
         <span>CAD</span>
       </div>
       <button className="ibtn" title="Novo desenho (Ctrl+N)" onClick={() => files.newDrawing()}>
@@ -75,6 +74,9 @@ export function TopBar({
         </button>
         <button className={`ws-tab${ws === "planificacao" ? " on" : ""}`} onClick={() => setWs("planificacao")} title="AGTN SHEET METAL — chapas, dobras e planificação">
           PLANIFICAÇÃO
+        </button>
+        <button className={`ws-tab${ws === "pecas" ? " on" : ""}`} onClick={() => setWs("pecas")} title="Biblioteca de chapas pré-definidas">
+          PEÇAS
         </button>
       </div>
     </div>
@@ -156,7 +158,7 @@ const PALETTE: (string | [id: string, icon: string, title: string])[] = [
   ["DIMALIGNED", "dimal", "Cota alinhada (DAL)"],
   ["DIMANGULAR", "dimang", "Cota angular (DAN)"],
   ["DIMRADIUS", "dimrad", "Cota de raio (DRA)"],
-  ["TEXT", "text", "Texto (T)"],
+  ["__LASERTEXT__", "text", "Texto para laser — vira geometria de corte (T)"],
 ];
 
 /** Barra lateral de ferramentas. */
@@ -172,7 +174,7 @@ export function ToolPalette({ ctl }: { ctl: CadController }) {
             key={p[0]}
             className={`ibtn${(p[0] === "__SELECT__" ? !ctl.tool : ctl.tool?.id === p[0]) ? " on" : ""}`}
             title={p[2]}
-            onClick={() => (p[0] === "__SELECT__" ? ctl.cancel(true) : ctl.runById(p[0]))}
+            onClick={() => (p[0] === "__SELECT__" ? ctl.cancel(true) : p[0].startsWith("__") ? ctl.actions.get(p[0])?.() : ctl.runById(p[0]))}
           >
             <Icon name={p[1]} />
           </button>

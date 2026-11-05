@@ -5,6 +5,9 @@ import { CadController } from "../cad/controller";
 import { InsertTool } from "../cad/tools/insert";
 import { clearRecovery, guardClose, loadRecovery, setWindowTitle, startupFile } from "../platform/platform";
 import { SheetMetalWorkspace } from "../sheetmetal/SheetMetalWorkspace";
+import { PartsWorkspace } from "../parts/PartsWorkspace";
+import { LaserTextDialog } from "../lasertext/LaserTextDialog";
+import { SM_LAYERS } from "@agtn/sheetmetal";
 import { CanvasView } from "../ui/CanvasView";
 import { type MenuItem, MenuBar, ToolPalette, TopBar, type Workspace } from "../ui/Chrome";
 import { CommandLine, type CommandLineHandle } from "../ui/CommandLine";
@@ -24,7 +27,9 @@ import { PropertiesPanel } from "../ui/PropertiesPanel";
 import { StatusBar } from "../ui/StatusBar";
 import { FileActions } from "./files";
 
-type Dialog = null | "about" | "shortcuts" | "dxf" | "bytype" | "settings" | "export";
+type Dialog = null | "about" | "shortcuts" | "dxf" | "bytype" | "settings" | "export" | "lasertext";
+
+const FAB_LAYERS: Layer[] = SM_LAYERS.map((l) => ({ name: l.name, color: l.color, lineweight: l.lineweight, linetype: l.linetype, visible: true, locked: false }));
 
 export function App() {
   const ctl = useMemo(() => new CadController(), []);
@@ -56,6 +61,8 @@ export function App() {
     a.set("__DXF_REPORT__", () => setDialog("dxf"));
     a.set("SELTIPO", () => setDialog("bytype"));
     a.set("CONFIG", () => setDialog("settings"));
+    for (const k of ["T", "TEXTO", "TEXTOLASER", "TL", "__LASERTEXT__"]) a.set(k, () => setDialog("lasertext"));
+    for (const k of ["PECAS", "PEÇAS", "BIBLIOTECA", "BIB"]) a.set(k, () => setWs("pecas"));
   }, [ctl, files]);
 
   /* --------------------- título da janela, recuperação, fechar --------------------- */
@@ -141,13 +148,14 @@ export function App() {
 
   /* ------------------------- integração com PLANIFICAÇÃO ------------------------- */
   const insertGenerated = useCallback(
-    (ents: Entity[], layerChanges: () => Change[], label: string) => {
+    (ents: Entity[], layerChanges: () => Change[], label: string, ref = { x: 0, y: 0 }, refLabel?: string) => {
       if (!ents.length) return;
       setWs("desenho");
+      setDialog(null);
       setTimeout(() => {
         ctl.cancel(true);
         ctl.sel.clear();
-        const t = new InsertTool(ctl, ents, layerChanges, label, { x: 0, y: 0 });
+        const t = new InsertTool(ctl, ents, layerChanges, label, ref, refLabel);
         ctl.tool = t;
         ctl.message(`Inserir ${label}: clique o ponto de inserção ou digite coordenadas (ex.: 0,0).`, "cmd");
         ctl.refresh();
@@ -162,6 +170,13 @@ export function App() {
     },
     [files],
   );
+
+  const fabLayerChanges = useCallback((): Change[] => {
+    const out: Change[] = [];
+    let n = ctl.doc.layers.length;
+    for (const l of FAB_LAYERS) if (!ctl.doc.layer(l.name)) out.push({ kind: "layer-add", layer: l, index: n++ });
+    return out;
+  }, [ctl]);
 
   /* ----------------------------------- menus ----------------------------------- */
   const run = (id: string) => () => {
@@ -252,7 +267,8 @@ export function App() {
         { label: "Cota de raio", key: "DRA", run: run("DIMRADIUS") },
         { label: "Cota de diâmetro", key: "DDI", run: run("DIMDIAMETER") },
         { sep: true },
-        { label: "Texto", key: "T", run: run("TEXT") },
+        { label: "Texto para laser (geometria de corte)…", key: "T", run: () => setDialog("lasertext") },
+        { label: "Texto de anotação", key: "DT", run: run("TEXT") },
         { label: "Estilo de cota e texto…", run: () => setDialog("settings") },
       ],
     },
@@ -276,7 +292,9 @@ export function App() {
     {
       title: "Ferramentas",
       items: [
-        { label: "Planificação de chapas (AGTN SHEET METAL)", key: "SM", run: () => setWs("planificacao") },
+        { label: "Planificação de chapas e calandra (AGTN SHEET METAL)", key: "SM", run: () => setWs("planificacao") },
+        { label: "Biblioteca de chapas (flanges, bolachas, suportes…)", key: "PECAS", run: () => setWs("pecas") },
+        { label: "Texto para laser…", key: "T", run: () => setDialog("lasertext") },
         { label: "Medir distância", key: "DI", run: run("DIST") },
         { sep: true },
         { label: "Configurações do desenho…", run: () => setDialog("settings") },
@@ -319,13 +337,22 @@ export function App() {
             <div />
           )}
         </div>
-      ) : (
+      ) : ws === "planificacao" ? (
         <SheetMetalWorkspace ctl={ctl} onInsert={insertGenerated} onExportDxf={exportGenerated} />
+      ) : (
+        <PartsWorkspace ctl={ctl} onInsert={insertGenerated} onExportDxf={exportGenerated} />
       )}
       {ws === "desenho" ? <CommandLine ref={cmd} ctl={ctl} showHistory={panels.history} /> : <div />}
       <StatusBar ctl={ctl} />
 
       {dialog === "about" && <AboutDialog onClose={() => setDialog(null)} />}
+      {dialog === "lasertext" && (
+        <LaserTextDialog
+          onClose={() => setDialog(null)}
+          onInsert={(r, label) => insertGenerated(r.entities, fabLayerChanges, label)}
+          onExport={(r, name) => exportGenerated(r.entities, FAB_LAYERS, ["CONTORNO_CORTE", "MARCACAO"], name)}
+        />
+      )}
       {dialog === "shortcuts" && <ShortcutsDialog onClose={() => setDialog(null)} />}
       {dialog === "dxf" && files.lastDxfReport && <DxfReportDialog report={files.lastDxfReport} onClose={() => setDialog(null)} />}
       {dialog === "bytype" && <SelectByTypeDialog ctl={ctl} onClose={() => setDialog(null)} />}

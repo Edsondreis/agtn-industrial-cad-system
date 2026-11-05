@@ -30,7 +30,8 @@ export const SM_LAYERS: readonly SheetLayerDef[] = [
   { name: "REGIAO_DOBRA", color: 8, lineweight: 0.13, linetype: "HIDDEN", description: "Limites da região de dobra (tangências)", exportDefault: false },
   { name: "COTAS", color: 4, lineweight: 0.18, linetype: "CONTINUOUS", description: "Cotas de fabricação", exportDefault: false },
   { name: "CENTROS", color: 6, lineweight: 0.13, linetype: "CENTER", description: "Linhas de centro / eixo neutro", exportDefault: false },
-  { name: "ANOTACOES", color: 2, lineweight: 0.18, linetype: "CONTINUOUS", description: "Anotações de dobra (sentido, ângulo, raio)", exportDefault: false },
+  { name: "MARCACAO", color: 3, lineweight: 0.18, linetype: "CONTINUOUS", description: "Marcação a laser (gravação): dados de dobra / calandra", exportDefault: true },
+  { name: "ANOTACOES", color: 2, lineweight: 0.18, linetype: "CONTINUOUS", description: "Anotações (identificação da peça)", exportDefault: false },
   { name: "SECAO_PERFIL", color: 7, lineweight: 0.35, linetype: "CONTINUOUS", description: "Seção transversal do perfil dobrado", exportDefault: false },
 ];
 
@@ -81,6 +82,8 @@ export interface FlatOptions {
   dimScale?: number;
   /** Texto de identificação (ex.: "PERFIL U 50x100x50 #3") */
   title?: string;
+  /** Altura do texto de marcação a laser (mm) */
+  markHeight?: number;
 }
 
 /** Geometria da planificação (retângulo desenvolvido × comprimento do perfil). */
@@ -104,19 +107,21 @@ export function flatPatternEntities(r: SolveResult, o: FlatOptions = {}): Entity
   }
   if (o.notes ?? true) {
     const h = 2.5 * sc;
+    // marcação de dobra (gravação a laser) ao lado de cada linha de dobra, a partir da borda
+    const mh = Math.min(o.markHeight ?? 5, W / 30);
     r.bends.forEach((b, j) => {
       const sense = b.dir === "left" ? "CIMA" : "BAIXO";
       out.push(
         makeEntity(
           {
             type: "text",
-            p: P(b.xLine - h * 0.4, W * 0.5),
-            h,
+            p: P(b.xLine + mh * 1.4, Math.min(10, W * 0.05)),
+            h: mh,
             rot: Math.PI / 2,
-            value: `D${j + 1} ${sense} ${fmtMM(b.thetaDeg, 1)}° Ri${fmtMM(b.R)} K${fmtMM(b.K, 3)}`,
-            halign: 1,
+            value: `D${j + 1} ${sense} ${fmtMM(b.thetaDeg, 1)}° RI${fmtMM(b.R)}`,
+            halign: 0,
           },
-          "ANOTACOES",
+          "MARCACAO",
         ),
       );
     });

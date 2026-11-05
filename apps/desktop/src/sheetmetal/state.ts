@@ -17,10 +17,19 @@ export interface SheetMetalData {
 
 export const SM_KEY = "sheetmetal";
 
+const DEFAULT_TABLES = [defaultKTable()];
+const memo = new WeakMap<object, SheetMetalData>();
+
+/** Leitura estável (mesmo objeto enquanto os dados do projeto não mudam). */
 export function readSM(doc: CadDocument): SheetMetalData {
   const raw = doc.extras[SM_KEY] as Partial<SheetMetalData> | undefined;
-  const tables = raw?.kTables?.length ? raw.kTables : [defaultKTable()];
-  return { version: 1, kTables: tables, calibrations: raw?.calibrations ?? [], presets: raw?.presets ?? [] };
+  const key = (raw ?? DEFAULT_TABLES) as object;
+  const hit = memo.get(key);
+  if (hit) return hit;
+  const tables = raw?.kTables?.length ? raw.kTables : DEFAULT_TABLES;
+  const data: SheetMetalData = { version: 1, kTables: tables, calibrations: raw?.calibrations ?? [], presets: raw?.presets ?? [] };
+  memo.set(key, data);
+  return data;
 }
 
 export function writeSM(doc: CadDocument, data: SheetMetalData, label: string) {
