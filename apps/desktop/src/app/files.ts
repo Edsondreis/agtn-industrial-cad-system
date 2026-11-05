@@ -1,4 +1,7 @@
-import { DEFAULT_LAYER, type Layer, deserializeInto, serializeDocument } from "@agtn/document";
+import { DEFAULT_LAYER, DEFAULT_SETTINGS, type Layer, deserializeInto, serializeDocument } from "@agtn/document";
+import type { LengthUnit } from "@agtn/geometry";
+import { toast } from "../ui/toast";
+import { recents } from "./recents";
 import { type DxfImportReport, dxfBytes, readDxf, writeDxfR12 } from "@agtn/dxf";
 import { type Entity, newId } from "@agtn/geometry";
 import type { CadController } from "../cad/controller";
@@ -15,7 +18,8 @@ import {
 } from "../platform/platform";
 
 export const APP_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
-export const GENERATOR = `AGTN CAD ${APP_VERSION}`;
+export const PRODUCT = "AGTN Industrial CAD";
+export const GENERATOR = `${PRODUCT} ${APP_VERSION}`;
 
 /** Estado de arquivo do desenho aberto. */
 export interface FileState {
@@ -26,6 +30,8 @@ export interface FileState {
 export class FileActions {
   file: FileState = { name: "Sem título", path: null };
   lastDxfReport: DxfImportReport | null = null;
+  /** operação de arquivo em andamento (exibe indicador de carregamento) */
+  busy: string | null = null;
   private listeners = new Set<() => void>();
 
   constructor(private ctl: CadController) {}
@@ -49,29 +55,58 @@ export class FileActions {
     return confirmDialog("O desenho atual tem alterações não salvas. Descartar alterações?");
   }
 
-  async newDrawing() {
-    if (!(await this.confirmDiscard())) return;
+  private setBusy(b: string | null) {
+    this.busy = b;
+    this.emit();
+  }
+
+  /** Novo desenho. Retorna false se o usuário cancelou o descarte de alterações. */
+  /** unidade de novos projetos (preferência do usuário) */
+  defaultUnits: LengthUnit = "mm";
+
+  async newDrawing(opts: { units?: LengthUnit } = {}): Promise<boolean> {
+    if (!(await this.confirmDiscard())) return false;
     this.ctl.cancel(true);
     this.ctl.doc.reset();
+    const units = opts.units ?? this.defaultUnits;
+    if (units !== "mm") {
+      this.ctl.doc.load({ entities: [], layers: this.ctl.doc.layers.slice(), currentLayer: "0", settings: { ...DEFAULT_SETTINGS, units } });
+    }
     this.ctl.sel.clear();
     this.ctl.view.fit({ minX: -20, minY: -20, maxX: 420, maxY: 297 });
     this.setFile({ name: "Sem título", path: null });
     await clearRecovery();
     this.ctl.message("Novo desenho.");
+    return true;
   }
 
-  /** Abre projeto .agtncad ou DXF (DXF abre como novo desenho). */
-  async open() {
-    if (!(await this.confirmDiscard())) return;
+  /** Abre projeto .agtncad ou DXF (DXF abre como novo desenho). Retorna true se abriu. */
+  async open(): Promise<boolean> {
+    if (!(await this.confirmDiscard())) return false;
     const f = await pickAndRead("drawing");
-    if (f) await this.loadBytes(f.name, f.path, f.bytes);
+    if (!f) return false;
+    return this.withBusy(`Abrindo ${f.name}…`, () => this.loadBytes(f.name, f.path, f.bytes));
   }
 
-  async openPath(path: string) {
+  async openPath(path: string, confirm = false): Promise<boolean> {
+    if (confirm && !(await this.confirmDiscard())) return false;
     try {
-      await this.loadBytes(baseName(path), path, await readPath(path));
+      return await this.withBusy(`Abrindo ${baseName(path)}…`, async () => this.loadBytes(baseName(path), path, await readPath(path)));
     } catch (e) {
       this.ctl.message(String(e), "error");
+      toast(String(e), "error");
+      return false;
+    }
+  }
+
+  private async withBusy<T>(label: string, fn: () => Promise<T>): Promise<T> {
+    this.setBusy(label);
+    // deixa a interface pintar o indicador antes do trabalho síncrono de leitura
+    await new Promise((r) => setTimeout(r, 30));
+    try {
+      return await fn();
+    } finally {
+      this.setBusy(null);
     }
   }
 
@@ -91,16 +126,22 @@ export class FileActions {
         // DXF aberto vira desenho sem caminho nativo (salvar pede .agtncad)
         this.setFile({ name: name.replace(/\.dxf$/i, ""), path: null });
         this.ctl.message(`DXF aberto: ${r.entities.length} objeto(s). ${summarizeUnsupported(r.report)}`);
+        toast(`DXF aberto: ${r.entities.length} objeto(s).`, Object.keys(r.report.unsupported).length ? "warn" : "ok");
+        if (path) recents.touch(path);
         this.ctl.actions.get("__DXF_REPORT__")?.();
       } else {
         const rep = deserializeInto(this.ctl.doc, new TextDecoder("utf-8").decode(bytes));
         this.setFile({ name: name.replace(/\.agtncad$/i, ""), path });
         this.ctl.message(`Projeto aberto: ${rep.loaded} objeto(s).${rep.warnings.length ? " " + rep.warnings.join(" ") : ""}`, rep.warnings.length ? "warn" : "info");
+        toast(`Projeto aberto: ${name}`, rep.warnings.length ? "warn" : "ok");
+        if (path) recents.touch(path);
       }
       this.ctl.zoomExtents();
       return true;
     } catch (e) {
-      this.ctl.message(`Falha ao abrir "${name}": ${e instanceof Error ? e.message : String(e)}`, "error");
+      const msg = `Falha ao abrir "${name}": ${e instanceof Error ? e.message : String(e)}`;
+      this.ctl.message(msg, "error");
+      toast(msg, "error");
       return false;
     }
   }
@@ -124,9 +165,12 @@ export class FileActions {
       this.setFile({ name: baseName(path).replace(/\.agtncad$/i, ""), path: path.includes("/") || path.includes("\\") ? path : null });
       await clearRecovery();
       this.ctl.message(`Salvo: ${baseName(path)}`);
+      toast(`Salvo: ${baseName(path)}`, "ok");
+      if (path.includes("/") || path.includes("\\")) recents.touch(path);
       return true;
     } catch (e) {
       this.ctl.message(`Falha ao salvar: ${String(e)}`, "error");
+      toast(`Falha ao salvar: ${String(e)}`, "error");
       return false;
     }
   }
@@ -145,10 +189,12 @@ export class FileActions {
       doc.commit(`Importar DXF (${ents.length} objetos)`, changes);
       this.lastDxfReport = r.report;
       this.ctl.message(`DXF importado: ${ents.length} objeto(s). ${summarizeUnsupported(r.report)}`);
+      toast(`DXF importado: ${ents.length} objeto(s).`, Object.keys(r.report.unsupported).length ? "warn" : "ok");
       this.ctl.actions.get("__DXF_REPORT__")?.();
       this.ctl.zoomExtents();
     } catch (e) {
       this.ctl.message(`Falha ao importar DXF: ${e instanceof Error ? e.message : String(e)}`, "error");
+      toast(`Falha ao importar DXF: ${e instanceof Error ? e.message : String(e)}`, "error");
     }
   }
 
@@ -169,8 +215,10 @@ export class FileActions {
       );
       await writeBytes(path, dxfBytes(txt));
       this.ctl.message(`DXF R12 exportado: ${baseName(path)} (unidades: mm).`);
+      toast(`DXF exportado: ${baseName(path)}`, "ok");
     } catch (e) {
       this.ctl.message(`Falha ao exportar DXF: ${String(e)}`, "error");
+      toast(`Falha ao exportar DXF: ${String(e)}`, "error");
     }
   }
 

@@ -25,7 +25,7 @@ export function PreviewCanvas({ entities, layers, label, legend }: { entities: E
         boxAddPoint(b, g.text.p);
       } else b = boxUnion(b, entityBox(e));
     }
-    if (Number.isFinite(b.minX)) view.current.fit(b, 0.06);
+    if (Number.isFinite(b.minX)) view.current.fit(b, 0.1);
   };
 
   useEffect(() => {

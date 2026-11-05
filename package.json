@@ -2,7 +2,7 @@
   "name": "agtn-industrial-cad-system",
   "private": true,
   "type": "module",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "AGTN CAD — Industrial CAD System (AGTN)",
   "workspaces": [
     "core/*",

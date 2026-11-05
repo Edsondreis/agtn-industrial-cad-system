@@ -12,7 +12,7 @@ import type { Viewport } from "./view";
 
 /** Paleta da interface (tema escuro grafite). */
 export const THEME = {
-  bg: "#16181c",
+  bg: "#14171b",
   gridMinor: "rgba(140,155,175,0.07)",
   gridMajor: "rgba(140,155,175,0.16)",
   axisX: "rgba(196,92,92,0.55)",

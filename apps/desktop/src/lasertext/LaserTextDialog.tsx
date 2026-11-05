@@ -4,7 +4,7 @@ import { SM_LAYERS } from "@agtn/sheetmetal";
 import { formatNumber } from "@agtn/geometry";
 import { useEffect, useState } from "react";
 import { Modal } from "../ui/Dialogs";
-import { NumField } from "../ui/fields";
+import { MeasureField } from "../ui/MeasureField";
 import { PreviewCanvas } from "../sheetmetal/PreviewCanvas";
 import { loadLaserFont } from "./fonts";
 
@@ -73,7 +73,7 @@ export function LaserTextDialog({
         </>
       }
     >
-      <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 14, minHeight: 480 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "340px 1fr", gap: 14, minHeight: 480 }}>
         <div>
           <div className="sm-row" style={{ gridTemplateColumns: "1fr" }}>
             <textarea
@@ -117,18 +117,9 @@ export function LaserTextDialog({
             {font.note}
             {font.best !== o.mode && o.mode !== "marcacao" && <b style={{ color: "var(--warn)" }}> Recomendada para {font.best}.</b>}
           </div>
-          <div className="sm-row">
-            <span className="k">Altura das maiúsculas (mm)</span>
-            <NumField value={o.height} min={0.5} onCommit={(v) => set({ height: v })} />
-          </div>
-          <div className="sm-row">
-            <span className="k">Espaçamento extra (mm)</span>
-            <NumField value={o.spacing} onCommit={(v) => set({ spacing: v })} />
-          </div>
-          <div className="sm-row">
-            <span className="k">Entrelinhas (× altura)</span>
-            <NumField value={o.lineSpacing} min={0.8} onCommit={(v) => set({ lineSpacing: v })} />
-          </div>
+          <MeasureField label="Altura das maiúsculas" kind="len" tag="H" unit="mm" value={o.height} min={0.5} onCommit={(v) => set({ height: v })} />
+          <MeasureField label="Espaçamento" kind="len" tag="+" unit="mm" value={o.spacing} onCommit={(v) => set({ spacing: v })} />
+          <MeasureField label="Entrelinhas" kind="len" tag="×" unit="× H" value={o.lineSpacing} min={0.8} onCommit={(v) => set({ lineSpacing: v })} />
           <div className="sm-row">
             <span className="k">Alinhamento</span>
             <select value={o.align} onChange={(e) => set({ align: e.target.value as typeof o.align })}>
@@ -139,18 +130,9 @@ export function LaserTextDialog({
           </div>
           {o.mode === "vazado" && (
             <>
-              <div className="sm-row">
-                <span className="k">Largura da ponte (mm)</span>
-                <NumField value={o.bridgeWidth} min={0.1} onCommit={(v) => set({ bridgeWidth: v })} />
-              </div>
-              <div className="sm-row">
-                <span className="k">Placa: margem (0 = sem)</span>
-                <NumField value={o.plateMargin} min={0} onCommit={(v) => set({ plateMargin: v })} />
-              </div>
-              <div className="sm-row">
-                <span className="k">Placa: raio de canto</span>
-                <NumField value={o.plateRadius} min={0} onCommit={(v) => set({ plateRadius: v })} />
-              </div>
+              <MeasureField label="Largura da ponte" kind="len" tag="P" unit="mm" value={o.bridgeWidth} min={0.1} onCommit={(v) => set({ bridgeWidth: v })} />
+              <MeasureField label="Margem da placa" kind="len" tag="M" unit="mm" value={o.plateMargin} min={0} onCommit={(v) => set({ plateMargin: v })} />
+              <MeasureField label="Raio da placa" kind="rad" tag="R" unit="mm" value={o.plateRadius} min={0} onCommit={(v) => set({ plateRadius: v })} />
             </>
           )}
           {o.mode === "emendado" && (
@@ -159,17 +141,11 @@ export function LaserTextDialog({
                 <input type="checkbox" checked={o.joinBar} onChange={(e) => set({ joinBar: e.target.checked })} /> Barra de ligação inferior
               </label>
               {o.joinBar && (
-                <div className="sm-row">
-                  <span className="k">Altura da barra (mm)</span>
-                  <NumField value={o.barHeight} min={0.5} onCommit={(v) => set({ barHeight: v })} />
-                </div>
+                <MeasureField label="Altura da barra" kind="len" tag="B" unit="mm" value={o.barHeight} min={0.5} onCommit={(v) => set({ barHeight: v })} />
               )}
             </>
           )}
-          <div className="sm-row">
-            <span className="k">Espessura da chapa (verificação)</span>
-            <NumField value={o.thickness} min={0} onCommit={(v) => set({ thickness: v })} />
-          </div>
+          <MeasureField label="Espessura da chapa" kind="thk" tag="T" unit="mm" value={o.thickness} min={0} onCommit={(v) => set({ thickness: v })} />
         </div>
         <div style={{ display: "grid", gridTemplateRows: "1fr auto", minHeight: 0 }}>
           <div style={{ position: "relative", border: "1px solid var(--line)", minHeight: 380, display: "grid" }}>

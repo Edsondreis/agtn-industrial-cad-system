@@ -153,3 +153,13 @@ export async function guardClose(isDirty: () => boolean, onConfirmedClose: () =>
     }
   });
 }
+
+export async function fileExists(path: string): Promise<boolean> {
+  if (!isTauri()) return false;
+  return invoke<boolean>("file_exists", { path });
+}
+
+export async function revealInFolder(path: string): Promise<void> {
+  if (!isTauri()) throw new Error("Disponível no aplicativo desktop.");
+  await invoke("reveal_in_folder", { path });
+}

@@ -101,6 +101,26 @@ fn recovery_clear(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// Abre a pasta do arquivo no gerenciador do sistema, com o arquivo selecionado (Explorer no Windows).
+#[tauri::command]
+fn reveal_in_folder(path: String) -> Result<(), String> {
+    let p = Path::new(&path);
+    if !p.exists() {
+        return Err(format!("Arquivo não encontrado: {path}"));
+    }
+    #[cfg(target_os = "windows")]
+    let res = std::process::Command::new("explorer")
+        .arg(format!("/select,{}", p.display()))
+        .spawn();
+    #[cfg(target_os = "macos")]
+    let res = std::process::Command::new("open").arg("-R").arg(p).spawn();
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let res = std::process::Command::new("xdg-open")
+        .arg(p.parent().unwrap_or(p))
+        .spawn();
+    res.map(|_| ()).map_err(|e| format!("Não foi possível abrir a pasta: {e}"))
+}
+
 /// Arquivo informado na linha de comando (duplo clique em um .agtncad / .dxf).
 #[tauri::command]
 fn startup_file() -> Option<String> {
@@ -135,6 +155,7 @@ pub fn run() {
             write_file,
             write_text,
             file_exists,
+            reveal_in_folder,
             recovery_save,
             recovery_load,
             recovery_clear,

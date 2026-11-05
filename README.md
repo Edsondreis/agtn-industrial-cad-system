@@ -1,4 +1,4 @@
-# AGTN CAD — Industrial CAD System
+# AGTN Industrial CAD
 
 Software CAD 2D da **AGTN** para desenho técnico, chapas e estruturas metálicas, com
 **planificação de chapas dobradas (AGTN SHEET METAL)** e compatibilidade **DXF**.
@@ -6,10 +6,19 @@ Plataforma inicial: Windows 10/11 (desktop). Arquitetura preparada para evoluç�
 
 > Desenvolvido pela AGTN. Uso interno/comercial da AGTN — veja `LICENSE`.
 
-## Funcionalidades (v0.2.0)
+## Funcionalidades (v0.3.0)
 
 Tudo abaixo está implementado sobre geometria real (coordenadas em mm, float64) e coberto por testes
 automatizados (ver “Qualidade”).
+
+**Start Center** — tela de abertura com Novo projeto (desenho 2D, planificação, peça da biblioteca, texto laser),
+Abrir arquivo (seletor nativo), Recentes persistentes (reabrir, remover, abrir pasta no Explorer, aviso de arquivo
+não encontrado), recuperação de desenho não salvo e Preferências (Start Center ao iniciar, unidade padrão).
+Botão/menu **Início** volta ao Start Center sem perder o desenho aberto ("Continuar").
+
+**Interface** — design system único (grafite, cinza metálico, azul industrial), campos de medida tipados por cor e
+etiqueta (EXT externa, INT interna, T espessura, θ/∠ ângulo, R raio, K fator K), notificações de sucesso/erro,
+indicador de carregamento, "não salvo" na barra superior, Esc fecha qualquer janela.
 
 **Prancheta CAD**
 - Zoom na posição do cursor (roda), pan (botão do meio), zoom extensão (duplo clique do meio / `ZE`), zoom janela e fator (`Z`).
@@ -76,7 +85,7 @@ olhal de içamento e gabarito de boca de lobo (tubo × tubo a 90°, com excentri
 ## Instalação (usuário)
 
 Baixe o instalador gerado pelo GitHub Actions (aba **Actions** → execução mais recente de *Build Windows* →
-artefato `AGTN-CAD-windows`): `AGTN CAD_0.2.0_x64-setup.exe` (NSIS) ou `.msi`. O instalador NSIS instala para o
+artefato `AGTN-CAD-windows`): `AGTN Industrial CAD_0.3.0_x64-setup.exe` (NSIS) ou `.msi`. O instalador NSIS instala para o
 usuário atual (sem administrador). Requer WebView2 (já presente no Windows 10 atualizado e no Windows 11; o
 instalador baixa automaticamente se faltar).
 
@@ -87,7 +96,7 @@ Pré-requisitos: Node.js 22+, Rust estável (MSVC no Windows), e para o shell de
 
 ```bash
 npm install            # instala todos os workspaces
-npm test               # 138 testes (geometria, documento, DXF, chapas, linha de comando)
+npm test               # 143 testes (geometria, documento, DXF, chapas, linha de comando)
 npm run typecheck      # TypeScript estrito
 npm run dev            # interface no navegador em http://localhost:1420 (sem recursos nativos)
 npm run tauri dev      # aplicativo desktop com recarga automática
@@ -112,8 +121,8 @@ npm run tauri build
 
 Saídas:
 - `apps\desktop\src-tauri\target\release\agtn-cad.exe` — executável
-- `apps\desktop\src-tauri\target\release\bundle\nsis\AGTN CAD_0.2.0_x64-setup.exe` — instalador
-- `apps\desktop\src-tauri\target\release\bundle\msi\AGTN CAD_0.2.0_x64_pt-BR.msi` — pacote MSI
+- `apps\desktop\src-tauri\target\release\bundle\nsis\AGTN Industrial CAD_0.3.0_x64-setup.exe` — instalador
+- `apps\desktop\src-tauri\target\release\bundle\msi\AGTN Industrial CAD_0.3.0_x64_pt-BR.msi` — pacote MSI
 
 O mesmo processo roda automaticamente em `.github/workflows/build-windows.yml` a cada push na `main`.
 
@@ -141,7 +150,7 @@ agtn-industrial-cad-system/
 
 ## Qualidade
 
-- `npm test`: 138 testes — interseções, distâncias, ângulos, transformações, offset, trim/extend, fillet/chanfro,
+- `npm test`: 143 testes — interseções, distâncias, ângulos, transformações, offset, trim/extend, fillet/chanfro,
   snap, Undo/Redo, camadas, cotas associativas, formato nativo (ida e volta exata), DXF (escrita, leitura, round-trip,
   unidades, blocos, OCS, entidades não suportadas), planificação (casos 45°/90°/135°, L/U interno/externo, U
   assimétrico, enrijecido, tangência, espessura, consistência seção × planificação, autointerseção, calibração,

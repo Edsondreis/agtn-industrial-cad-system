@@ -21,11 +21,13 @@ export function TopBar({
   files,
   ws,
   setWs,
+  onHome,
 }: {
   ctl: CadController;
   files: FileActions;
   ws: Workspace;
   setWs: (w: Workspace) => void;
+  onHome: () => void;
 }) {
   useCtl(ctl, "state");
   const [, force] = useState(0);
@@ -33,9 +35,12 @@ export function TopBar({
   const doc = ctl.doc;
   return (
     <div className="topbar">
-      <div className="brand" title="AGTN CAD — Industrial CAD System">
+      <button className="ibtn" title="Início — Start Center" onClick={onHome} aria-label="Início">
+        <Icon name="home" />
+      </button>
+      <div className="brand" title="AGTN Industrial CAD">
         <img className="brand-logo" src="/brand/agtn-mark-dark.svg" alt="AGTN" />
-        <span>CAD</span>
+        <span>Industrial CAD</span>
       </div>
       <button className="ibtn" title="Novo desenho (Ctrl+N)" onClick={() => files.newDrawing()}>
         <Icon name="new" />
@@ -62,10 +67,13 @@ export function TopBar({
         <Icon name="export" />
         <span className="lbl">Exportar</span>
       </button>
-      <div className="filename" title={files.file.path ?? "Ainda não salvo"}>
+      <div className="filechip" title={files.file.path ?? "Ainda não salvo em disco"}>
+        <span className="ico">
+          <Icon name="file" />
+        </span>
         <b>{files.file.name}</b>
-        {doc.dirty && <span className="dirty">●</span>}
-        <span> · {doc.settings.units}</span>
+        <span className="meta">{doc.settings.units}</span>
+        {doc.dirty && <span className="unsaved">não salvo</span>}
       </div>
       <div className="spacer" />
       <div className="ws-tabs">

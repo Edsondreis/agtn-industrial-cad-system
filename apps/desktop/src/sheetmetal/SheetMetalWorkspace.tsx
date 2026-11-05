@@ -30,7 +30,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { CadController } from "../cad/controller";
 import { aciColor } from "../cad/renderer";
 import { textsToGeometry } from "../lasertext/fonts";
-import { NumField } from "../ui/fields";
+import { MeasureField, MeasureLegend } from "../ui/MeasureField";
 import { Icon } from "../ui/Icons";
 import { useCtl } from "../ui/hooks";
 import { CalibrationDialog, KTablesDialog } from "./KTables";
@@ -201,34 +201,27 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
       {isRoll ? (
         <div className="sm-sec">
           <h4>Calandra (mm)</h4>
-          <div className="sm-row">
-            <span className="k">Diâmetro</span>
-            <NumField value={roll.diameter} min={0} onCommit={(v) => setRoll({ ...roll, diameter: v })} />
+          <div className="seg full" style={{ marginBottom: 10 }}>
+            <button className={roll.ref === "externo" ? "on" : ""} onClick={() => setRoll({ ...roll, ref: "externo" })}>
+              Diâmetro externo
+            </button>
+            <button className={roll.ref === "interno" ? "on" : ""} onClick={() => setRoll({ ...roll, ref: "interno" })}>
+              Diâmetro interno
+            </button>
           </div>
-          <div className="sm-row">
-            <span className="k">Medido por</span>
-            <div className="seg">
-              <button className={roll.ref === "externo" ? "on" : ""} onClick={() => setRoll({ ...roll, ref: "externo" })}>
-                Externo
-              </button>
-              <button className={roll.ref === "interno" ? "on" : ""} onClick={() => setRoll({ ...roll, ref: "interno" })}>
-                Interno
-              </button>
-            </div>
-          </div>
-          <div className="sm-row">
-            <span className="k">Espessura</span>
-            <NumField value={roll.T} min={0} onCommit={(v) => setRoll({ ...roll, T: v })} />
-          </div>
-          <div className="sm-row">
-            <span className="k">Largura (altura do cilindro)</span>
-            <NumField value={roll.width} min={0} onCommit={(v) => setRoll({ ...roll, width: v })} />
-          </div>
-          <div className="sm-row">
-            <span className="k">Ângulo calandrado (°)</span>
-            <NumField value={roll.angleDeg} min={0} onCommit={(v) => setRoll({ ...roll, angleDeg: v })} />
-          </div>
-          <div className="note">360° = volta completa. Menor que 360° = segmento.</div>
+          <MeasureField
+            label="Diâmetro"
+            kind={roll.ref === "externo" ? "ext" : "int"}
+            tag={roll.ref === "externo" ? "ØE" : "ØI"}
+            value={roll.diameter}
+            min={0}
+            onCommit={(v) => setRoll({ ...roll, diameter: v })}
+            onTagClick={() => setRoll({ ...roll, ref: roll.ref === "externo" ? "interno" : "externo" })}
+          />
+          <MeasureField label="Espessura" kind="thk" value={roll.T} min={0} onCommit={(v) => setRoll({ ...roll, T: v })} />
+          <MeasureField label="Largura (altura do cilindro)" kind="len" value={roll.width} min={0} onCommit={(v) => setRoll({ ...roll, width: v })} />
+          <MeasureField label="Ângulo calandrado" kind="ang" unit="°" digits={2} value={roll.angleDeg} min={0} onCommit={(v) => setRoll({ ...roll, angleDeg: v })} />
+          <div className="note" style={{ marginBottom: 6 }}>360° = volta completa · menor que 360° = segmento.</div>
           {materialRow}
         </div>
       ) : (
@@ -246,60 +239,47 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
               </div>
               {globalRef === "misto" && <span className="note" style={{ marginLeft: 8, color: "var(--warn)" }}>Referência mista</span>}
             </div>
-            <div className="sm-grid">
-              {params.dims.map((d, i) => (
-                <span key={i} style={{ display: "contents" }}>
-                  <span className="k">{def.flangeLabels[i]}</span>
-                  <NumField className={flangeIssue(i) ? "bad" : ""} value={d.value} min={0} onCommit={(v) => setDim(i, { value: v })} />
-                  {cfg.advancedRefs ? (
-                    <select value={d.ref} onChange={(e) => setDim(i, { ref: e.target.value as DimRef })}>
-                      <option value="externa">Ext.</option>
-                      <option value="interna">Int.</option>
-                    </select>
-                  ) : (
-                    <span className="note" style={{ color: d.ref === "externa" ? aciColor(DIM_COLOR_EXT) : aciColor(DIM_COLOR_INT) }}>
-                      {d.ref === "externa" ? "EXT" : "INT"}
-                    </span>
-                  )}
-                </span>
-              ))}
-              <span className="k">Espessura</span>
-              <NumField value={params.T} min={0} onCommit={(v) => set({ T: v })} />
-              <span />
-              <span className="k">Comprimento</span>
-              <NumField value={params.partLength} min={0} onCommit={(v) => set({ partLength: v })} />
-              <span />
-            </div>
+            {params.dims.map((d, i) => (
+              <MeasureField
+                key={i}
+                label={def.flangeLabels[i]}
+                kind={d.ref === "externa" ? "ext" : "int"}
+                value={d.value}
+                min={0}
+                bad={flangeIssue(i)}
+                onCommit={(v) => setDim(i, { value: v })}
+                onTagClick={cfg.advancedRefs ? () => setDim(i, { ref: (d.ref === "externa" ? "interna" : "externa") as DimRef }) : undefined}
+              />
+            ))}
+            <MeasureField label="Espessura" kind="thk" value={params.T} min={0} onCommit={(v) => set({ T: v })} />
+            <MeasureField label="Comprimento" kind="len" value={params.partLength} min={0} onCommit={(v) => set({ partLength: v })} />
             {materialRow}
           </div>
           <div className="sm-sec">
             <h4>Dobras</h4>
-            <div className="sm-grid">
-              {effective.bends.map((b, j) => (
-                <span key={j} style={{ display: "contents" }}>
-                  <span className="k" style={bendIssue(j) ? { color: "var(--err)" } : undefined}>
-                    {def.bendLabels[j].replace(" (enrijecedor)", " enrij.")}
-                  </span>
-                  <NumField
-                    title={cfg.angleMode === "dobra" ? "Ângulo de dobra θ (L reto = 90°)" : "Ângulo interno α entre abas"}
-                    value={cfg.angleMode === "dobra" ? b.angleDeg : 180 - b.angleDeg}
-                    onCommit={(v) => setBend(j, { angleDeg: cfg.angleMode === "dobra" ? v : 180 - v })}
-                  />
-                  <span className="note">{cfg.angleMode === "dobra" ? "° dobra" : "° interno"}</span>
-                  <span className="k" style={{ paddingLeft: 10 }}>
-                    raio interno
-                  </span>
-                  <NumField value={b.R} min={0} onCommit={(v) => setBend(j, { R: v })} />
-                  <span className="note">mm</span>
-                </span>
-              ))}
-            </div>
+            {effective.bends.map((b, j) => (
+              <div key={j} className="bend-card" style={bendIssue(j) ? { borderColor: "var(--err)" } : undefined}>
+                <div className="t" style={{ fontSize: 11 }}>{def.bendLabels[j]}</div>
+                <MeasureField
+                  label={cfg.angleMode === "dobra" ? "Ângulo de dobra" : "Ângulo interno"}
+                  kind="ang"
+                  tag={cfg.angleMode === "dobra" ? "θ" : "α"}
+                  unit="°"
+                  digits={2}
+                  title={cfg.angleMode === "dobra" ? "θ = mudança de direção da chapa (L reto = 90°)" : "α = ângulo entre as abas = 180° − θ"}
+                  value={cfg.angleMode === "dobra" ? b.angleDeg : 180 - b.angleDeg}
+                  onCommit={(v) => setBend(j, { angleDeg: cfg.angleMode === "dobra" ? v : 180 - v })}
+                />
+                <MeasureField label="Raio interno" kind="rad" tag="Ri" value={b.R} min={0} onCommit={(v) => setBend(j, { R: v })} />
+              </div>
+            ))}
             {params.bends.length > 1 && (
               <button className="btn" style={{ width: "100%", marginTop: 8 }} onClick={() => setParams((s) => ({ ...s, bends: s.bends.map((b) => ({ ...s.bends[0], kRuleId: b.kRuleId })) }))}>
                 Todas iguais à Dobra 1
               </button>
             )}
             {missingRule && <div className="errbox">Sem fator K na tabela para este material/espessura/raio. Veja CONFIGURAÇÕES.</div>}
+            <MeasureLegend kinds={["ext", "int", "thk", "ang", "rad"]} />
           </div>
         </>
       )}
@@ -338,13 +318,9 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
           </div>
         </div>
         {cfg.kMode === "manual" && !isRoll && (
-          <div className="sm-grid">
+          <div>
             {params.bends.map((b, j) => (
-              <span key={j} style={{ display: "contents" }}>
-                <span className="k">K {def.bendLabels[j]}</span>
-                <NumField value={b.K} digits={4} min={0} onCommit={(v) => setBend(j, { K: v })} />
-                <span />
-              </span>
+              <MeasureField key={j} label={def.bendLabels[j]} kind="k" unit="" digits={4} value={b.K} min={0} onCommit={(v) => setBend(j, { K: v })} />
             ))}
           </div>
         )}
@@ -383,21 +359,12 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
           <span className="k">Ferramenta</span>
           <input value={params.fab.toolName} placeholder="ex.: punção 88° R1" onChange={(e) => setFab({ toolName: e.target.value })} onKeyDown={(e) => e.stopPropagation()} />
         </div>
-        <div className="sm-row">
-          <span className="k">Abertura V (mm)</span>
-          <NumField value={params.fab.vOpening ?? NaN} min={0} onCommit={(v) => setFab({ vOpening: v || null })} />
-        </div>
-        <div className="sm-row">
-          <span className="k">Raio do punção (mm)</span>
-          <NumField value={params.fab.punchRadius ?? NaN} min={0} onCommit={(v) => setFab({ punchRadius: v || null })} />
-        </div>
+        <MeasureField label="Abertura da matriz" kind="len" tag="V" value={params.fab.vOpening ?? NaN} min={0} onCommit={(v) => setFab({ vOpening: v || null })} />
+        <MeasureField label="Raio do punção" kind="rad" tag="Rp" value={params.fab.punchRadius ?? NaN} min={0} onCommit={(v) => setFab({ punchRadius: v || null })} />
       </div>
       <div className="sm-sec">
         <h4>Calandra</h4>
-        <div className="sm-row">
-          <span className="k">Fator K da calandra</span>
-          <NumField value={cfg.kRoll} digits={3} min={0} onCommit={(v) => setCfg({ kRoll: v })} />
-        </div>
+        <MeasureField label="Fator K da calandra" kind="k" unit="" digits={3} value={cfg.kRoll} min={0} onCommit={(v) => setCfg({ kRoll: v })} />
         <div className="note">0,50 = estimativa de partida (eixo neutro no meio da espessura).</div>
       </div>
       <div className="sm-sec">
@@ -405,10 +372,7 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
         <label className="chk">
           <input type="checkbox" checked={cfg.markGeom} onChange={(e) => setCfg({ markGeom: e.target.checked })} /> Marcação como geometria (para o laser)
         </label>
-        <div className="sm-row">
-          <span className="k">Altura da marcação (mm)</span>
-          <NumField value={cfg.markHeight} min={1} onCommit={(v) => setCfg({ markHeight: v })} />
-        </div>
+        <MeasureField label="Altura da marcação" kind="len" tag="H" value={cfg.markHeight} min={1} onCommit={(v) => setCfg({ markHeight: v })} />
         <label className="chk">
           <input type="checkbox" checked={cfg.notes} onChange={(e) => setCfg({ notes: e.target.checked })} /> Marcação das dobras
         </label>
@@ -538,9 +502,15 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
           {!okNow ? (
             <div className="errbox">Não foi possível calcular. Corrija os itens abaixo.</div>
           ) : (
+            <>
+            <div className="result-big" title="Comprimento da chapa plana a cortar">
+              <span className="k">Desenvolvido</span>
+              <span>
+                <span className="v">{fmtMM(devLen, 3)}</span>
+                <span className="u">mm</span>
+              </span>
+            </div>
             <div className="res">
-              <span className="k">Comprimento desenvolvido</span>
-              <span className="v big">{fmtMM(devLen, 3)}</span>
               <span className="k">Largura</span>
               <span className="v">{fmtMM(width, 3)}</span>
               <span className="k">Blank</span>
@@ -552,6 +522,7 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
               <span className="k">Comprimento de corte</span>
               <span className="v">{formatNumber((2 * (devLen + width)) / 1000, 3, ",")} m</span>
             </div>
+            </>
           )}
           {errors.map((i, k) => (
             <div key={k} className="errbox">

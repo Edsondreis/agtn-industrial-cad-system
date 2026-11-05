@@ -1,12 +1,13 @@
 import type { Change, Layer } from "@agtn/document";
 import type { Entity } from "@agtn/geometry";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CadController } from "../cad/controller";
 import { InsertTool } from "../cad/tools/insert";
 import { clearRecovery, guardClose, loadRecovery, setWindowTitle, startupFile } from "../platform/platform";
-import { SheetMetalWorkspace } from "../sheetmetal/SheetMetalWorkspace";
-import { PartsWorkspace } from "../parts/PartsWorkspace";
-import { LaserTextDialog } from "../lasertext/LaserTextDialog";
+// módulos pesados (cálculo de chapas, fontes, booleanas) carregados sob demanda: abertura mais rápida
+const SheetMetalWorkspace = lazy(() => import("../sheetmetal/SheetMetalWorkspace").then((m) => ({ default: m.SheetMetalWorkspace })));
+const PartsWorkspace = lazy(() => import("../parts/PartsWorkspace").then((m) => ({ default: m.PartsWorkspace })));
+const LaserTextDialog = lazy(() => import("../lasertext/LaserTextDialog").then((m) => ({ default: m.LaserTextDialog })));
 import { SM_LAYERS } from "@agtn/sheetmetal";
 import { CanvasView } from "../ui/CanvasView";
 import { type MenuItem, MenuBar, ToolPalette, TopBar, type Workspace } from "../ui/Chrome";
@@ -16,6 +17,7 @@ import {
   DrawingSettingsDialog,
   DxfReportDialog,
   ExportDxfDialog,
+  PrefsDialog,
   RecoveryDialog,
   SelectByTypeDialog,
   ShortcutsDialog,
@@ -25,9 +27,20 @@ import { Icon } from "../ui/Icons";
 import { LayersPanel } from "../ui/LayersPanel";
 import { PropertiesPanel } from "../ui/PropertiesPanel";
 import { StatusBar } from "../ui/StatusBar";
-import { FileActions } from "./files";
+import { FileActions, PRODUCT } from "./files";
+import { StartCenter, type StartTarget } from "./StartCenter";
+import { recents } from "./recents";
+import { type AppPrefs, loadPrefs, savePrefs } from "./prefs";
+import { Toasts } from "../ui/toast";
 
-type Dialog = null | "about" | "shortcuts" | "dxf" | "bytype" | "settings" | "export" | "lasertext";
+type Dialog = null | "about" | "shortcuts" | "dxf" | "bytype" | "settings" | "export" | "lasertext" | "prefs";
+
+const Loading = ({ label }: { label: string }) => (
+  <div className="loading-pane">
+    <span className="spinner" />
+    {label}
+  </div>
+);
 
 const FAB_LAYERS: Layer[] = SM_LAYERS.map((l) => ({ name: l.name, color: l.color, lineweight: l.lineweight, linetype: l.linetype, visible: true, locked: false }));
 
@@ -39,6 +52,28 @@ export function App() {
   const [dialog, setDialog] = useState<Dialog>(null);
   const [panels, setPanels] = useState({ left: true, right: true, history: true });
   const [recovery, setRecovery] = useState<{ when: string; name: string; payload: string } | null>(null);
+  const [prefs, setPrefsState] = useState<AppPrefs>(loadPrefs);
+  const setPrefs = (p: AppPrefs) => {
+    savePrefs(p);
+    setPrefsState(p);
+  };
+  files.defaultUnits = prefs.defaultUnits;
+  const [start, setStart] = useState<boolean>(() => prefs.showStartCenter);
+  const [leaving, setLeaving] = useState(false);
+  const enterCad = useCallback((target: StartTarget) => {
+    setWs(target === "lasertext" ? "desenho" : target);
+    if (target === "lasertext") setDialog("lasertext");
+    setLeaving(true);
+    window.setTimeout(() => {
+      setStart(false);
+      setLeaving(false);
+    }, 160);
+  }, []);
+  const goHome = useCallback(() => {
+    ctl.cancel(true);
+    setDialog(null);
+    setStart(true);
+  }, [ctl]);
   const cmd = useRef<CommandLineHandle>(null);
   const focusCommand = useCallback(() => cmd.current?.focus(), []);
 
@@ -69,13 +104,15 @@ export function App() {
   const [, force] = useState(0);
   useEffect(() => files.on(() => force((x) => x + 1)), [files]);
   useEffect(() => {
-    void setWindowTitle(`${files.file.name}${ctl.doc.dirty ? " *" : ""} — AGTN CAD`);
+    void setWindowTitle(start ? `Start Center — ${PRODUCT}` : `${files.file.name}${ctl.doc.dirty ? " *" : ""} — ${PRODUCT}`);
   });
   useEffect(() => {
     void (async () => {
       const f = await startupFile().catch(() => null);
       if (f) {
-        await files.openPath(f);
+        if (await files.openPath(f)) {
+          setStart(false);
+        }
         return;
       }
       const rec = await loadRecovery().catch(() => null);
@@ -104,9 +141,9 @@ export function App() {
           z: () => (e.shiftKey ? ctl.redo() : ctl.undo()),
           y: () => ctl.redo(),
           s: () => void (e.shiftKey ? files.saveAs() : files.save()),
-          o: () => void files.open(),
-          n: () => void files.newDrawing(),
-          a: () => ws === "desenho" && ctl.sel.selectAll(),
+          o: () => void files.open().then((ok) => ok && start && enterCad("desenho")),
+          n: () => void files.newDrawing().then((ok) => ok && start && enterCad("desenho")),
+          a: () => ws === "desenho" && !start && ctl.sel.selectAll(),
         };
         if (map[k] && !(inField && (k === "z" || k === "y" || k === "a"))) {
           e.preventDefault();
@@ -127,7 +164,7 @@ export function App() {
         fkeys[e.key]();
         return;
       }
-      if (inField || ws !== "desenho" || dialog) return;
+      if (inField || ws !== "desenho" || dialog || start) return;
       if (e.key === "Delete" && !ctl.tool) {
         ctl.eraseSelection();
         return;
@@ -144,7 +181,7 @@ export function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [ctl, files, ws, dialog, focusCommand]);
+  }, [ctl, files, ws, dialog, focusCommand, start, enterCad]);
 
   /* ------------------------- integração com PLANIFICAÇÃO ------------------------- */
   const insertGenerated = useCallback(
@@ -189,6 +226,8 @@ export function App() {
     {
       title: "Arquivo",
       items: [
+        { label: "Início (Start Center)", run: goHome },
+        { sep: true },
         { label: "Novo desenho", key: "Ctrl+N", run: () => void files.newDrawing() },
         { label: "Abrir…", key: "Ctrl+O", run: () => void files.open() },
         { label: "Salvar", key: "Ctrl+S", run: () => void files.save() },
@@ -298,6 +337,7 @@ export function App() {
         { label: "Medir distância", key: "DI", run: run("DIST") },
         { sep: true },
         { label: "Configurações do desenho…", run: () => setDialog("settings") },
+        { label: "Preferências…", run: () => setDialog("prefs") },
       ],
     },
     {
@@ -311,7 +351,7 @@ export function App() {
 
   return (
     <div className="app">
-      <TopBar ctl={ctl} files={files} ws={ws} setWs={setWs} />
+      <TopBar ctl={ctl} files={files} ws={ws} setWs={setWs} onHome={goHome} />
       <MenuBar menus={menus} />
       {ws === "desenho" ? (
         <div className="work">
@@ -338,21 +378,58 @@ export function App() {
           )}
         </div>
       ) : ws === "planificacao" ? (
-        <SheetMetalWorkspace ctl={ctl} onInsert={insertGenerated} onExportDxf={exportGenerated} />
+        <Suspense fallback={<Loading label="Carregando planificação…" />}>
+          <SheetMetalWorkspace ctl={ctl} onInsert={insertGenerated} onExportDxf={exportGenerated} />
+        </Suspense>
       ) : (
-        <PartsWorkspace ctl={ctl} onInsert={insertGenerated} onExportDxf={exportGenerated} />
+        <Suspense fallback={<Loading label="Carregando biblioteca de chapas…" />}>
+          <PartsWorkspace ctl={ctl} onInsert={insertGenerated} onExportDxf={exportGenerated} />
+        </Suspense>
       )}
       {ws === "desenho" ? <CommandLine ref={cmd} ctl={ctl} showHistory={panels.history} /> : <div />}
       <StatusBar ctl={ctl} />
 
       {dialog === "about" && <AboutDialog onClose={() => setDialog(null)} />}
       {dialog === "lasertext" && (
+        <Suspense fallback={<div className="busy"><div className="busy-card"><span className="spinner" />Carregando texto para laser…</div></div>}>
         <LaserTextDialog
           onClose={() => setDialog(null)}
           onInsert={(r, label) => insertGenerated(r.entities, fabLayerChanges, label)}
           onExport={(r, name) => exportGenerated(r.entities, FAB_LAYERS, ["CONTORNO_CORTE", "MARCACAO"], name)}
         />
+        </Suspense>
       )}
+      {dialog === "prefs" && (
+        <PrefsDialog prefs={prefs} onChange={setPrefs} onClose={() => setDialog(null)} recentCount={recents.list().length} onClearRecents={() => recents.clear()} />
+      )}
+      {start && (
+        <StartCenter
+          ctl={ctl}
+          files={files}
+          leaving={leaving}
+          onEnter={enterCad}
+          onPrefs={() => setDialog("prefs")}
+          onAbout={() => setDialog("about")}
+          recovery={recovery}
+          onRestore={() => {
+            if (recovery) void files.restoreRecovery(recovery.payload).then((ok) => ok && enterCad("desenho"));
+            setRecovery(null);
+          }}
+          onDiscardRecovery={() => {
+            void clearRecovery();
+            setRecovery(null);
+          }}
+        />
+      )}
+      {files.busy && (
+        <div className="busy">
+          <div className="busy-card">
+            <span className="spinner" />
+            {files.busy}
+          </div>
+        </div>
+      )}
+      <Toasts />
       {dialog === "shortcuts" && <ShortcutsDialog onClose={() => setDialog(null)} />}
       {dialog === "dxf" && files.lastDxfReport && <DxfReportDialog report={files.lastDxfReport} onClose={() => setDialog(null)} />}
       {dialog === "bytype" && <SelectByTypeDialog ctl={ctl} onClose={() => setDialog(null)} />}
@@ -367,7 +444,7 @@ export function App() {
           }}
         />
       )}
-      {recovery && (
+      {recovery && !start && (
         <RecoveryDialog
           when={recovery.when}
           name={recovery.name}

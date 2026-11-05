@@ -1,17 +1,31 @@
 import type { Layer } from "@agtn/document";
 import type { DxfImportReport } from "@agtn/dxf";
 import { type EntityType, ENTITY_TYPE_LABEL } from "@agtn/geometry";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { COMMANDS } from "../cad/commands";
 import type { CadController } from "../cad/controller";
 import { APP_VERSION } from "../app/files";
+import type { AppPrefs } from "../app/prefs";
 import { NumField } from "./fields";
 import { Icon } from "./Icons";
 
 export function Modal({ title, onClose, children, footer, width }: { title: string; onClose: () => void; children: ReactNode; footer?: ReactNode; width?: number }) {
+  const close = useRef(onClose);
+  close.current = onClose;
+  useEffect(() => {
+    // Esc fecha a janela mesmo sem foco dentro dela (comportamento padrão de diálogos do Windows)
+    const h = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        close.current();
+      }
+    };
+    window.addEventListener("keydown", h, true);
+    return () => window.removeEventListener("keydown", h, true);
+  }, []);
   return (
     <div className="modal-bg" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal" style={width ? { width } : undefined} onKeyDown={(e) => e.key === "Escape" && onClose()}>
+      <div className="modal" role="dialog" aria-label={title} style={width ? { width } : undefined}>
         <div className="modal-h">
           {title}
           <div className="spacer" />
@@ -32,12 +46,12 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
       <div className="about">
         <img src="/brand/agtn-logo-dark.svg" alt="AGTN Indústria Metalúrgica" style={{ width: 260, display: "block", margin: "0 auto 14px" }} />
         <div className="t1">
-          AGTN <span>CAD</span>
+          AGTN <span>INDUSTRIAL CAD</span>
         </div>
-        <div className="t2">Industrial CAD System</div>
+        <div className="t2">Software de engenharia industrial</div>
         <div className="t3">Desenvolvido pela AGTN.</div>
         <div className="note" style={{ marginTop: 14 }}>
-          Versão {APP_VERSION} · CAD 2D · Planificação de chapas (AGTN SHEET METAL) · DXF R12
+          Versão {APP_VERSION} · CAD 2D · Planificação e calandra · Biblioteca de chapas · Texto laser · DXF
         </div>
         <div className="note">Estruturas metálicas · Fabricação industrial · Corte a laser · Dobra CNC</div>
       </div>
@@ -295,6 +309,44 @@ export function RecoveryDialog({ when, name, onRestore, onDiscard }: { when: str
         Foi encontrado um desenho com alterações não salvas: <b>{name}</b>
       </p>
       <p className="note">Gravado automaticamente em {new Date(when).toLocaleString("pt-BR")}.</p>
+    </Modal>
+  );
+}
+
+export function PrefsDialog({
+  prefs,
+  onChange,
+  onClose,
+  recentCount,
+  onClearRecents,
+}: {
+  prefs: AppPrefs;
+  onChange: (p: AppPrefs) => void;
+  onClose: () => void;
+  recentCount: number;
+  onClearRecents: () => void;
+}) {
+  return (
+    <Modal title="Preferências" onClose={onClose} footer={<button className="btn primary" onClick={onClose}>Fechar</button>}>
+      <label className="chk">
+        <input type="checkbox" checked={prefs.showStartCenter} onChange={(e) => onChange({ ...prefs, showStartCenter: e.target.checked })} />
+        Mostrar o Start Center ao iniciar
+      </label>
+      <div className="sm-row" style={{ marginTop: 10, gridTemplateColumns: "1fr 180px" }}>
+        <span className="k">Unidade de novos projetos</span>
+        <select value={prefs.defaultUnits} onChange={(e) => onChange({ ...prefs, defaultUnits: e.target.value as AppPrefs["defaultUnits"] })}>
+          <option value="mm">Milímetros (mm)</option>
+          <option value="cm">Centímetros (cm)</option>
+          <option value="m">Metros (m)</option>
+        </select>
+      </div>
+      <div className="sm-row" style={{ gridTemplateColumns: "1fr 180px" }}>
+        <span className="k">Arquivos recentes ({recentCount})</span>
+        <button className="btn" disabled={!recentCount} onClick={onClearRecents}>
+          Limpar lista
+        </button>
+      </div>
+      <p className="note">As preferências ficam salvas neste computador. Configurações do desenho (grade, cotas) ficam em Ferramentas → Configurações do desenho.</p>
     </Modal>
   );
 }
