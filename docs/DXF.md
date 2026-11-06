@@ -54,4 +54,16 @@ operação desfazível.
 
 - Exportação R2000+ (AC1015) com `$INSUNITS`, lineweight e LWPOLYLINE.
 - Importação de `ELLIPSE`/`SPLINE` quando o motor tiver essas entidades.
-- DWG: fora do escopo inicial (não há conversão fictícia).
+
+## DWG (desde 1.1.0)
+
+DWG é lido e gravado pelo **ODA File Converter** (Open Design Alliance, gratuito, programa externo — nada é
+embutido no AGTN CAD). Fluxo: o arquivo é copiado sozinho para uma pasta temporária com nome ASCII, o ODA converte
+(com auditoria/reparo) e o resultado é gravado de forma atômica.
+
+- **Abrir/Importar DWG** → DXF ACAD2018 → mesmo importador DXF (mesmas entidades suportadas e relatório).
+- **Exportar DWG** → DXF R12 do AGTN CAD → DWG na versão das Preferências (padrão ACAD2018).
+- **Converter DWG ↔ DXF** (Start Center): lote, inverter/forçar formato, versões ACAD12…ACAD2018.
+- Detecção: caminho das Preferências → `%ProgramFiles%\ODA\ODAFileConverter*\` (versão mais nova) → `PATH`.
+- Falha do ODA (`.err`) é mostrada ao usuário; nunca há conversão "simulada".
+

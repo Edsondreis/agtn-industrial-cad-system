@@ -14,6 +14,9 @@ describe("arquivos recentes", () => {
     r.touch("D:\\DXF\\flange.dxf", new Date("2026-11-02"));
     expect(r.list().map((i) => i.name)).toEqual(["flange", "Perfil U"]);
     expect(r.list()[0].kind).toBe("dxf");
+    r.touch("D:\\DWG\\tampa.DWG", new Date("2026-11-03"));
+    expect(r.list()[0]).toMatchObject({ name: "tampa", kind: "dwg" });
+    r.remove("D:\\DWG\\tampa.DWG");
     const again = new RecentStore(s);
     expect(again.list()).toHaveLength(2);
   });

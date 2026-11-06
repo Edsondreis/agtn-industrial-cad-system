@@ -289,6 +289,32 @@ describe("entradas inválidas e casos-limite", () => {
     expect(r.ok).toBe(false);
     expect(r.issues.some((i) => i.code === "SELF_INTERSECTION")).toBe(true);
   });
+  it("U válido em qualquer escala não acusa autointerseção (regressão 100×200×100)", () => {
+    // Falso positivo antigo: tangência arco↔reta com erro numérico > 1e-7 mm em peças grandes.
+    for (const [a, b] of [[100, 200], [80, 200], [100, 300], [250, 600], [1000, 2500], [30, 47.3]]) {
+      for (const T of [1.5, 3, 6.35]) {
+        for (const R of [0, 1, 3, 8]) {
+          const p = PROFILE_DEFS.U.defaults();
+          p.T = T;
+          p.dims = [a, b, a].map((value) => ({ value, ref: "externa" as const }));
+          p.bends.forEach((bd) => (bd.R = R));
+          const r = solve(p);
+          expect(r.issues.filter((i) => i.code === "SELF_INTERSECTION"), `${a}×${b}×${a} T${T} R${R}`).toHaveLength(0);
+          expect(r.ok).toBe(true);
+        }
+      }
+    }
+    const e = PROFILE_DEFS.U_ENRIJECIDO.defaults();
+    e.dims = [20, 120, 300, 120, 20].map((value) => ({ value, ref: "externa" as const }));
+    expect(solve(e).ok).toBe(true);
+  });
+  it("U com abas fechando além de 180° continua acusando cruzamento", () => {
+    const p = PROFILE_DEFS.U.defaults();
+    p.dims = [200, 100, 200].map((value) => ({ value, ref: "externa" as const }));
+    p.bends.forEach((bd) => (bd.angleDeg = 120));
+    const r = solve(p);
+    expect(r.issues.some((i) => i.code === "SELF_INTERSECTION")).toBe(true);
+  });
 });
 
 describe("planificação e saída para CAD", () => {

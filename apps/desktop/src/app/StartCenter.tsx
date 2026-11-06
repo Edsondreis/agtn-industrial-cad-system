@@ -29,6 +29,7 @@ export function StartCenter({
   onEnter,
   onPrefs,
   onAbout,
+  onConvert,
   recovery,
   onRestore,
   onDiscardRecovery,
@@ -39,6 +40,7 @@ export function StartCenter({
   onEnter: (target: StartTarget) => void;
   onPrefs: () => void;
   onAbout: () => void;
+  onConvert: () => void;
   recovery: { when: string; name: string } | null;
   onRestore: () => void;
   onDiscardRecovery: () => void;
@@ -155,9 +157,18 @@ export function StartCenter({
             </span>
             <span>
               <b>ABRIR ARQUIVO</b>
-              <span>Projeto AGTN (.agtncad) ou DXF</span>
+              <span>Projeto AGTN (.agtncad), DWG ou DXF</span>
             </span>
             <span className="kbd">Ctrl+O</span>
+          </button>
+          <button className="action" onClick={onConvert}>
+            <span className="ai">
+              <Icon name="convert" />
+            </span>
+            <span>
+              <b>CONVERTER DWG ↔ DXF</b>
+              <span>Vários arquivos de uma vez, qualquer versão (R12 a 2018+)</span>
+            </span>
           </button>
         </section>
 
@@ -195,7 +206,7 @@ export function StartCenter({
                     onClick={() => void openRecent(r)}
                     onKeyDown={(e) => e.key === "Enter" && void openRecent(r)}
                   >
-                    <span className={`ty ${r.kind === "dxf" ? "dxf" : "agtn"}`}>{r.kind === "dxf" ? "DXF" : "AGTN"}</span>
+                    <span className={`ty ${r.kind === "agtncad" ? "agtn" : r.kind}`}>{r.kind === "agtncad" ? "AGTN" : r.kind.toUpperCase()}</span>
                     <span className="nm">
                       <b>{r.name}</b>
                       <span>

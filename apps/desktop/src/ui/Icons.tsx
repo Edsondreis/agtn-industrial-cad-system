@@ -1,6 +1,7 @@
 /** Ícones técnicos minimalistas (traço 1.5, 24×24), desenhados para o AGTN CAD. */
 const P: Record<string, string> = {
   new: "M6 3h8l4 4v14H6z M14 3v4h4 M12 11v6 M9 14h6",
+  convert: "M4 8h13 M14 5l3 3-3 3 M20 16H7 M10 13l-3 3 3 3",
   open: "M3 7h6l2 2h10v10H3z M3 7V5h6",
   save: "M5 4h11l3 3v13H5z M8 4v5h7V4 M8 20v-6h8v6",
   undo: "M9 5L4 10l5 5 M4 10h10a5 5 0 0 1 0 10h-4",
