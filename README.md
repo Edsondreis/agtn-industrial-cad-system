@@ -84,8 +84,7 @@ olhal de içamento e gabarito de boca de lobo (tubo × tubo a 90°, com excentri
 
 ## Instalação (usuário)
 
-Baixe o instalador gerado pelo GitHub Actions (aba **Actions** → execução mais recente de *Build Windows* →
-artefato `AGTN-CAD-windows`): `AGTN Industrial CAD_1.0.0_x64-setup.exe` (NSIS) ou `.msi`. O instalador NSIS instala para o
+Baixe o instalador na página **Releases** do repositório (versão mais recente): `AGTN Industrial CAD_1.0.0_x64-setup.exe` (NSIS) ou `.msi`. O instalador NSIS instala para o
 usuário atual (sem administrador). Requer WebView2 (já presente no Windows 10 atualizado e no Windows 11; o
 instalador baixa automaticamente se faltar).
 
@@ -125,6 +124,12 @@ Saídas:
 - `apps\desktop\src-tauri\target\release\bundle\msi\AGTN Industrial CAD_1.0.0_x64_pt-BR.msi` — pacote MSI
 
 O mesmo processo roda automaticamente em `.github/workflows/build-windows.yml` a cada push na `main`.
+
+### Publicar uma versão
+1. Atualize a versão em `apps/desktop/src-tauri/tauri.conf.json`, `apps/desktop/package.json`, `package.json` e `apps/desktop/src-tauri/Cargo.toml`.
+2. Escreva as notas em `docs/release-notes/vX.Y.Z.md`.
+3. Faça push na `main`. O build cria a tag `vX.Y.Z` e publica a Release com instalador, MSI, executável e `SHA256SUMS.txt`
+   (só uma vez por versão; pushes seguintes da mesma versão não republicam).
 
 ## Estrutura
 
