@@ -54,4 +54,23 @@ operação desfazível.
 
 - Exportação R2000+ (AC1015) com `$INSUNITS`, lineweight e LWPOLYLINE.
 - Importação de `ELLIPSE`/`SPLINE` quando o motor tiver essas entidades.
-- DWG: fora do escopo inicial (não há conversão fictícia).
+
+## DWG (desde 1.1.0) — conversor próprio
+
+DWG é lido e gravado pelo módulo `apps/desktop/src-tauri/src/cadconv.rs`, com o motor **acadrust** (Rust puro,
+MPL-2.0, embutido no executável — nada para instalar; avisos em `docs/TERCEIROS.md`).
+
+- **Versões**: leitura e gravação de DWG R12, R14, 2000, 2004, 2007, 2010, 2013 e 2018 (AC1009–AC1032).
+- **Abrir/Importar DWG** → DXF 2018 → mesmo importador DXF. Validado com DWGs do AutoCAD (R14–2018): o resultado
+  é idêntico, entidade por entidade e coordenada por coordenada, ao DXF que o próprio AutoCAD gera do mesmo desenho.
+- **Exportar DWG** → DXF R12 do AGTN CAD → DWG na versão das Preferências (padrão 2018).
+- **Converter DWG ↔ DXF** (Start Center): lote, inverter/forçar formato, versões R12–2018.
+- **Robustez**: leitura estrita e, se falhar, tolerante (recupera o que for possível); limite de memória por
+  leitura; cada conversão roda em processo filho (`agtn-cad.exe --agtn-cadconv …`) para que um arquivo
+  corrompido nunca feche o aplicativo; tempo-limite de 10 min por arquivo.
+- Ida e volta **fiel em DWG 2004–2018** (mesmos objetos). Em **2000, R14 e R12**, objetos que o formato antigo
+  não comporta (tabelas de dados, hachuras modernas, multileaders…) passam por DXF R12 e viram geometria simples
+  (linhas, textos) — o desenho fica igual na tela, mas não editável como o objeto original.
+- Se o ODA File Converter já estiver instalado, é usado só como segunda tentativa quando o motor próprio falha.
+- Testes: `cadconv.rs` (todas as versões, ida e volta, arquivo lixo, CLI) e amostras reais em `tests/dwg`
+  regravadas em 8 versões de DWG e 8 de DXF no CI.

@@ -9,7 +9,10 @@ import {
   baseName,
   clearRecovery,
   confirmDialog,
+  isDwg,
   pickAndRead,
+  readDwgAsDxf,
+  writeDwgFromDxf,
   pickSavePath,
   readPath,
   saveRecovery,
@@ -63,6 +66,9 @@ export class FileActions {
   /** Novo desenho. Retorna false se o usuário cancelou o descarte de alterações. */
   /** unidade de novos projetos (preferência do usuário) */
   defaultUnits: LengthUnit = "mm";
+  /** versão de DWG gravada (preferência do usuário) */
+  dwgVersion = "ACAD2018";
+
 
   async newDrawing(opts: { units?: LengthUnit } = {}): Promise<boolean> {
     if (!(await this.confirmDiscard())) return false;
@@ -80,7 +86,7 @@ export class FileActions {
     return true;
   }
 
-  /** Abre projeto .agtncad ou DXF (DXF abre como novo desenho). Retorna true se abriu. */
+  /** Abre projeto .agtncad, DWG ou DXF (DWG/DXF abrem como novo desenho). Retorna true se abriu. */
   async open(): Promise<boolean> {
     if (!(await this.confirmDiscard())) return false;
     const f = await pickAndRead("drawing");
@@ -91,7 +97,9 @@ export class FileActions {
   async openPath(path: string, confirm = false): Promise<boolean> {
     if (confirm && !(await this.confirmDiscard())) return false;
     try {
-      return await this.withBusy(`Abrindo ${baseName(path)}…`, async () => this.loadBytes(baseName(path), path, await readPath(path)));
+      return await this.withBusy(`Abrindo ${baseName(path)}…`, async () =>
+        this.loadBytes(baseName(path), path, isDwg(path) ? new Uint8Array() : await readPath(path)),
+      );
     } catch (e) {
       this.ctl.message(String(e), "error");
       toast(String(e), "error");
@@ -114,8 +122,11 @@ export class FileActions {
     try {
       this.ctl.cancel(true);
       this.ctl.sel.clear();
-      if (/\.dxf$/i.test(name)) {
-        const r = readDxf(bytes);
+      const dwg = isDwg(name);
+      if (dwg && !path) throw new Error("DWG precisa ser aberto pelo aplicativo desktop.");
+      if (dwg || /\.dxf$/i.test(name)) {
+        // DWG: convertido para DXF 2018 pelo conversor próprio e lido pelo mesmo importador do DXF
+        const r = readDxf(dwg ? await readDwgAsDxf(path!) : bytes);
         this.ctl.doc.load({
           entities: r.entities,
           layers: r.layers,
@@ -123,10 +134,11 @@ export class FileActions {
           settings: { ...this.ctl.doc.settings, units: "mm" },
         });
         this.lastDxfReport = r.report;
-        // DXF aberto vira desenho sem caminho nativo (salvar pede .agtncad)
-        this.setFile({ name: name.replace(/\.dxf$/i, ""), path: null });
-        this.ctl.message(`DXF aberto: ${r.entities.length} objeto(s). ${summarizeUnsupported(r.report)}`);
-        toast(`DXF aberto: ${r.entities.length} objeto(s).`, Object.keys(r.report.unsupported).length ? "warn" : "ok");
+        // DXF/DWG aberto vira desenho sem caminho nativo (salvar pede .agtncad)
+        const fmt = dwg ? "DWG" : "DXF";
+        this.setFile({ name: name.replace(/\.(dxf|dwg)$/i, ""), path: null });
+        this.ctl.message(`${fmt} aberto: ${r.entities.length} objeto(s). ${summarizeUnsupported(r.report)}`);
+        toast(`${fmt} aberto: ${r.entities.length} objeto(s).`, Object.keys(r.report.unsupported).length ? "warn" : "ok");
         if (path) recents.touch(path);
         this.ctl.actions.get("__DXF_REPORT__")?.();
       } else {
@@ -175,34 +187,37 @@ export class FileActions {
     }
   }
 
-  /** Importa DXF para dentro do desenho atual (uma única operação desfazível). */
+  /** Importa DXF ou DWG para dentro do desenho atual (uma única operação desfazível). */
   async importDxf() {
-    const f = await pickAndRead("dxf");
+    const f = await pickAndRead("cad");
     if (!f) return;
+    const fmt = isDwg(f.name) ? "DWG" : "DXF";
     try {
-      const r = readDxf(f.bytes);
+      const r = readDxf(fmt === "DWG" ? await this.withBusy(`Convertendo ${f.name}…`, () => readDwgAsDxf(f.path!)) : f.bytes);
       const doc = this.ctl.doc;
       const changes = [];
       for (const l of r.layers) if (!doc.layer(l.name)) changes.push({ kind: "layer-add" as const, layer: l, index: doc.layers.length + changes.length });
       const ents: Entity[] = r.entities.map((e) => (doc.has(e.id) ? { ...e, id: newId() } : e));
       changes.push(...doc.addChanges(ents));
-      doc.commit(`Importar DXF (${ents.length} objetos)`, changes);
+      doc.commit(`Importar ${fmt} (${ents.length} objetos)`, changes);
       this.lastDxfReport = r.report;
-      this.ctl.message(`DXF importado: ${ents.length} objeto(s). ${summarizeUnsupported(r.report)}`);
-      toast(`DXF importado: ${ents.length} objeto(s).`, Object.keys(r.report.unsupported).length ? "warn" : "ok");
+      this.ctl.message(`${fmt} importado: ${ents.length} objeto(s). ${summarizeUnsupported(r.report)}`);
+      toast(`${fmt} importado: ${ents.length} objeto(s).`, Object.keys(r.report.unsupported).length ? "warn" : "ok");
       this.ctl.actions.get("__DXF_REPORT__")?.();
       this.ctl.zoomExtents();
     } catch (e) {
-      this.ctl.message(`Falha ao importar DXF: ${e instanceof Error ? e.message : String(e)}`, "error");
-      toast(`Falha ao importar DXF: ${e instanceof Error ? e.message : String(e)}`, "error");
+      this.ctl.message(`Falha ao importar ${fmt}: ${e instanceof Error ? e.message : String(e)}`, "error");
+      toast(`Falha ao importar ${fmt}: ${e instanceof Error ? e.message : String(e)}`, "error");
     }
   }
 
-  /** Exporta DXF R12 do desenho (ou de camadas selecionadas). */
-  async exportDxf(opts: { layers?: string[]; entities?: Entity[]; layerDefs?: Layer[]; suggested?: string } = {}) {
-    const p = await pickSavePath("dxf", opts.suggested ?? `${this.file.name}.dxf`);
+  /** Exporta DXF R12 (ou DWG) do desenho ou de camadas selecionadas. */
+  async exportDxf(opts: { layers?: string[]; entities?: Entity[]; layerDefs?: Layer[]; suggested?: string; format?: "dxf" | "dwg" } = {}) {
+    const format = opts.format ?? "dxf";
+    const suggested = (opts.suggested ?? `${this.file.name}.dxf`).replace(/\.(dxf|dwg)$/i, `.${format}`);
+    const p = await pickSavePath(format, suggested);
     if (!p) return;
-    const path = /\.dxf$/i.test(p) ? p : `${p}.dxf`;
+    const path = new RegExp(`\\.${format}$`, "i").test(p) ? p : `${p}.${format}`;
     try {
       const doc = this.ctl.doc;
       const txt = writeDxfR12(
@@ -213,12 +228,19 @@ export class FileActions {
         },
         { layerFilter: opts.layers },
       );
+      if (format === "dwg") {
+        await this.withBusy(`Gravando ${baseName(path)}…`, () => writeDwgFromDxf(path, dxfBytes(txt), this.dwgVersion));
+        this.ctl.message(`DWG exportado: ${baseName(path)} (${this.dwgVersion}, unidades: mm).`);
+        toast(`DWG exportado: ${baseName(path)}`, "ok");
+        return;
+      }
       await writeBytes(path, dxfBytes(txt));
       this.ctl.message(`DXF R12 exportado: ${baseName(path)} (unidades: mm).`);
       toast(`DXF exportado: ${baseName(path)}`, "ok");
     } catch (e) {
-      this.ctl.message(`Falha ao exportar DXF: ${String(e)}`, "error");
-      toast(`Falha ao exportar DXF: ${String(e)}`, "error");
+      const msg = e instanceof Error ? e.message : String(e);
+      this.ctl.message(`Falha ao exportar ${format.toUpperCase()}: ${msg}`, "error");
+      toast(`Falha ao exportar ${format.toUpperCase()}: ${msg}`, "error");
     }
   }
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.0 — DWG próprio, conversor DWG ↔ DXF e programa padrão
+- **Conversor DWG próprio, embutido** (`cadconv.rs`, motor acadrust MPL-2.0): nada para instalar. DWG R12 até
+  2018 — abrir (Ctrl+O, recentes, duplo clique), importar, exportar. Validado contra DXF gerado pelo AutoCAD.
+- **Converter DWG ↔ DXF** no Start Center (e em Arquivo/Ferramentas, comando `CONVERTER`): vários arquivos,
+  inverter/forçar DXF/forçar DWG, versão R12–2018, pasta de destino, sem alterar os originais.
+- **Programa padrão**: o instalador pergunta se `.dwg` e `.dxf` devem abrir no AGTN Industrial CAD
+  (Sim aplica direto; Não mantém o programa anterior). Preferências → "Tornar padrão para .dwg/.dxf" aplica
+  direto (também no executável portátil) e mostra quando já é padrão.
+- **Instância única**: duplo clique com o app já aberto abre o arquivo na janela existente.
+- **Correção**: perfil U (ex.: 100×200×100, T3, R3) acusava "a seção se autointercepta" sem cruzamento real —
+  erro numérico na tangência reta↔arco da verificação; tangência agora decidida pela distância geométrica.
+
 ## 1.0.0 — Primeira versão estável
 - Versão 1.0.0 publicada como Release no GitHub (instalador NSIS, MSI, executável e SHA256SUMS).
 - Mesmas funcionalidades da 0.3.0; notas em `docs/release-notes/v1.0.0.md`.

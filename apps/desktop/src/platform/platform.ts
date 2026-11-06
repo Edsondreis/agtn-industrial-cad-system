@@ -6,14 +6,21 @@ import { invoke } from "@tauri-apps/api/core";
 
 export const isTauri = (): boolean => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
-export type FileKind = "agtncad" | "dxf" | "drawing";
+export type FileKind = "agtncad" | "dxf" | "dwg" | "cad" | "drawing";
 
 const FILTERS: Record<FileKind, { name: string; extensions: string[] }[]> = {
   agtncad: [{ name: "Projeto AGTN CAD", extensions: ["agtncad"] }],
   dxf: [{ name: "DXF (Drawing Exchange Format)", extensions: ["dxf"] }],
+  dwg: [{ name: "DWG (AutoCAD Drawing)", extensions: ["dwg"] }],
+  cad: [
+    { name: "Desenhos CAD (DWG, DXF)", extensions: ["dwg", "dxf"] },
+    { name: "DWG", extensions: ["dwg"] },
+    { name: "DXF", extensions: ["dxf"] },
+  ],
   drawing: [
-    { name: "Desenhos (AGTN CAD, DXF)", extensions: ["agtncad", "dxf"] },
+    { name: "Desenhos (AGTN CAD, DWG, DXF)", extensions: ["agtncad", "dwg", "dxf"] },
     { name: "Projeto AGTN CAD", extensions: ["agtncad"] },
+    { name: "DWG", extensions: ["dwg"] },
     { name: "DXF", extensions: ["dxf"] },
   ],
 };
@@ -31,12 +38,15 @@ export async function readPath(path: string): Promise<Uint8Array> {
   return new Uint8Array(buf);
 }
 
+export const isDwg = (name: string): boolean => /\.dwg$/i.test(name);
+
 export async function pickAndRead(kind: FileKind): Promise<OpenedFile | null> {
   if (isTauri()) {
     const { open } = await import("@tauri-apps/plugin-dialog");
     const path = await open({ multiple: false, directory: false, filters: FILTERS[kind] });
     if (!path || Array.isArray(path)) return null;
-    return { path, name: baseName(path), bytes: await readPath(path) };
+    // DWG é lido pelo conversor a partir do caminho (bytes do DWG não são usados no app)
+    return { path, name: baseName(path), bytes: isDwg(path) ? new Uint8Array() : await readPath(path) };
   }
   return new Promise((resolve) => {
     const input = document.createElement("input");
@@ -162,4 +172,64 @@ export async function fileExists(path: string): Promise<boolean> {
 export async function revealInFolder(path: string): Promise<void> {
   if (!isTauri()) throw new Error("Disponível no aplicativo desktop.");
   await invoke("reveal_in_folder", { path });
+}
+
+/* ------------------- DWG — conversor próprio (embutido, nada para instalar) ------------------- */
+/** Lê um DWG convertendo-o para DXF 2018 (bytes do DXF). */
+export async function readDwgAsDxf(path: string): Promise<Uint8Array> {
+  if (!isTauri()) throw new Error("DWG está disponível no aplicativo desktop.");
+  return new Uint8Array(await invoke<ArrayBuffer>("dwg_read_as_dxf", { path }));
+}
+
+/** Grava DWG a partir de bytes DXF. */
+export async function writeDwgFromDxf(path: string, dxf: Uint8Array, version: string): Promise<void> {
+  if (!isTauri()) throw new Error("DWG está disponível no aplicativo desktop.");
+  await invoke("dwg_write_from_dxf", dxf, { headers: { "x-path": encodeURIComponent(path), "x-version": encodeURIComponent(version) } });
+}
+
+export interface ConvertJob {
+  input: string;
+  output: string;
+}
+export interface ConvertResult extends ConvertJob {
+  ok: boolean;
+  error: string | null;
+}
+export async function convertCad(jobs: ConvertJob[], format: "DXF" | "DWG", version: string, overwrite: boolean): Promise<ConvertResult[]> {
+  if (!isTauri()) throw new Error("Conversão disponível no aplicativo desktop.");
+  return invoke<ConvertResult[]>("convert_cad", { jobs, format, version, overwrite });
+}
+
+/** Escolha de vários arquivos (caminhos). */
+export async function pickPaths(kind: FileKind): Promise<string[]> {
+  if (!isTauri()) return [];
+  const { open } = await import("@tauri-apps/plugin-dialog");
+  const r = await open({ multiple: true, directory: false, filters: FILTERS[kind] });
+  return r ? (Array.isArray(r) ? r : [r]) : [];
+}
+export async function pickFolder(): Promise<string | null> {
+  if (!isTauri()) return null;
+  const { open } = await import("@tauri-apps/plugin-dialog");
+  const r = await open({ multiple: false, directory: true });
+  return typeof r === "string" ? r : null;
+}
+/**
+ * Torna o AGTN Industrial CAD o programa padrão da extensão.
+ * "direto" = aplicado; "abrir-com" = o Windows recusou e abriu a janela "Abrir com" para o usuário confirmar.
+ */
+export async function makeDefaultApp(ext: "dxf" | "dwg"): Promise<"direto" | "abrir-com"> {
+  if (!isTauri()) throw new Error("Disponível no aplicativo desktop.");
+  return invoke<"direto" | "abrir-com">("make_default_app", { ext });
+}
+/** O AGTN Industrial CAD já é o padrão da extensão? */
+export async function isDefaultApp(ext: "dxf" | "dwg"): Promise<boolean> {
+  if (!isTauri()) return false;
+  return invoke<boolean>("is_default_app", { ext });
+}
+
+/** Arquivo aberto por duplo clique com o aplicativo já em execução (instância única). */
+export async function onOpenFileRequest(fn: (path: string) => void): Promise<() => void> {
+  if (!isTauri()) return () => undefined;
+  const { listen } = await import("@tauri-apps/api/event");
+  return listen<string>("open-file", (ev) => fn(ev.payload));
 }

@@ -33,15 +33,19 @@ export function lineCircleParams(a: Vec2, b: Vec2, c: Vec2, r: number): number[]
   const f = sub(a, c);
   const A = dot(d, d);
   if (A < EPS * EPS) return [];
+  const len = Math.sqrt(A);
+  // Tangência decidida pela GEOMETRIA (distância centro→reta vs. raio), não pelo
+  // discriminante: perto da tangência o discriminante amplifica ruído de 1e-15 em
+  // cordas de ~1e-7 mm (meia-corda ≈ √(2rδ)), gerando falsos cruzamentos.
+  const tFoot = -dot(f, d) / A;
+  const gap = Math.abs(cross(d, f)) / len - r;
+  const scale = Math.max(1, r, Math.abs(a.x), Math.abs(a.y), Math.abs(b.x), Math.abs(b.y), Math.abs(c.x), Math.abs(c.y));
+  const tolGap = 1e-9 * scale;
+  if (gap > tolGap) return [];
+  if (gap >= -tolGap) return [tFoot];
   const B = 2 * dot(f, d);
   const C = dot(f, f) - r * r;
-  let disc = B * B - 4 * A * C;
-  const tolDisc = 1e-12 * Math.max(1, B * B, Math.abs(4 * A * C));
-  if (disc < -tolDisc) return [];
-  if (disc < tolDisc) {
-    disc = 0;
-    return [-B / (2 * A)];
-  }
+  const disc = Math.max(0, B * B - 4 * A * C);
   const sq = Math.sqrt(disc);
   // Forma numericamente estável
   const q = -0.5 * (B + Math.sign(B || 1) * sq);
@@ -129,6 +133,15 @@ export function entityIntersections(e1: Entity, e2: Entity): Vec2[] {
 export function selfIntersections(segs: Seg[], closed: boolean, tol = 1e-7): Vec2[] {
   const out: Vec2[] = [];
   const n = segs.length;
+  // Na junção de segmentos adjacentes (tangência reta↔arco) o ponto calculado pode
+  // desviar ~1e-7 mm do vértice em peças grandes: tolerância proporcional à escala.
+  let scale = 1;
+  for (const s of segs) {
+    const ps = s.kind === "line" ? [s.a, s.b] : [s.c];
+    for (const q of ps) scale = Math.max(scale, Math.abs(q.x), Math.abs(q.y));
+    if (s.kind === "arc") scale = Math.max(scale, s.r);
+  }
+  const jTol = Math.max(tol, 1e-8 * scale);
   for (let i = 0; i < n; i++) {
     for (let j = i + 1; j < n; j++) {
       const adjacent = j === i + 1 || (closed && i === 0 && j === n - 1);
@@ -138,7 +151,7 @@ export function selfIntersections(segs: Seg[], closed: boolean, tol = 1e-7): Vec
           // Ponto de junção compartilhado não é autointerseção
           const shared = [segs[i], segs[j]].every((s) => {
             const ends = s.kind === "line" ? [s.a, s.b] : [arcEndpoints(s)[0], arcEndpoints(s)[1]];
-            return ends.some((q) => dist(q, p) <= tol);
+            return ends.some((q) => dist(q, p) <= jTol);
           });
           if (shared) continue;
         }

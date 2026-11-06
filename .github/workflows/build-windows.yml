@@ -48,8 +48,10 @@ jobs:
         with:
           workspaces: apps/desktop/src-tauri
       - run: npm ci
-      - name: Testes do shell nativo
+      - name: Testes do shell nativo (inclui DWG reais do AutoCAD)
         working-directory: apps/desktop/src-tauri
+        env:
+          AGTN_DWG_SAMPLES: ${{ github.workspace }}/tests/dwg
         run: cargo test --release
       - name: Build Tauri
         run: npm run tauri -- build

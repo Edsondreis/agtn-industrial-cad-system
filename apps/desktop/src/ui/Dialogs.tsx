@@ -51,9 +51,19 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
         <div className="t2">Software de engenharia industrial</div>
         <div className="t3">Desenvolvido pela AGTN.</div>
         <div className="note" style={{ marginTop: 14 }}>
-          Versão {APP_VERSION} · CAD 2D · Planificação e calandra · Biblioteca de chapas · Texto laser · DXF
+          Versão {APP_VERSION} · CAD 2D · Planificação e calandra · Biblioteca de chapas · Texto laser · DXF · DWG
         </div>
         <div className="note">Estruturas metálicas · Fabricação industrial · Corte a laser · Dobra CNC</div>
+        <details className="note" style={{ marginTop: 14, textAlign: "left" }}>
+          <summary style={{ cursor: "pointer", textAlign: "center" }}>Componentes de terceiros</summary>
+          <p style={{ marginTop: 8 }}>
+            Conversor DWG ↔ DXF: <b>acadrust</b> 0.6.8 — Mozilla Public License 2.0 (código-fonte em github.com/hakanaktt/acadrust),
+            usado sem modificação. Inclui código adaptado do <b>ACadSharp</b> — MIT License, Copyright (c) 2021 Albert Domenech:
+            Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation
+            files, to deal in the Software without restriction, subject to the inclusion of the copyright notice and this permission
+            notice. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+          </p>
+        </details>
       </div>
     </Modal>
   );
@@ -248,25 +258,51 @@ export function DrawingSettingsDialog({ ctl, onClose }: { ctl: CadController; on
   );
 }
 
-export function ExportDxfDialog({ layers, onExport, onClose }: { layers: readonly Layer[]; onExport: (layers: string[]) => void; onClose: () => void }) {
+export function ExportDxfDialog({
+  layers,
+  onExport,
+  onClose,
+  initialFormat = "dxf",
+  dwgVersion,
+}: {
+  layers: readonly Layer[];
+  onExport: (layers: string[], format: "dxf" | "dwg") => void;
+  onClose: () => void;
+  initialFormat?: "dxf" | "dwg";
+  dwgVersion: string;
+}) {
   const [on, setOn] = useState<Set<string>>(new Set(layers.map((l) => l.name)));
+  const [format, setFormat] = useState<"dxf" | "dwg">(initialFormat);
   return (
     <Modal
-      title="Exportar DXF"
+      title={format === "dwg" ? "Exportar DWG" : "Exportar DXF"}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
             Cancelar
           </button>
-          <button className="btn primary" disabled={!on.size} onClick={() => onExport([...on])}>
+          <button className="btn primary" disabled={!on.size} onClick={() => onExport([...on], format)}>
             Exportar
           </button>
         </>
       }
     >
+      <div className="sm-row" style={{ gridTemplateColumns: "80px 1fr" }}>
+        <span className="k">Formato</span>
+        <div className="seg" style={{ justifySelf: "start" }}>
+          <button className={format === "dxf" ? "on" : ""} onClick={() => setFormat("dxf")}>
+            DXF R12
+          </button>
+          <button className={format === "dwg" ? "on" : ""} onClick={() => setFormat("dwg")}>
+            DWG
+          </button>
+        </div>
+      </div>
       <p className="note">
-        Formato DXF R12 (AC1009), ASCII, coordenadas em milímetros. R12 não registra unidade nem espessura de linha; cotas são exportadas como geometria.
+        {format === "dwg"
+          ? `DWG ${dwgVersion.replace("ACAD", "")} gravado pelo conversor do AGTN CAD (versão em Preferências), coordenadas em milímetros; cotas como geometria.`
+          : "Formato DXF R12 (AC1009), ASCII, coordenadas em milímetros. R12 não registra unidade nem espessura de linha; cotas são exportadas como geometria."}
       </p>
       <h4>Camadas</h4>
       {layers.map((l) => (
@@ -319,15 +355,17 @@ export function PrefsDialog({
   onClose,
   recentCount,
   onClearRecents,
+  dwgSection,
 }: {
   prefs: AppPrefs;
   onChange: (p: AppPrefs) => void;
   onClose: () => void;
   recentCount: number;
   onClearRecents: () => void;
+  dwgSection?: ReactNode;
 }) {
   return (
-    <Modal title="Preferências" onClose={onClose} footer={<button className="btn primary" onClick={onClose}>Fechar</button>}>
+    <Modal title="Preferências" width={620} onClose={onClose} footer={<button className="btn primary" onClick={onClose}>Fechar</button>}>
       <label className="chk">
         <input type="checkbox" checked={prefs.showStartCenter} onChange={(e) => onChange({ ...prefs, showStartCenter: e.target.checked })} />
         Mostrar o Start Center ao iniciar
@@ -346,6 +384,7 @@ export function PrefsDialog({
           Limpar lista
         </button>
       </div>
+      {dwgSection}
       <p className="note">As preferências ficam salvas neste computador. Configurações do desenho (grade, cotas) ficam em Ferramentas → Configurações do desenho.</p>
     </Modal>
   );

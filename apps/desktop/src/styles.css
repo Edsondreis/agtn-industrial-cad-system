@@ -349,7 +349,8 @@ h4 { font-weight: 600; }
 .recent:hover { background: var(--bg-3); }
 .recent .ty { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: var(--r); font: 700 9px/1 var(--mono); letter-spacing: 0.5px; border: 1px solid var(--line-2); color: var(--text-dim); background: var(--bg-1); }
 .recent .ty.agtn { color: var(--accent-hi); border-color: var(--accent-line); }
-.recent .ty.dxf { color: var(--m-ext); border-color: color-mix(in srgb, var(--m-ext) 50%, transparent); }
+.recent .ty.dxf, .conv-row .ty.dxf { color: var(--m-ext); border-color: color-mix(in srgb, var(--m-ext) 50%, transparent); }
+.recent .ty.dwg, .conv-row .ty.dwg { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 50%, transparent); }
 .recent .nm b { display: block; color: var(--text-hi); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .recent .nm span { display: block; margin-top: 1px; color: var(--text-faint); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .recent .dt { color: var(--text-dim); font-size: 11px; white-space: nowrap; font-family: var(--mono); }
@@ -362,3 +363,22 @@ h4 { font-weight: 600; }
 .start-f { position: relative; display: flex; align-items: center; gap: 16px; padding: 12px 48px; border-top: 1px solid var(--line); color: var(--text-faint); font-size: 11px; }
 .start-f a, .linkbtn { background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 0; text-decoration: none; }
 .start-f a:hover, .linkbtn:hover { color: var(--text); text-decoration: underline; }
+
+/* ------------------------------ conversor DWG ↔ DXF ------------------------------ */
+.conv-opts { margin: 12px 0 10px; }
+.conv-list { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--bg-1); max-height: 320px; overflow: auto; }
+.conv-row { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 12px; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+.conv-row:last-child { border-bottom: none; }
+.conv-row .ty { width: 34px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: var(--r); font: 700 9px/1 var(--mono); border: 1px solid var(--line-2); }
+.conv-row .nm { min-width: 0; }
+.conv-row .nm b { display: block; color: var(--text-hi); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.conv-row .nm span { display: block; color: var(--text-faint); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.conv-row.ok .nm span { color: var(--ok); }
+.conv-row.erro .nm span { color: var(--err); white-space: normal; }
+.conv-row.convertendo .nm span { color: var(--accent-hi); }
+.conv-row .acts { display: flex; gap: 4px; align-items: center; }
+.conv-empty { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; padding: 34px 20px; background: none; border: none; color: var(--text-dim); cursor: pointer; }
+.conv-empty:hover:not(:disabled) { background: var(--bg-2); }
+.conv-empty svg { width: 32px; height: 32px; color: var(--text-faint); }
+.conv-empty b { color: var(--text); font-size: 13px; }
+.conv-empty span { font-size: 11px; }

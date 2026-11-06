@@ -3,7 +3,8 @@ import type { Entity } from "@agtn/geometry";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CadController } from "../cad/controller";
 import { InsertTool } from "../cad/tools/insert";
-import { clearRecovery, guardClose, loadRecovery, setWindowTitle, startupFile } from "../platform/platform";
+import { clearRecovery, guardClose, loadRecovery, onOpenFileRequest, setWindowTitle, startupFile } from "../platform/platform";
+import { ConvertDialog, DefaultAppButtons } from "../ui/CadConvert";
 // módulos pesados (cálculo de chapas, fontes, booleanas) carregados sob demanda: abertura mais rápida
 const SheetMetalWorkspace = lazy(() => import("../sheetmetal/SheetMetalWorkspace").then((m) => ({ default: m.SheetMetalWorkspace })));
 const PartsWorkspace = lazy(() => import("../parts/PartsWorkspace").then((m) => ({ default: m.PartsWorkspace })));
@@ -30,10 +31,10 @@ import { StatusBar } from "../ui/StatusBar";
 import { FileActions, PRODUCT } from "./files";
 import { StartCenter, type StartTarget } from "./StartCenter";
 import { recents } from "./recents";
-import { type AppPrefs, loadPrefs, savePrefs } from "./prefs";
+import { type AppPrefs, CAD_VERSIONS, type CadVersion, loadPrefs, savePrefs } from "./prefs";
 import { Toasts } from "../ui/toast";
 
-type Dialog = null | "about" | "shortcuts" | "dxf" | "bytype" | "settings" | "export" | "lasertext" | "prefs";
+type Dialog = null | "about" | "shortcuts" | "dxf" | "bytype" | "settings" | "export" | "exportdwg" | "lasertext" | "prefs" | "convert";
 
 const Loading = ({ label }: { label: string }) => (
   <div className="loading-pane">
@@ -58,6 +59,7 @@ export function App() {
     setPrefsState(p);
   };
   files.defaultUnits = prefs.defaultUnits;
+  files.dwgVersion = prefs.dwgVersion;
   const [start, setStart] = useState<boolean>(() => prefs.showStartCenter);
   const [leaving, setLeaving] = useState(false);
   const enterCad = useCallback((target: StartTarget) => {
@@ -92,6 +94,9 @@ export function App() {
     a.set("QSAVE", () => void files.save());
     a.set("DXFOUT", () => setDialog("export"));
     a.set("DXFIN", () => void files.importDxf());
+    a.set("DWGIN", () => void files.importDxf());
+    a.set("DWGOUT", () => setDialog("exportdwg"));
+    for (const k of ["CONVERTER", "DWG2DXF", "DXF2DWG"]) a.set(k, () => setDialog("convert"));
     a.set("__EXPORT_DXF__", () => setDialog("export"));
     a.set("__DXF_REPORT__", () => setDialog("dxf"));
     a.set("SELTIPO", () => setDialog("bytype"));
@@ -125,9 +130,24 @@ export function App() {
         }
       }
     })();
+    // duplo clique em .agtncad/.dxf/.dwg com o app já aberto: abre aqui (instância única)
+    let unlisten: (() => void) | null = null;
+    let disposed = false;
+    void onOpenFileRequest((path) => {
+      void files.openPath(path, true).then((ok) => {
+        if (ok) {
+          setDialog(null);
+          setStart(false);
+        }
+      });
+    }).then((u) => (disposed ? u() : (unlisten = u)));
     void guardClose(() => ctl.doc.dirty, async () => clearRecovery().catch(() => undefined));
     const t = window.setInterval(() => void files.autosave(), 60_000);
-    return () => window.clearInterval(t);
+    return () => {
+      disposed = true;
+      unlisten?.();
+      window.clearInterval(t);
+    };
   }, [ctl, files]);
 
   /* ---------------------------------- teclado ---------------------------------- */
@@ -233,8 +253,10 @@ export function App() {
         { label: "Salvar", key: "Ctrl+S", run: () => void files.save() },
         { label: "Salvar como…", key: "Ctrl+Shift+S", run: () => void files.saveAs() },
         { sep: true },
-        { label: "Importar DXF…", run: () => void files.importDxf() },
+        { label: "Importar DXF/DWG…", run: () => void files.importDxf() },
         { label: "Exportar DXF…", run: () => setDialog("export") },
+        { label: "Exportar DWG…", run: () => setDialog("exportdwg") },
+        { label: "Converter DWG ↔ DXF…", run: () => setDialog("convert") },
         { label: "Relatório da última importação DXF", disabled: !files.lastDxfReport, run: () => setDialog("dxf") },
       ],
     },
@@ -335,6 +357,7 @@ export function App() {
         { label: "Biblioteca de chapas (flanges, bolachas, suportes…)", key: "PECAS", run: () => setWs("pecas") },
         { label: "Texto para laser…", key: "T", run: () => setDialog("lasertext") },
         { label: "Medir distância", key: "DI", run: run("DIST") },
+        { label: "Converter DWG ↔ DXF…", key: "CONVERTER", run: () => setDialog("convert") },
         { sep: true },
         { label: "Configurações do desenho…", run: () => setDialog("settings") },
         { label: "Preferências…", run: () => setDialog("prefs") },
@@ -400,7 +423,36 @@ export function App() {
         </Suspense>
       )}
       {dialog === "prefs" && (
-        <PrefsDialog prefs={prefs} onChange={setPrefs} onClose={() => setDialog(null)} recentCount={recents.list().length} onClearRecents={() => recents.clear()} />
+        <PrefsDialog
+          prefs={prefs}
+          onChange={setPrefs}
+          onClose={() => setDialog(null)}
+          recentCount={recents.list().length}
+          onClearRecents={() => recents.clear()}
+          dwgSection={
+            <>
+              <h4 style={{ margin: "16px 0 6px" }}>DWG (AutoCAD)</h4>
+              <p className="note" style={{ margin: "0 0 8px" }}>
+                Conversor DWG ↔ DXF próprio do AGTN Industrial CAD — R12 até 2018+, sem instalar nada.
+              </p>
+              <div className="sm-row" style={{ gridTemplateColumns: "1fr 260px" }}>
+                <span className="k">Versão ao gravar DWG / converter</span>
+                <select value={prefs.dwgVersion} onChange={(e) => setPrefs({ ...prefs, dwgVersion: e.target.value as CadVersion })}>
+                  {CAD_VERSIONS.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <h4 style={{ margin: "16px 0 6px" }}>Programa padrão</h4>
+              <p className="note" style={{ margin: "0 0 8px" }}>
+                Abrir arquivos .dwg e .dxf com duplo clique no AGTN Industrial CAD.
+              </p>
+              <DefaultAppButtons />
+            </>
+          }
+        />
       )}
       {start && (
         <StartCenter
@@ -410,6 +462,7 @@ export function App() {
           onEnter={enterCad}
           onPrefs={() => setDialog("prefs")}
           onAbout={() => setDialog("about")}
+          onConvert={() => setDialog("convert")}
           recovery={recovery}
           onRestore={() => {
             if (recovery) void files.restoreRecovery(recovery.payload).then((ok) => ok && enterCad("desenho"));
@@ -434,14 +487,29 @@ export function App() {
       {dialog === "dxf" && files.lastDxfReport && <DxfReportDialog report={files.lastDxfReport} onClose={() => setDialog(null)} />}
       {dialog === "bytype" && <SelectByTypeDialog ctl={ctl} onClose={() => setDialog(null)} />}
       {dialog === "settings" && <DrawingSettingsDialog ctl={ctl} onClose={() => setDialog(null)} />}
-      {dialog === "export" && (
+      {(dialog === "export" || dialog === "exportdwg") && (
         <ExportDxfDialog
           layers={doc.layers}
+          initialFormat={dialog === "exportdwg" ? "dwg" : "dxf"}
+          dwgVersion={prefs.dwgVersion}
           onClose={() => setDialog(null)}
-          onExport={(layers) => {
+          onExport={(layers, format) => {
             setDialog(null);
-            void files.exportDxf({ layers });
+            void files.exportDxf({ layers, format });
           }}
+        />
+      )}
+      {dialog === "convert" && (
+        <ConvertDialog
+          defaultVersion={prefs.dwgVersion}
+          onClose={() => setDialog(null)}
+          onOpen={(path) =>
+            void files.openPath(path, true).then((ok) => {
+              if (!ok) return;
+              setDialog(null);
+              if (start) enterCad("desenho");
+            })
+          }
         />
       )}
       {recovery && !start && (
