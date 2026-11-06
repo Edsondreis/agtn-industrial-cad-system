@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.0 — Primeira versão estável
+- Versão 1.0.0 publicada como Release no GitHub (instalador NSIS, MSI, executável e SHA256SUMS).
+- Mesmas funcionalidades da 0.3.0; notas em `docs/release-notes/v1.0.0.md`.
+
 ## 0.3.0 — Nova geração de interface
 - **Start Center**: Novo projeto (desenho 2D, planificação, biblioteca, texto laser), Abrir arquivo, Recentes
   persistentes (reabrir, remover, abrir pasta, arquivo não encontrado), recuperação, Preferências.

@@ -6,7 +6,7 @@ Plataforma inicial: Windows 10/11 (desktop). Arquitetura preparada para evoluç�
 
 > Desenvolvido pela AGTN. Uso interno/comercial da AGTN — veja `LICENSE`.
 
-## Funcionalidades (v0.3.0)
+## Funcionalidades (v1.0.0)
 
 Tudo abaixo está implementado sobre geometria real (coordenadas em mm, float64) e coberto por testes
 automatizados (ver “Qualidade”).
@@ -85,7 +85,7 @@ olhal de içamento e gabarito de boca de lobo (tubo × tubo a 90°, com excentri
 ## Instalação (usuário)
 
 Baixe o instalador gerado pelo GitHub Actions (aba **Actions** → execução mais recente de *Build Windows* →
-artefato `AGTN-CAD-windows`): `AGTN Industrial CAD_0.3.0_x64-setup.exe` (NSIS) ou `.msi`. O instalador NSIS instala para o
+artefato `AGTN-CAD-windows`): `AGTN Industrial CAD_1.0.0_x64-setup.exe` (NSIS) ou `.msi`. O instalador NSIS instala para o
 usuário atual (sem administrador). Requer WebView2 (já presente no Windows 10 atualizado e no Windows 11; o
 instalador baixa automaticamente se faltar).
 
@@ -121,8 +121,8 @@ npm run tauri build
 
 Saídas:
 - `apps\desktop\src-tauri\target\release\agtn-cad.exe` — executável
-- `apps\desktop\src-tauri\target\release\bundle\nsis\AGTN Industrial CAD_0.3.0_x64-setup.exe` — instalador
-- `apps\desktop\src-tauri\target\release\bundle\msi\AGTN Industrial CAD_0.3.0_x64_pt-BR.msi` — pacote MSI
+- `apps\desktop\src-tauri\target\release\bundle\nsis\AGTN Industrial CAD_1.0.0_x64-setup.exe` — instalador
+- `apps\desktop\src-tauri\target\release\bundle\msi\AGTN Industrial CAD_1.0.0_x64_pt-BR.msi` — pacote MSI
 
 O mesmo processo roda automaticamente em `.github/workflows/build-windows.yml` a cada push na `main`.
 
