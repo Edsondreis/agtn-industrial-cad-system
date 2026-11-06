@@ -28,28 +28,42 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "msi"],
+    "targets": [
+      "nsis",
+      "msi"
+    ],
     "publisher": "AGTN",
     "copyright": "© AGTN. Todos os direitos reservados.",
     "category": "DeveloperTool",
     "shortDescription": "AGTN Industrial CAD",
     "longDescription": "Software CAD 2D da AGTN para desenho técnico, chapas e planificação, com compatibilidade DXF e DWG.",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
     "fileAssociations": [
       {
-        "ext": ["agtncad"],
+        "ext": [
+          "agtncad"
+        ],
         "name": "Projeto AGTN Industrial CAD",
         "description": "Projeto AGTN Industrial CAD",
         "role": "Editor"
       },
       {
-        "ext": ["dxf"],
+        "ext": [
+          "dxf"
+        ],
         "name": "AGTNCAD.DXF",
         "description": "Desenho DXF",
         "role": "Editor"
       },
       {
-        "ext": ["dwg"],
+        "ext": [
+          "dwg"
+        ],
         "name": "AGTNCAD.DWG",
         "description": "Desenho DWG (AutoCAD)",
         "role": "Editor"
@@ -57,8 +71,12 @@
     ],
     "windows": {
       "nsis": {
-        "languages": ["PortugueseBR", "English"],
-        "installMode": "currentUser"
+        "languages": [
+          "PortugueseBR",
+          "English"
+        ],
+        "installMode": "currentUser",
+        "installerHooks": "./windows/hooks.nsh"
       },
       "wix": {
         "language": "pt-BR"

@@ -1,15 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { CAD_VERSIONS, type AppPrefs, type CadVersion } from "../app/prefs";
+import { CAD_VERSIONS, type CadVersion } from "../app/prefs";
 import { dirName } from "../app/recents";
 import {
   type ConvertJob,
   baseName,
-  chooseDefaultApp,
   convertCad,
-  findConverter,
+  isDefaultApp,
   isTauri,
-  openOdaDownload,
-  pickExecutable,
+  makeDefaultApp,
   pickFolder,
   pickPaths,
   revealInFolder,
@@ -18,99 +16,36 @@ import { Modal } from "./Dialogs";
 import { Icon } from "./Icons";
 import { toast } from "./toast";
 
-/** Estado do conversor DWG (ODA File Converter): undefined = verificando. */
-export function useConverter(odaPath: string) {
-  const [path, setPath] = useState<string | null | undefined>(undefined);
-  const check = useCallback(() => {
-    setPath(undefined);
-    findConverter(odaPath)
-      .then(setPath)
-      .catch(() => setPath(null));
-  }, [odaPath]);
-  useEffect(check, [check]);
-  return { path, check };
-}
-
-/** Faixa com o estado do conversor DWG e as ações de instalar/localizar. */
-export function ConverterStatus({ prefs, onChange, compact }: { prefs: AppPrefs; onChange: (p: AppPrefs) => void; compact?: boolean }) {
-  const { path, check } = useConverter(prefs.odaPath);
-  if (!isTauri()) return <div className="warnbox">DWG disponível apenas no aplicativo desktop (Windows).</div>;
-  if (path === undefined) return <div className="infobox">Procurando o ODA File Converter…</div>;
-  const locate = async () => {
-    const exe = await pickExecutable();
-    if (!exe) return;
-    const ok = await findConverter(exe);
-    if (!ok) {
-      toast("Esse arquivo não é o ODAFileConverter.exe.", "error");
-      return;
-    }
-    onChange({ ...prefs, odaPath: exe });
-    toast("Conversor DWG configurado.", "ok");
-  };
-  if (path)
-    return (
-      <div className="okbox" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ flex: 1, minWidth: 0 }}>
-          <b>Conversor DWG pronto</b> — ODA File Converter
-          {!compact && (
-            <div className="note mono" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={path}>
-              {path}
-            </div>
-          )}
-        </span>
-        {!compact && (
-          <>
-            <button className="btn" onClick={() => void locate()}>
-              Alterar…
-            </button>
-            {prefs.odaPath && (
-              <button className="btn" title="Voltar à detecção automática" onClick={() => onChange({ ...prefs, odaPath: "" })}>
-                Automático
-              </button>
-            )}
-          </>
-        )}
-      </div>
-    );
-  return (
-    <div className="errbox">
-      <b>ODA File Converter não encontrado.</b>
-      <div className="note" style={{ margin: "4px 0 8px" }}>
-        O DWG é um formato fechado da Autodesk. O AGTN Industrial CAD lê e grava DWG pelo <b>ODA File Converter</b>, programa gratuito da
-        Open Design Alliance (o mesmo motor de BricsCAD e DraftSight). Instale uma vez — o AGTN CAD encontra sozinho.
-      </div>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        <button className="btn primary" onClick={() => void openOdaDownload().catch((e) => toast(String(e), "error"))}>
-          Baixar ODA File Converter (grátis)
-        </button>
-        <button className="btn" onClick={() => void locate()}>
-          Localizar ODAFileConverter.exe…
-        </button>
-        <button className="btn" onClick={check}>
-          Verificar de novo
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/** Botões "Abrir com" do Windows para tornar o AGTN CAD o padrão de cada extensão. */
+/** Botões para tornar o AGTN Industrial CAD o programa padrão de .dwg e .dxf. */
 export function DefaultAppButtons() {
-  const go = (ext: "dxf" | "dwg" | "agtncad") =>
-    chooseDefaultApp(ext)
-      .then(() => toast(`Escolha "AGTN Industrial CAD" e marque "Sempre usar este aplicativo" para .${ext}.`, "ok"))
+  const [state, setState] = useState<Record<"dwg" | "dxf", boolean | null>>({ dwg: null, dxf: null });
+  const refresh = useCallback(() => {
+    void Promise.all((["dwg", "dxf"] as const).map(async (e) => [e, await isDefaultApp(e).catch(() => false)] as const)).then((r) =>
+      setState(Object.fromEntries(r) as Record<"dwg" | "dxf", boolean>),
+    );
+  }, []);
+  useEffect(refresh, [refresh]);
+  const go = (ext: "dxf" | "dwg") =>
+    makeDefaultApp(ext)
+      .then((how) => {
+        if (how === "direto") toast(`Arquivos .${ext} agora abrem no AGTN Industrial CAD.`, "ok");
+        else toast(`O Windows pediu confirmação: escolha "AGTN Industrial CAD" e marque "Sempre usar este aplicativo".`, "warn");
+        window.setTimeout(refresh, 600);
+      })
       .catch((e) => toast(String(e), "error"));
   return (
-    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-      <button className="btn" disabled={!isTauri()} onClick={() => void go("dwg")}>
-        Padrão para .dwg
-      </button>
-      <button className="btn" disabled={!isTauri()} onClick={() => void go("dxf")}>
-        Padrão para .dxf
-      </button>
-      <button className="btn" disabled={!isTauri()} onClick={() => void go("agtncad")}>
-        Padrão para .agtncad
-      </button>
+    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+      {(["dwg", "dxf"] as const).map((ext) =>
+        state[ext] ? (
+          <span key={ext} className="okbox" style={{ margin: 0, padding: "4px 10px" }}>
+            ✓ .{ext} abre no AGTN CAD
+          </span>
+        ) : (
+          <button key={ext} className="btn" disabled={!isTauri()} onClick={() => void go(ext)}>
+            Tornar padrão para .{ext}
+          </button>
+        ),
+      )}
     </div>
   );
 }
@@ -136,22 +71,19 @@ export function outputFor(input: string, target: Target, folder: string | null):
   return { format, output: `${dir}${sep(input)}${name}` };
 }
 
-/** CONVERSOR DWG ↔ DXF — vários arquivos de uma vez, pelo ODA File Converter. */
+/** CONVERSOR DWG ↔ DXF — vários arquivos de uma vez, motor próprio (sem programas externos). */
 export function ConvertDialog({
-  prefs,
-  onPrefs,
+  defaultVersion,
   onClose,
   onOpen,
 }: {
-  prefs: AppPrefs;
-  onPrefs: (p: AppPrefs) => void;
+  defaultVersion: CadVersion;
   onClose: () => void;
   onOpen: (path: string) => void;
 }) {
-  const { path: conv } = useConverter(prefs.odaPath);
   const [rows, setRows] = useState<Row[]>([]);
   const [target, setTarget] = useState<Target>("auto");
-  const [version, setVersion] = useState<CadVersion>(prefs.dwgVersion);
+  const [version, setVersion] = useState<CadVersion>(defaultVersion);
   const [folder, setFolder] = useState<string | null>(null);
   const [overwrite, setOverwrite] = useState(false);
   const [running, setRunning] = useState(false);
@@ -207,17 +139,17 @@ export function ConvertDialog({
       onClose={() => !running && onClose()}
       footer={
         <>
-          <span className="note">Os originais nunca são alterados. Conversão feita no seu computador, sem internet.</span>
+          <span className="note">Conversor próprio do AGTN CAD — no seu computador, sem internet. Os originais nunca são alterados.</span>
           <button className="btn" disabled={running} onClick={onClose}>
             Fechar
           </button>
-          <button className="btn primary" disabled={running || !conv || !pending} onClick={() => void run()}>
+          <button className="btn primary" disabled={running || !pending} onClick={() => void run()}>
             {running ? "Convertendo…" : `Converter${pending ? ` (${pending})` : ""}`}
           </button>
         </>
       }
     >
-      <ConverterStatus prefs={prefs} onChange={onPrefs} compact />
+      {!isTauri() && <div className="warnbox">Conversão disponível no aplicativo desktop (Windows).</div>}
       <div className="conv-opts">
         <div className="sm-row" style={{ gridTemplateColumns: "110px 1fr" }}>
           <span className="k">Converter para</span>

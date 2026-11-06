@@ -3,8 +3,8 @@ import type { Entity } from "@agtn/geometry";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CadController } from "../cad/controller";
 import { InsertTool } from "../cad/tools/insert";
-import { clearRecovery, guardClose, loadRecovery, onOpenFileRequest, setConverterPath, setWindowTitle, startupFile } from "../platform/platform";
-import { ConvertDialog, ConverterStatus, DefaultAppButtons } from "../ui/CadConvert";
+import { clearRecovery, guardClose, loadRecovery, onOpenFileRequest, setWindowTitle, startupFile } from "../platform/platform";
+import { ConvertDialog, DefaultAppButtons } from "../ui/CadConvert";
 // módulos pesados (cálculo de chapas, fontes, booleanas) carregados sob demanda: abertura mais rápida
 const SheetMetalWorkspace = lazy(() => import("../sheetmetal/SheetMetalWorkspace").then((m) => ({ default: m.SheetMetalWorkspace })));
 const PartsWorkspace = lazy(() => import("../parts/PartsWorkspace").then((m) => ({ default: m.PartsWorkspace })));
@@ -60,8 +60,6 @@ export function App() {
   };
   files.defaultUnits = prefs.defaultUnits;
   files.dwgVersion = prefs.dwgVersion;
-  setConverterPath(prefs.odaPath);
-  files.onConverterMissing = () => setDialog("prefs");
   const [start, setStart] = useState<boolean>(() => prefs.showStartCenter);
   const [leaving, setLeaving] = useState(false);
   const enterCad = useCallback((target: StartTarget) => {
@@ -434,8 +432,10 @@ export function App() {
           dwgSection={
             <>
               <h4 style={{ margin: "16px 0 6px" }}>DWG (AutoCAD)</h4>
-              <ConverterStatus prefs={prefs} onChange={setPrefs} />
-              <div className="sm-row" style={{ marginTop: 8, gridTemplateColumns: "1fr 260px" }}>
+              <p className="note" style={{ margin: "0 0 8px" }}>
+                Conversor DWG ↔ DXF próprio do AGTN Industrial CAD — R12 até 2018+, sem instalar nada.
+              </p>
+              <div className="sm-row" style={{ gridTemplateColumns: "1fr 260px" }}>
                 <span className="k">Versão ao gravar DWG / converter</span>
                 <select value={prefs.dwgVersion} onChange={(e) => setPrefs({ ...prefs, dwgVersion: e.target.value as CadVersion })}>
                   {CAD_VERSIONS.map((v) => (
@@ -445,10 +445,9 @@ export function App() {
                   ))}
                 </select>
               </div>
-              <h4 style={{ margin: "16px 0 6px" }}>Abrir arquivos com duplo clique</h4>
+              <h4 style={{ margin: "16px 0 6px" }}>Programa padrão</h4>
               <p className="note" style={{ margin: "0 0 8px" }}>
-                O instalador registra .agtncad, .dxf e .dwg. Se outro programa já era o padrão, o Windows exige que você confirme: clique, escolha
-                <b> AGTN Industrial CAD</b> e marque <b>Sempre usar este aplicativo</b>.
+                Abrir arquivos .dwg e .dxf com duplo clique no AGTN Industrial CAD.
               </p>
               <DefaultAppButtons />
             </>
@@ -502,8 +501,7 @@ export function App() {
       )}
       {dialog === "convert" && (
         <ConvertDialog
-          prefs={prefs}
-          onPrefs={setPrefs}
+          defaultVersion={prefs.dwgVersion}
           onClose={() => setDialog(null)}
           onOpen={(path) =>
             void files.openPath(path, true).then((ok) => {

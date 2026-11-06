@@ -174,49 +174,17 @@ export async function revealInFolder(path: string): Promise<void> {
   await invoke("reveal_in_folder", { path });
 }
 
-/* ----------------------------- DWG (ODA File Converter) ----------------------------- */
-let converterPath = "";
-/** Caminho do ODAFileConverter.exe definido nas preferências ("" = detectar). */
-export function setConverterPath(p: string): void {
-  converterPath = p;
-}
-const conv = () => (converterPath.trim() ? converterPath.trim() : null);
-
-/** Caminho do conversor encontrado, ou null se não estiver instalado. */
-export async function findConverter(custom?: string): Promise<string | null> {
-  if (!isTauri()) return null;
-  const r = await invoke<{ path: string | null }>("dwg_converter", { custom: custom ?? conv() });
-  return r.path;
-}
-
-export class ConverterMissingError extends Error {
-  constructor() {
-    super("Para abrir e gravar DWG instale o ODA File Converter (gratuito) — Preferências → DWG.");
-    this.name = "ConverterMissingError";
-  }
-}
-const wrap = (e: unknown): Error => (/não encontrado/i.test(String(e)) && /ODA/i.test(String(e)) ? new ConverterMissingError() : new Error(String(e)));
-
-/** Lê um DWG convertendo-o para DXF R2018 (bytes do DXF). */
+/* ------------------- DWG — conversor próprio (embutido, nada para instalar) ------------------- */
+/** Lê um DWG convertendo-o para DXF 2018 (bytes do DXF). */
 export async function readDwgAsDxf(path: string): Promise<Uint8Array> {
   if (!isTauri()) throw new Error("DWG está disponível no aplicativo desktop.");
-  try {
-    return new Uint8Array(await invoke<ArrayBuffer>("dwg_read_as_dxf", { converter: conv(), path }));
-  } catch (e) {
-    throw wrap(e);
-  }
+  return new Uint8Array(await invoke<ArrayBuffer>("dwg_read_as_dxf", { path }));
 }
 
 /** Grava DWG a partir de bytes DXF. */
 export async function writeDwgFromDxf(path: string, dxf: Uint8Array, version: string): Promise<void> {
   if (!isTauri()) throw new Error("DWG está disponível no aplicativo desktop.");
-  const headers: Record<string, string> = { "x-path": encodeURIComponent(path), "x-version": encodeURIComponent(version) };
-  if (conv()) headers["x-converter"] = encodeURIComponent(conv()!);
-  try {
-    await invoke("dwg_write_from_dxf", dxf, { headers });
-  } catch (e) {
-    throw wrap(e);
-  }
+  await invoke("dwg_write_from_dxf", dxf, { headers: { "x-path": encodeURIComponent(path), "x-version": encodeURIComponent(version) } });
 }
 
 export interface ConvertJob {
@@ -229,11 +197,7 @@ export interface ConvertResult extends ConvertJob {
 }
 export async function convertCad(jobs: ConvertJob[], format: "DXF" | "DWG", version: string, overwrite: boolean): Promise<ConvertResult[]> {
   if (!isTauri()) throw new Error("Conversão disponível no aplicativo desktop.");
-  try {
-    return await invoke<ConvertResult[]>("convert_cad", { converter: conv(), jobs, format, version, overwrite });
-  } catch (e) {
-    throw wrap(e);
-  }
+  return invoke<ConvertResult[]>("convert_cad", { jobs, format, version, overwrite });
 }
 
 /** Escolha de vários arquivos (caminhos). */
@@ -249,25 +213,18 @@ export async function pickFolder(): Promise<string | null> {
   const r = await open({ multiple: false, directory: true });
   return typeof r === "string" ? r : null;
 }
-export async function pickExecutable(): Promise<string | null> {
-  if (!isTauri()) return null;
-  const { open } = await import("@tauri-apps/plugin-dialog");
-  const r = await open({ multiple: false, directory: false, filters: [{ name: "ODAFileConverter", extensions: ["exe"] }] });
-  return typeof r === "string" ? r : null;
-}
-
-export async function openOdaDownload(): Promise<void> {
-  if (!isTauri()) {
-    window.open("https://www.opendesign.com/guestfiles/oda_file_converter", "_blank");
-    return;
-  }
-  await invoke("open_oda_download");
-}
-
-/** Abre o "Abrir com" do Windows para a extensão (marcar "Sempre usar este aplicativo"). */
-export async function chooseDefaultApp(ext: "dxf" | "dwg" | "agtncad"): Promise<void> {
+/**
+ * Torna o AGTN Industrial CAD o programa padrão da extensão.
+ * "direto" = aplicado; "abrir-com" = o Windows recusou e abriu a janela "Abrir com" para o usuário confirmar.
+ */
+export async function makeDefaultApp(ext: "dxf" | "dwg"): Promise<"direto" | "abrir-com"> {
   if (!isTauri()) throw new Error("Disponível no aplicativo desktop.");
-  await invoke("choose_default_app", { ext });
+  return invoke<"direto" | "abrir-com">("make_default_app", { ext });
+}
+/** O AGTN Industrial CAD já é o padrão da extensão? */
+export async function isDefaultApp(ext: "dxf" | "dwg"): Promise<boolean> {
+  if (!isTauri()) return false;
+  return invoke<boolean>("is_default_app", { ext });
 }
 
 /** Arquivo aberto por duplo clique com o aplicativo já em execução (instância única). */

@@ -54,6 +54,16 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
           Versão {APP_VERSION} · CAD 2D · Planificação e calandra · Biblioteca de chapas · Texto laser · DXF · DWG
         </div>
         <div className="note">Estruturas metálicas · Fabricação industrial · Corte a laser · Dobra CNC</div>
+        <details className="note" style={{ marginTop: 14, textAlign: "left" }}>
+          <summary style={{ cursor: "pointer", textAlign: "center" }}>Componentes de terceiros</summary>
+          <p style={{ marginTop: 8 }}>
+            Conversor DWG ↔ DXF: <b>acadrust</b> 0.6.8 — Mozilla Public License 2.0 (código-fonte em github.com/hakanaktt/acadrust),
+            usado sem modificação. Inclui código adaptado do <b>ACadSharp</b> — MIT License, Copyright (c) 2021 Albert Domenech:
+            Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation
+            files, to deal in the Software without restriction, subject to the inclusion of the copyright notice and this permission
+            notice. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+          </p>
+        </details>
       </div>
     </Modal>
   );
@@ -291,7 +301,7 @@ export function ExportDxfDialog({
       </div>
       <p className="note">
         {format === "dwg"
-          ? `DWG ${dwgVersion.replace("ACAD", "")} gravado pelo ODA File Converter (versão em Preferências), coordenadas em milímetros; cotas como geometria.`
+          ? `DWG ${dwgVersion.replace("ACAD", "")} gravado pelo conversor do AGTN CAD (versão em Preferências), coordenadas em milímetros; cotas como geometria.`
           : "Formato DXF R12 (AC1009), ASCII, coordenadas em milímetros. R12 não registra unidade nem espessura de linha; cotas são exportadas como geometria."}
       </p>
       <h4>Camadas</h4>

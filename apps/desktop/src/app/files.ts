@@ -9,7 +9,6 @@ import {
   baseName,
   clearRecovery,
   confirmDialog,
-  ConverterMissingError,
   isDwg,
   pickAndRead,
   readDwgAsDxf,
@@ -69,8 +68,7 @@ export class FileActions {
   defaultUnits: LengthUnit = "mm";
   /** versão de DWG gravada (preferência do usuário) */
   dwgVersion = "ACAD2018";
-  /** chamado quando falta o ODA File Converter (abre a ajuda de instalação) */
-  onConverterMissing: (() => void) | null = null;
+
 
   async newDrawing(opts: { units?: LengthUnit } = {}): Promise<boolean> {
     if (!(await this.confirmDiscard())) return false;
@@ -127,7 +125,7 @@ export class FileActions {
       const dwg = isDwg(name);
       if (dwg && !path) throw new Error("DWG precisa ser aberto pelo aplicativo desktop.");
       if (dwg || /\.dxf$/i.test(name)) {
-        // DWG: convertido para DXF R2018 pelo ODA File Converter e lido pelo mesmo importador do DXF
+        // DWG: convertido para DXF 2018 pelo conversor próprio e lido pelo mesmo importador do DXF
         const r = readDxf(dwg ? await readDwgAsDxf(path!) : bytes);
         this.ctl.doc.load({
           entities: r.entities,
@@ -153,7 +151,6 @@ export class FileActions {
       this.ctl.zoomExtents();
       return true;
     } catch (e) {
-      if (e instanceof ConverterMissingError) this.onConverterMissing?.();
       const msg = `Falha ao abrir "${name}": ${e instanceof Error ? e.message : String(e)}`;
       this.ctl.message(msg, "error");
       toast(msg, "error");
@@ -209,13 +206,12 @@ export class FileActions {
       this.ctl.actions.get("__DXF_REPORT__")?.();
       this.ctl.zoomExtents();
     } catch (e) {
-      if (e instanceof ConverterMissingError) this.onConverterMissing?.();
       this.ctl.message(`Falha ao importar ${fmt}: ${e instanceof Error ? e.message : String(e)}`, "error");
       toast(`Falha ao importar ${fmt}: ${e instanceof Error ? e.message : String(e)}`, "error");
     }
   }
 
-  /** Exporta DXF R12 (ou DWG, via ODA) do desenho ou de camadas selecionadas. */
+  /** Exporta DXF R12 (ou DWG) do desenho ou de camadas selecionadas. */
   async exportDxf(opts: { layers?: string[]; entities?: Entity[]; layerDefs?: Layer[]; suggested?: string; format?: "dxf" | "dwg" } = {}) {
     const format = opts.format ?? "dxf";
     const suggested = (opts.suggested ?? `${this.file.name}.dxf`).replace(/\.(dxf|dwg)$/i, `.${format}`);
@@ -242,7 +238,6 @@ export class FileActions {
       this.ctl.message(`DXF R12 exportado: ${baseName(path)} (unidades: mm).`);
       toast(`DXF exportado: ${baseName(path)}`, "ok");
     } catch (e) {
-      if (e instanceof ConverterMissingError) this.onConverterMissing?.();
       const msg = e instanceof Error ? e.message : String(e);
       this.ctl.message(`Falha ao exportar ${format.toUpperCase()}: ${msg}`, "error");
       toast(`Falha ao exportar ${format.toUpperCase()}: ${msg}`, "error");

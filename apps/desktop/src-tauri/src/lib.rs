@@ -6,8 +6,10 @@
 //! - Arquivo de recuperação automática em `%LOCALAPPDATA%\br.com.agtn.cad\`.
 //! - Arquivo passado na linha de comando (associação de `.agtncad`/`.dxf`/`.dwg` no Windows) e
 //!   instância única (o 2º duplo clique abre o arquivo na janela já aberta).
-//! - DWG ↔ DXF pelo ODA File Converter (programa externo gratuito da Open Design Alliance).
+//! - DWG ↔ DXF com conversor próprio (`cadconv`, motor acadrust embutido) — nada para instalar.
 //! O motor geométrico, o documento e o DXF ficam no núcleo TypeScript (independente de UI).
+
+pub mod cadconv;
 
 use std::fs;
 use std::io::Write;
@@ -130,9 +132,10 @@ fn startup_file() -> Option<String> {
 }
 
 /* ------------------------------------------------------------------------------------------
- * DWG ↔ DXF — via ODA File Converter (Open Design Alliance, gratuito, instalado à parte).
- * O formato DWG é fechado; em vez de um leitor "aproximado", o AGTN CAD usa o conversor da ODA
- * (o mesmo motor de BricsCAD/DraftSight) como programa externo. Nada é embutido no AGTN CAD.
+ * DWG ↔ DXF — conversor PRÓPRIO (módulo `cadconv`, motor acadrust embutido; nada para instalar).
+ * Cada conversão roda num processo filho (o próprio executável com `--agtn-cadconv`) para que um
+ * arquivo corrompido nunca derrube a janela. Reforço opcional e silencioso: se o motor próprio
+ * falhar e o ODA File Converter já estiver instalado no PC, tenta por ele.
  * ------------------------------------------------------------------------------------------ */
 
 const ODA_EXE: &str = if cfg!(windows) { "ODAFileConverter.exe" } else { "ODAFileConverter" };
@@ -209,17 +212,6 @@ fn find_oda(custom: Option<&str>) -> Option<PathBuf> {
     None
 }
 
-#[derive(serde::Serialize)]
-struct ConverterInfo {
-    path: Option<String>,
-}
-
-/// Localiza o conversor DWG (None = não instalado).
-#[tauri::command]
-fn dwg_converter(custom: Option<String>) -> ConverterInfo {
-    ConverterInfo { path: find_oda(custom.as_deref()).map(|p| p.display().to_string()) }
-}
-
 fn unique_temp_dir(app: Option<&tauri::AppHandle>, tag: &str) -> Result<PathBuf, String> {
     let base = app
         .and_then(|a| a.path().app_local_data_dir().ok())
@@ -237,7 +229,7 @@ fn unique_temp_dir(app: Option<&tauri::AppHandle>, tag: &str) -> Result<PathBuf,
 /// Converte UM arquivo DWG/DXF com o ODA File Converter.
 /// O ODA trabalha por pastas: o arquivo é copiado sozinho para uma pasta temporária (nome ASCII),
 /// convertido para outra pasta temporária e o resultado é movido para `output` (gravação atômica).
-fn convert_one(
+fn oda_convert_one(
     exe: &Path,
     input: &Path,
     output: &Path,
@@ -321,6 +313,87 @@ fn convert_one(
     write_atomic(output, &bytes)
 }
 
+/// Executável que faz a conversão (o próprio app). Em testes, a conversão roda no mesmo processo.
+fn run_native(input: &Path, tmp_out: &Path, format: cadconv::Format, version: &str, err_file: &Path) -> Result<(), String> {
+    let args = vec![
+        cadconv::CLI_FLAG.to_string(),
+        input.display().to_string(),
+        tmp_out.display().to_string(),
+        format.ext().to_ascii_uppercase(),
+        version.to_string(),
+        err_file.display().to_string(),
+    ];
+    let code = if cfg!(test) {
+        cadconv::cli_main(&args)
+    } else {
+        let exe = std::env::current_exe().map_err(|e| format!("Executável não encontrado: {e}"))?;
+        let mut cmd = std::process::Command::new(exe);
+        cmd.args(&args)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null());
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+            cmd.creation_flags(CREATE_NO_WINDOW);
+        }
+        let mut child = cmd.spawn().map_err(|e| format!("Não foi possível iniciar o conversor: {e}"))?;
+        // limite de 10 min por arquivo (arquivo patológico não trava o lote)
+        let t0 = std::time::Instant::now();
+        loop {
+            match child.try_wait().map_err(|e| e.to_string())? {
+                Some(st) => break st.code().unwrap_or(-1),
+                None if t0.elapsed() > std::time::Duration::from_secs(600) => {
+                    let _ = child.kill();
+                    return Err("Tempo esgotado (10 min) — arquivo grande demais ou corrompido.".into());
+                }
+                None => std::thread::sleep(std::time::Duration::from_millis(25)),
+            }
+        }
+    };
+    if code == 0 && tmp_out.is_file() {
+        return Ok(());
+    }
+    let why = fs::read_to_string(err_file).unwrap_or_default();
+    Err(if why.trim().is_empty() {
+        "O conversor parou ao ler este arquivo (corrompido ou com objetos não suportados).".into()
+    } else {
+        why.trim().to_string()
+    })
+}
+
+/// Converte UM arquivo DWG/DXF → `output`. Motor próprio; ODA só como reforço se já instalado.
+fn convert_one(input: &Path, output: &Path, format: &str, version: &str, overwrite: bool, work: &Path) -> Result<(), String> {
+    let fmt = cadconv::Format::parse(format)?;
+    cadconv::version_from_id(version)?;
+    cadconv::Format::of_path(input)?;
+    if !input.is_file() {
+        return Err(format!("Arquivo não encontrado: {}", input.display()));
+    }
+    if output.exists() && !overwrite {
+        return Err(format!("Já existe: {}", output.display()));
+    }
+    fs::create_dir_all(work).map_err(|e| e.to_string())?;
+    let tmp = work.join(format!("resultado.{}", fmt.ext()));
+    let err = work.join("erro.txt");
+    let _ = fs::remove_file(&tmp);
+    let _ = fs::remove_file(&err);
+    match run_native(input, &tmp, fmt, version, &err) {
+        Ok(()) => {
+            let bytes = fs::read(&tmp).map_err(|e| e.to_string())?;
+            let _ = fs::remove_file(&tmp);
+            write_atomic(output, &bytes)
+        }
+        Err(native_err) => match find_oda(None) {
+            Some(exe) => {
+                oda_convert_one(&exe, input, output, format, version, overwrite, &work.join("oda")).map_err(|_| native_err)
+            }
+            _ => Err(native_err),
+        },
+    }
+}
+
 /// Converte uma lista de arquivos. Cada item volta com o caminho gerado ou o erro (não para no 1º erro).
 #[derive(serde::Deserialize)]
 struct ConvertJob {
@@ -338,19 +411,17 @@ struct ConvertResult {
 #[tauri::command]
 async fn convert_cad(
     app: tauri::AppHandle,
-    converter: Option<String>,
     jobs: Vec<ConvertJob>,
     format: String,
     version: String,
     overwrite: bool,
 ) -> Result<Vec<ConvertResult>, String> {
-    let exe = find_oda(converter.as_deref()).ok_or_else(|| "ODA File Converter não encontrado.".to_string())?;
     tauri::async_runtime::spawn_blocking(move || {
         let work = unique_temp_dir(Some(&app), "lote")?;
         let res = jobs
             .into_iter()
             .map(|j| {
-                let r = convert_one(&exe, Path::new(&j.input), Path::new(&j.output), &format, &version, overwrite, &work);
+                let r = convert_one(Path::new(&j.input), Path::new(&j.output), &format, &version, overwrite, &work);
                 ConvertResult { ok: r.is_ok(), error: r.err(), input: j.input, output: j.output }
             })
             .collect::<Vec<_>>();
@@ -361,14 +432,13 @@ async fn convert_cad(
     .map_err(|e| e.to_string())?
 }
 
-/// Abre um DWG: converte para DXF (R2018, sem perda de entidades modernas) e devolve os bytes do DXF.
+/// Abre um DWG: converte para DXF 2018 (mesmo resultado do DXF do AutoCAD) e devolve os bytes do DXF.
 #[tauri::command]
-async fn dwg_read_as_dxf(app: tauri::AppHandle, converter: Option<String>, path: String) -> Result<Response, String> {
-    let exe = find_oda(converter.as_deref()).ok_or_else(|| "ODA File Converter não encontrado.".to_string())?;
+async fn dwg_read_as_dxf(app: tauri::AppHandle, path: String) -> Result<Response, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let work = unique_temp_dir(Some(&app), "abrir")?;
-        let out = work.join("resultado.dxf");
-        let r = convert_one(&exe, Path::new(&path), &out, "DXF", "ACAD2018", true, &work).and_then(|_| fs::read(&out).map_err(|e| e.to_string()));
+        let out = work.join("aberto.dxf");
+        let r = convert_one(Path::new(&path), &out, "DXF", "ACAD2018", true, &work.join("c")).and_then(|_| fs::read(&out).map_err(|e| e.to_string()));
         let _ = fs::remove_dir_all(&work);
         r.map(Response::new)
     })
@@ -388,18 +458,16 @@ async fn dwg_write_from_dxf(app: tauri::AppHandle, request: Request<'_>) -> Resu
     };
     let path = h("x-path")?.ok_or("Cabeçalho x-path ausente")?;
     let version = h("x-version")?.unwrap_or_else(|| "ACAD2018".into());
-    let converter = h("x-converter")?;
     let bytes = match request.body() {
         InvokeBody::Raw(b) => b.clone(),
         _ => return Err("Corpo da requisição deve ser binário".into()),
     };
-    let exe = find_oda(converter.as_deref()).ok_or_else(|| "ODA File Converter não encontrado.".to_string())?;
     tauri::async_runtime::spawn_blocking(move || {
         let work = unique_temp_dir(Some(&app), "salvar")?;
         let tmp = work.join("origem.dxf");
         let r = fs::write(&tmp, &bytes)
             .map_err(|e| e.to_string())
-            .and_then(|_| convert_one(&exe, &tmp, Path::new(&path), "DWG", &version, true, &work.join("w")));
+            .and_then(|_| convert_one(&tmp, Path::new(&path), "DWG", &version, true, &work.join("w")));
         let _ = fs::remove_dir_all(&work);
         r
     })
@@ -407,51 +475,112 @@ async fn dwg_write_from_dxf(app: tauri::AppHandle, request: Request<'_>) -> Resu
     .map_err(|e| e.to_string())?
 }
 
-/// Abre a janela "Abrir com" do Windows para a extensão (com "Sempre usar este aplicativo").
-/// O Windows 10/11 não permite que um programa se torne padrão sozinho — só o usuário confirma.
+/* ----------------------------- programa padrão (.dwg / .dxf) ----------------------------- */
+
+fn progid(ext: &str) -> Result<&'static str, String> {
+    match ext.trim_start_matches('.').to_ascii_lowercase().as_str() {
+        "dwg" => Ok("AGTNCAD.DWG"),
+        "dxf" => Ok("AGTNCAD.DXF"),
+        _ => Err("Extensão não suportada".into()),
+    }
+}
+
+#[cfg(windows)]
+mod default_app {
+    use winreg::enums::HKEY_CURRENT_USER;
+    use winreg::RegKey;
+
+    const FILEEXTS: &str = r"Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts";
+
+    /// ProgID que o Explorer usa hoje para a extensão (escolha do usuário > classe padrão).
+    pub fn current(ext: &str) -> Option<String> {
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        for sub in ["UserChoiceLatest", "UserChoice"] {
+            if let Ok(k) = hkcu.open_subkey(format!(r"{FILEEXTS}\.{ext}\{sub}")) {
+                if let Ok(v) = k.get_value::<String, _>("ProgId") {
+                    return Some(v);
+                }
+            }
+        }
+        let hkcr = RegKey::predef(winreg::enums::HKEY_CLASSES_ROOT);
+        hkcr.open_subkey(format!(".{ext}")).ok()?.get_value::<String, _>("").ok()
+    }
+
+    /// Registra a classe (também no executável portátil), define como padrão e remove a escolha
+    /// anterior guardada pelo Windows para a extensão.
+    pub fn apply(ext: &str, progid: &str, description: &str) -> std::io::Result<()> {
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let exe = std::env::current_exe()?.display().to_string();
+        let (cls, _) = hkcu.create_subkey(format!(r"Software\Classes\{progid}"))?;
+        cls.set_value("", &description)?;
+        let (icon, _) = hkcu.create_subkey(format!(r"Software\Classes\{progid}\DefaultIcon"))?;
+        icon.set_value("", &format!("\"{exe}\",0"))?;
+        let (cmd, _) = hkcu.create_subkey(format!(r"Software\Classes\{progid}\shell\open\command"))?;
+        cmd.set_value("", &format!("\"{exe}\" \"%1\""))?;
+        let (e, _) = hkcu.create_subkey(format!(r"Software\Classes\.{ext}"))?;
+        e.set_value("", &progid)?;
+        let (owp, _) = hkcu.create_subkey(format!(r"Software\Classes\.{ext}\OpenWithProgids"))?;
+        owp.set_value(progid, &"")?;
+        for sub in ["UserChoiceLatest", "UserChoice"] {
+            let _ = hkcu.delete_subkey_all(format!(r"{FILEEXTS}\.{ext}\{sub}"));
+        }
+        notify();
+        Ok(())
+    }
+
+    pub fn notify() {
+        use windows_sys::Win32::UI::Shell::{SHChangeNotify, SHCNE_ASSOCCHANGED, SHCNF_IDLIST};
+        unsafe { SHChangeNotify(SHCNE_ASSOCCHANGED as i32, SHCNF_IDLIST, std::ptr::null(), std::ptr::null()) };
+    }
+}
+
+/// O AGTN Industrial CAD já é o programa padrão da extensão?
 #[tauri::command]
-fn choose_default_app(app: tauri::AppHandle, ext: String) -> Result<(), String> {
-    let ext = ext.trim_start_matches('.').to_ascii_lowercase();
-    if !["dxf", "dwg", "agtncad"].contains(&ext.as_str()) {
-        return Err("Extensão não suportada".into());
-    }
-    let dir = app
-        .path()
-        .app_local_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("associacao");
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    let sample = dir.join(format!("exemplo.{ext}"));
-    if !sample.is_file() {
-        fs::write(&sample, b"").map_err(|e| e.to_string())?;
-    }
+fn is_default_app(ext: String) -> Result<bool, String> {
+    let id = progid(&ext)?;
     #[cfg(windows)]
     {
+        Ok(default_app::current(ext.trim_start_matches('.')).map(|p| p.eq_ignore_ascii_case(id)).unwrap_or(false))
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = id;
+        Ok(false)
+    }
+}
+
+/// Torna o AGTN Industrial CAD o padrão da extensão. Retorna "direto" se aplicado; se o Windows
+/// recusar (política da empresa, proteção do sistema), abre "Abrir com" e retorna "abrir-com".
+#[tauri::command]
+fn make_default_app(app: tauri::AppHandle, ext: String) -> Result<String, String> {
+    let id = progid(&ext)?;
+    let ext = ext.trim_start_matches('.').to_ascii_lowercase();
+    #[cfg(windows)]
+    {
+        let desc = if ext == "dwg" { "Desenho DWG (AutoCAD)" } else { "Desenho DXF" };
+        if default_app::apply(&ext, id, desc).is_ok()
+            && default_app::current(&ext).map(|p| p.eq_ignore_ascii_case(id)).unwrap_or(false)
+        {
+            return Ok("direto".into());
+        }
+        let dir = app.path().app_local_data_dir().map_err(|e| e.to_string())?.join("associacao");
+        fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let sample = dir.join(format!("exemplo.{ext}"));
+        if !sample.is_file() {
+            fs::write(&sample, b"").map_err(|e| e.to_string())?;
+        }
         std::process::Command::new("rundll32.exe")
             .arg("shell32.dll,OpenAs_RunDLL")
             .arg(&sample)
             .spawn()
-            .map(|_| ())
-            .map_err(|e| format!("Não foi possível abrir \"Abrir com\": {e}"))
+            .map_err(|e| format!("Não foi possível abrir \"Abrir com\": {e}"))?;
+        Ok("abrir-com".into())
     }
     #[cfg(not(windows))]
     {
-        let _ = sample;
+        let _ = (app, id, ext);
         Err("Disponível no Windows.".into())
     }
-}
-
-/// Abre a página oficial de download do ODA File Converter no navegador padrão.
-#[tauri::command]
-fn open_oda_download() -> Result<(), String> {
-    const URL: &str = "https://www.opendesign.com/guestfiles/oda_file_converter";
-    #[cfg(windows)]
-    let r = std::process::Command::new("explorer").arg(URL).spawn();
-    #[cfg(target_os = "macos")]
-    let r = std::process::Command::new("open").arg(URL).spawn();
-    #[cfg(all(unix, not(target_os = "macos")))]
-    let r = std::process::Command::new("xdg-open").arg(URL).spawn();
-    r.map(|_| ()).map_err(|e| e.to_string())
 }
 
 /// Arquivo da linha de comando de uma 2ª instância (duplo clique com o app já aberto).
@@ -503,12 +632,11 @@ pub fn run() {
             recovery_load,
             recovery_clear,
             startup_file,
-            dwg_converter,
             convert_cad,
             dwg_read_as_dxf,
             dwg_write_from_dxf,
-            choose_default_app,
-            open_oda_download
+            is_default_app,
+            make_default_app
         ])
         .run(tauri::generate_context!())
         .expect("falha ao iniciar o AGTN CAD");
@@ -522,6 +650,13 @@ mod tests {
     fn decode_path() {
         assert_eq!(percent_decode("C%3A%5CPe%C3%A7as%5Ca.dxf").unwrap(), "C:\\Peças\\a.dxf");
         assert_eq!(percent_decode("abc").unwrap(), "abc");
+    }
+
+    #[test]
+    fn progids() {
+        assert_eq!(progid(".DWG").unwrap(), "AGTNCAD.DWG");
+        assert_eq!(progid("dxf").unwrap(), "AGTNCAD.DXF");
+        assert!(progid("agtncad").is_err());
     }
 
     #[test]
@@ -543,17 +678,17 @@ mod tests {
         fs::create_dir_all(&dir).unwrap();
         let txt = dir.join("a.txt");
         fs::write(&txt, b"x").unwrap();
-        let exe = Path::new("nao-existe");
-        assert!(convert_one(exe, &txt, &dir.join("o.dxf"), "DXF", "ACAD2018", true, &dir).is_err());
-        assert!(convert_one(exe, &dir.join("x.dwg"), &dir.join("o.dxf"), "PDF", "ACAD2018", true, &dir).is_err());
-        assert!(convert_one(exe, &dir.join("x.dwg"), &dir.join("o.dxf"), "DXF", "ACAD1999", true, &dir).is_err());
+        assert!(convert_one(&txt, &dir.join("o.dxf"), "DXF", "ACAD2018", true, &dir).is_err());
+        assert!(convert_one(&dir.join("x.dwg"), &dir.join("o.dxf"), "PDF", "ACAD2018", true, &dir).is_err());
+        assert!(convert_one(&dir.join("x.dwg"), &dir.join("o.dxf"), "DXF", "ACAD1999", true, &dir).is_err());
+        assert!(convert_one(&dir.join("naoexiste.dwg"), &dir.join("o.dxf"), "DXF", "ACAD2018", true, &dir).is_err());
         let _ = fs::remove_dir_all(dir);
     }
 
     /// ODA falso: imita a linha de comando (pasta_in pasta_out VERSÃO TIPO rec audit filtro).
     #[cfg(unix)]
     #[test]
-    fn convert_with_fake_oda() {
+    fn oda_fallback_with_fake_oda() {
         use std::os::unix::fs::PermissionsExt;
         let dir = std::env::temp_dir().join(format!("agtn-fake-oda-{}", std::process::id()));
         fs::create_dir_all(&dir).unwrap();
@@ -569,16 +704,32 @@ mod tests {
         let src = dir.join("Peça 01.dwg");
         fs::write(&src, b"CONTEUDO").unwrap();
         let out = dir.join("saída").join("Peça 01.dxf");
-        convert_one(&exe, &src, &out, "DXF", "ACAD2018", false, &dir.join("w")).unwrap();
+        oda_convert_one(&exe, &src, &out, "DXF", "ACAD2018", false, &dir.join("w")).unwrap();
         assert_eq!(fs::read_to_string(&out).unwrap(), "ACAD2018 DXF\nCONTEUDO");
         // não sobrescreve sem permissão
-        assert!(convert_one(&exe, &src, &out, "DXF", "ACAD2018", false, &dir.join("w")).is_err());
+        assert!(oda_convert_one(&exe, &src, &out, "DXF", "ACAD2018", false, &dir.join("w")).is_err());
         // erro do ODA (.err) chega ao usuário
         let bad = dir.join("ruim.dxf");
         fs::write(&bad, b"RUIM").unwrap();
-        let e = convert_one(&exe, &bad, &dir.join("ruim.dwg"), "DWG", "ACAD2013", true, &dir.join("w")).unwrap_err();
+        let e = oda_convert_one(&exe, &bad, &dir.join("ruim.dwg"), "DWG", "ACAD2013", true, &dir.join("w")).unwrap_err();
         assert!(e.contains("arquivo invalido"), "{e}");
         assert_eq!(find_oda(Some(dir.to_str().unwrap())), Some(exe.clone()));
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn native_convert_files_with_accents() {
+        let dir = std::env::temp_dir().join(format!("agtn-native-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let src = dir.join("Peça Ç 01.dxf");
+        fs::write(&src, "0\nSECTION\n2\nENTITIES\n0\nLINE\n8\n0\n10\n0\n20\n0\n11\n10\n21\n5\n0\nENDSEC\n0\nEOF\n").unwrap();
+        let dwg = dir.join("saída").join("Peça Ç 01.dwg");
+        convert_one(&src, &dwg, "DWG", "ACAD2018", false, &dir.join("w")).unwrap();
+        assert!(fs::read(&dwg).unwrap().starts_with(b"AC1032"));
+        assert!(convert_one(&src, &dwg, "DWG", "ACAD2018", false, &dir.join("w")).unwrap_err().contains("Já existe"));
+        let dxf = dir.join("volta.dxf");
+        convert_one(&dwg, &dxf, "DXF", "ACAD12", false, &dir.join("w")).unwrap();
+        assert!(fs::read_to_string(&dxf).unwrap().contains("LINE"));
         let _ = fs::remove_dir_all(dir);
     }
 
