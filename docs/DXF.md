@@ -1,5 +1,32 @@
 # DXF — suporte e limitações
 
+A exportação tem duas versões (escolha em Exportar DXF; a última escolhida fica salva):
+
+- **DXF R12** — padrão; o formato mais aceito por máquinas e CAM. Peças e planificações sempre saem em R12.
+- **DXF 2000 (AC1015)** — guarda elipse, spline, hachura, texto de várias linhas, unidade e espessura de linha.
+
+## Exportação: DXF 2000 (AC1015), ASCII, Windows-1252 (desde 3.0.0)
+
+`modules/dxf/src/writer2000.ts`. Estrutura completa exigida pelo AutoCAD 2000+: handles únicos, `$HANDSEED`,
+tabelas com `BLOCK_RECORD`, `*Model_Space`/`*Paper_Space`, dicionário raiz, layouts e estilo de plotagem "Normal".
+A janela `*Active` abre já enquadrada no desenho.
+
+| Item | Exportado como |
+|---|---|
+| Linha, círculo, arco, ponto | `LINE`, `CIRCLE`, `ARC`, `POINT` |
+| Polilinha | `LWPOLYLINE` (bulges) |
+| Elipse / arco elíptico | `ELLIPSE` |
+| Spline (inclusive NURBS racional) | `SPLINE` (pontos de controle, nós, pesos) |
+| Hachura | `HATCH` com contornos de polilinha (arcos por bulge), sólida ou com as linhas do padrão |
+| Texto de uma linha / várias linhas | `TEXT` / `MTEXT` (`\P`); fora do Windows-1252 vai como `\U+XXXX` |
+| Cota | explodida (`LINE`/`SOLID`/`ARC`/`TEXT`), como no R12 |
+| Unidade | `$INSUNITS = 4` (mm), `$MEASUREMENT = 1` |
+| Espessura de linha | código 370 em camadas e objetos (arredondada ao valor padrão do AutoCAD) |
+
+Validação: arquivos auditados pelo ezdxf sem erros e sem correções; lidos pelo conversor DWG (acadrust) e
+regravados em DWG 2004–2018 com ELLIPSE/SPLINE/HATCH/MTEXT/LWPOLYLINE preservados; ida e volta
+AGTN → DXF 2000 → DWG 2018 → DXF → AGTN com desvio < 1e-13 mm.
+
 ## Exportação: DXF R12 (AC1009), ASCII, Windows-1252
 
 Escolhido por ser lido por praticamente todo CAD/CAM (AutoCAD, DraftSight, BricsCAD, LibreCAD, CAMs de laser,
@@ -22,6 +49,8 @@ Coordenadas com precisão total de ida e volta (sem notação científica).
 - Não há espessura de linha (lineweight) — fica apenas no AGTN CAD.
 - Cotas não são associativas no arquivo exportado.
 - Nomes de camada: apenas A–Z, 0–9, `$ - _`, até 31 caracteres (o gerenciador de camadas valida).
+- Elipse e spline viram `POLYLINE` de segmentos retos (erro < 0,05 % do tamanho); hachura com padrão vira as
+  `LINE`s do padrão; hachura sólida vira o contorno; texto de várias linhas vira um `TEXT` por linha.
 
 ## Importação (R12 até versões atuais, ASCII)
 
@@ -29,7 +58,14 @@ Coordenadas com precisão total de ida e volta (sem notação científica).
 |---|---|
 | `LINE`, `CIRCLE`, `ARC`, `POINT` | nativo |
 | `LWPOLYLINE`, `POLYLINE` 2D | nativo, com bulges; largura ignorada (aviso) |
-| `TEXT`, `MTEXT` | texto (MTEXT sem formatação, aviso) |
+| `TEXT`, `MTEXT` | texto; MTEXT mantém as quebras de linha (`\P`), frações empilhadas e o ponto de anexação |
+| `ELLIPSE` | elipse nativa (inclusive arco elíptico) |
+| `SPLINE` | spline nativo (B-spline/NURBS); só com pontos de ajuste → interpolado como o AutoCAD faz |
+| `HATCH` | hachura nativa: contornos de polilinha, linha, arco, arco elíptico e spline; sólida, degradê (como sólida) e padrões |
+| `SOLID`, `TRACE` | hachura sólida (ex.: setas de cota) |
+| `LEADER` | polilinha + seta |
+| `ACAD_TABLE` | geometria do bloco gráfico da tabela |
+| `POLYLINE` 3D | projetada no plano XY (aviso) |
 | `INSERT` | bloco expandido com posição, rotação, escala e herança de camada/cor (até 16 níveis) |
 | `DIMENSION` linear/rotacionada, alinhada, raio, diâmetro | cota nativa |
 | `DIMENSION` angular/ordenada | geometria do bloco da cota |
@@ -37,8 +73,14 @@ Coordenadas com precisão total de ida e volta (sem notação científica).
 | `$INSUNITS` | convertido para mm (pol, pés, cm, m...); ausente → mm com aviso |
 | Codificação | `$DWGCODEPAGE` até R2004; UTF-8 a partir de R2007 |
 
-**Não suportado (contado e informado no relatório, nunca simulado):** `SPLINE`, `ELLIPSE`, `HATCH`, `SOLID`,
-`3DFACE`, polilinhas 3D/malhas, `MINSERT` (só a 1ª ocorrência), DXF binário.
+Blocos com escala não uniforme: círculos e arcos viram elipses exatas; polilinhas com arcos ainda não.
+
+**Não suportado (contado e informado no relatório, nunca simulado):** `MULTILEADER`, `MLINE`, `TOLERANCE`,
+`XLINE`, `RAY`, `WIPEOUT`, `IMAGE`, `PDFUNDERLAY`, `3DFACE`, `3DSOLID`, `REGION`, `MESH`, malhas/poliface,
+`MINSERT` (só a 1ª ocorrência), DXF binário.
+
+Validação da leitura: `tests/dxf/fixtures/curvas.dxf` (gerado pelo ezdxf por `make_curves_fixture.py`) — elipses
+e splines coincidem com o ezdxf (desvio < 0,01 mm), áreas das hachuras exatas, traços do padrão iguais aos do ezdxf.
 
 **Abrir vs. Importar:** *Abrir* um DXF cria um novo desenho; *Importar* adiciona ao desenho atual em uma única
 operação desfazível.
@@ -52,8 +94,7 @@ operação desfazível.
 
 ## Próximos passos
 
-- Exportação R2000+ (AC1015) com `$INSUNITS`, lineweight e LWPOLYLINE.
-- Importação de `ELLIPSE`/`SPLINE` quando o motor tiver essas entidades.
+- `MULTILEADER` e `MLINE` na leitura; cotas como `DIMENSION` associativas na exportação 2000.
 
 ## DWG (desde 1.1.0) — conversor próprio
 
@@ -63,7 +104,8 @@ MPL-2.0, embutido no executável — nada para instalar; avisos em `docs/TERCEIR
 - **Versões**: leitura e gravação de DWG R12, R14, 2000, 2004, 2007, 2010, 2013 e 2018 (AC1009–AC1032).
 - **Abrir/Importar DWG** → DXF 2018 → mesmo importador DXF. Validado com DWGs do AutoCAD (R14–2018): o resultado
   é idêntico, entidade por entidade e coordenada por coordenada, ao DXF que o próprio AutoCAD gera do mesmo desenho.
-- **Exportar DWG** → DXF R12 do AGTN CAD → DWG na versão das Preferências (padrão 2018).
+- **Exportar DWG** → DXF 2000 do AGTN CAD → DWG na versão das Preferências (padrão 2018). Elipse, spline,
+  hachura e texto de várias linhas chegam ao DWG como objetos nativos (desde 3.0.0).
 - **Converter DWG ↔ DXF** (Start Center): lote, inverter/forçar formato, versões R12–2018.
 - **Robustez**: leitura estrita e, se falhar, tolerante (recupera o que for possível); limite de memória por
   leitura; cada conversão roda em processo filho (`agtn-cad.exe --agtn-cadconv …`) para que um arquivo

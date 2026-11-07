@@ -65,18 +65,24 @@ export function segBox(s: Seg, b: BBox = emptyBox()): BBox {
 export const TEXT_WIDTH_FACTOR = 0.7;
 
 export function textCorners(p: Vec2, h: number, rot: number, value: string, halign: 0 | 1 | 2): Vec2[] {
-  const w = Math.max(1, value.length) * h * TEXT_WIDTH_FACTOR;
+  const lines = value.split("\n");
+  const longest = lines.reduce((m, l) => Math.max(m, l.length), 0);
+  const w = Math.max(1, longest) * h * TEXT_WIDTH_FACTOR;
+  const below = (lines.length - 1) * h * TEXT_LINE_SPACING;
   const x0 = halign === 0 ? 0 : halign === 1 ? -w / 2 : -w;
   const cs = Math.cos(rot);
   const sn = Math.sin(rot);
   const loc = [
-    { x: x0, y: 0 },
-    { x: x0 + w, y: 0 },
+    { x: x0, y: -below },
+    { x: x0 + w, y: -below },
     { x: x0 + w, y: h },
     { x: x0, y: h },
   ];
   return loc.map((q) => ({ x: p.x + q.x * cs - q.y * sn, y: p.y + q.x * sn + q.y * cs }));
 }
+
+/** Espaçamento entre linhas de texto (múltiplo da altura), igual ao padrão do MTEXT. */
+export const TEXT_LINE_SPACING = 1.6667;
 
 export function entityBox(e: Entity): BBox {
   const b = emptyBox();

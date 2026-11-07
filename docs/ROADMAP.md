@@ -17,17 +17,21 @@ alças; snaps; ortho; polar; linha de comando.
 ## Fase 4 — Engenharia ✅ (parcial)
 Camadas, propriedades editáveis, cotas linear/alinhada/angular/raio/diâmetro associativas, medição de distância,
 área e perímetro no painel, texto.
-- 🔜 Elipse e spline (com geometria exata), hachura, blocos nativos, texto multilinha, tolerâncias.
+- ✅ Elipse e spline com geometria exata, hachura (sólida e padrões, com furos), texto multilinha (3.0.0).
+- 🔜 Blocos nativos, tolerâncias geométricas, hachura por ponto interno (detecção automática de contorno).
 
 ## Fase 5 — DXF ✅
-Importação R12→atuais, exportação R12, relatório, round-trip, validação ezdxf.
-- 🔜 Exportação R2000+ com unidades e espessuras.
+Importação R12→atuais, exportação R12 e 2000 (unidades, espessuras, elipse/spline/hachura), relatório,
+round-trip, validação ezdxf. DWG R12–2018 pelo conversor próprio.
+- ✅ Impressão e PDF vetorial próprio (folhas A4–A0, escala, janela, cores/monocromático) (3.0.0).
+- 🔜 MULTILEADER/MLINE na leitura; cotas associativas na exportação 2000.
 
 ## Módulo AGTN SHEET METAL ✅ (1ª entrega)
 Perfis L, U, U enrijecido; interna/externa; K manual/tabela; calibração; seção e planificação; inserção no CAD;
 DXF de fabricação.
 - ✅ Calandra (cilindro e segmento) com marcação; UI básica + CONFIGURAÇÕES.
-- 🔜 Perfis Z, C, cartola, ômega (motor já suporta sentidos alternados); cone/redução calandrada.
+- ✅ Perfis Z, Z enrijecido, cartola e ômega; C = U enrijecido (3.0.0).
+- 🔜 Cone/redução calandrada.
 - 🔜 Referência dimensional “até a tangente” para θ > 90°; bainha (hem).
 - ⏳ Chapas com recortes, abas e retornos, alívios; caixas; dutos e transições; sequência de dobra;
   integração com tabelas reais da dobradeira (Delem DA66T).

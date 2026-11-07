@@ -1,3 +1,4 @@
+import type { EllipseGeom, HatchLoop, HatchPatternLine, SplineGeom } from "./curves";
 import type { Vec2 } from "./vec";
 
 /**
@@ -68,6 +69,7 @@ export interface TextEntity extends EntityBase {
   readonly value: string;
   /** Alinhamento horizontal: 0 esquerda, 1 centro, 2 direita */
   readonly halign: 0 | 1 | 2;
+  /* Texto pode ter várias linhas ("\n"); a 1ª linha fica na base `p` e as demais descem 1,6·h. */
 }
 
 /** Referência associativa a um ponto característico de outra entidade. */
@@ -98,8 +100,34 @@ export interface DimensionEntity extends EntityBase {
   readonly assoc: { readonly p1?: PointRef; readonly p2?: PointRef; readonly p3?: PointRef; readonly circle?: EntityId } | null;
 }
 
+/** Elipse / arco elíptico (ELLIPSE do DXF). */
+export interface EllipseEntity extends EntityBase, EllipseGeom {
+  readonly type: "ellipse";
+}
+
+/** Spline B-spline/NURBS (SPLINE do DXF). */
+export interface SplineEntity extends EntityBase, SplineGeom {
+  readonly type: "spline";
+}
+
+/** Hachura (HATCH do DXF): contornos + preenchimento sólido ou padrão de linhas. */
+export interface HatchEntity extends EntityBase {
+  readonly type: "hatch";
+  readonly loops: readonly HatchLoop[];
+  readonly solid: boolean;
+  /** nome do padrão (ANSI31, SOLID…) */
+  readonly pattern: string;
+  /** ângulo (rad) e escala do padrão, só informativos — `lines` já os incorpora */
+  readonly patternAngle: number;
+  readonly patternScale: number;
+  readonly lines: readonly HatchPatternLine[];
+}
+
 export type Entity =
   | LineEntity
+  | EllipseEntity
+  | SplineEntity
+  | HatchEntity
   | CircleEntity
   | ArcEntity
   | PolylineEntity
@@ -117,6 +145,9 @@ export const ENTITY_TYPE_LABEL: Record<EntityType, string> = {
   point: "Ponto",
   text: "Texto",
   dimension: "Cota",
+  ellipse: "Elipse",
+  spline: "Spline",
+  hatch: "Hachura",
 };
 
 /** Props de estilo padrão (tudo POR CAMADA). */

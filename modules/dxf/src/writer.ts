@@ -2,8 +2,10 @@ import {
   type DimStyle,
   type Entity,
   DEFAULT_DIMSTYLE,
+  TEXT_LINE_SPACING,
   boxUnion,
   ccwSweep,
+  explodeCurve,
   dimensionGeometry,
   emptyBox,
   entityBox,
@@ -12,6 +14,7 @@ import {
 } from "@agtn/geometry";
 import { type Layer, LINETYPES } from "@agtn/document";
 import { encodeCp1252, toDxfText } from "./encoding";
+import { writeDxf2000 } from "./writer2000";
 
 /**
  * Escritor DXF R12 (AC1009), ASCII, Windows-1252.
@@ -23,7 +26,11 @@ import { encodeCp1252, toDxfText } from "./encoding";
  *  - Polilinhas exportadas como POLYLINE/VERTEX/SEQEND (LWPOLYLINE é R14+), com bulges preservados.
  *  - Cotas são exportadas "explodidas" (LINE/SOLID/ARC/TEXT na camada da cota) para aparência idêntica
  *    em qualquer leitor; a associatividade não é exportada.
+ *  - R12 não tem ELLIPSE/SPLINE/HATCH/MTEXT: elipse e spline viram POLYLINE de segmentos retos (erro
+ *    < 0,05 % do tamanho), hachura de padrão vira as LINEs do padrão, hachura sólida vira o contorno e
+ *    texto de várias linhas vira um TEXT por linha. Para manter esses objetos, exporte em DXF 2000.
  */
+export type DxfVersion = "R12" | "R2000";
 export interface DxfWriteInput {
   layers: readonly Layer[];
   entities: readonly Entity[];
@@ -31,6 +38,8 @@ export interface DxfWriteInput {
 }
 
 export interface DxfWriteOptions {
+  /** Versão do arquivo (padrão R12) — usado por `writeDxf` */
+  version?: DxfVersion;
   /** Exporta apenas estas camadas (padrão: todas) */
   layerFilter?: readonly string[];
   /** Inclui camadas ocultas (padrão: true; o estado oculto é preservado como cor negativa) */
@@ -236,6 +245,11 @@ function writeEntity(o: Out, e: Entity, st: DimStyle) {
     case "text":
       writeText(o, e, e.p, e.h, e.rot, e.value, e.halign);
       return;
+    case "ellipse":
+    case "spline":
+    case "hatch":
+      for (const part of explodeCurve(e) ?? []) writeEntity(o, part, st);
+      return;
     case "dimension": {
       const g = dimensionGeometry(e, st);
       const base = { layer: e.layer, color: e.color, linetype: null };
@@ -292,6 +306,13 @@ function writeText(
   value: string,
   halign: 0 | 1 | 2,
 ) {
+  if (value.includes("\n")) {
+    value.split("\n").forEach((line, i) => {
+      const dy = i * h * TEXT_LINE_SPACING;
+      if (line) writeText(o, base, { x: p.x + Math.sin(rot) * dy, y: p.y - Math.cos(rot) * dy }, h, rot, line, halign);
+    });
+    return;
+  }
   o.g(0, "TEXT");
   common(o, base);
   o.g(10, p.x);
@@ -307,6 +328,11 @@ function writeText(
     o.g(21, p.y);
     o.g(31, 0);
   }
+}
+
+/** Grava DXF na versão escolhida (R12 = máxima compatibilidade com CAM; R2000 = objetos modernos). */
+export function writeDxf(input: DxfWriteInput, opts: DxfWriteOptions = {}): string {
+  return opts.version === "R2000" ? writeDxf2000(input, opts) : writeDxfR12(input, opts);
 }
 
 /** Gera os bytes do arquivo (Windows-1252). */

@@ -258,6 +258,37 @@ mod tests {
         let _ = std::fs::remove_dir_all(dir);
     }
 
+    /// DXF 2000 gravado pelo próprio AGTN CAD (elipse, spline, hachura, MTEXT, LWPOLYLINE):
+    /// o conversor lê e grava DWG em todas as versões; de 2004 em diante os objetos voltam nativos.
+    #[test]
+    fn agtn_dxf2000_keeps_curves_in_dwg() {
+        use acadrust::entities::EntityType as T;
+        let src = include_bytes!("../../../../tests/dxf/fixtures/agtn_r2000.dxf").to_vec();
+        let doc = read_doc(src).expect("ler DXF 2000 do AGTN");
+        let kinds = |d: &CadDocument| {
+            let mut k = [0usize; 5];
+            for e in d.entities() {
+                match e {
+                    T::Ellipse(_) => k[0] += 1,
+                    T::Spline(_) => k[1] += 1,
+                    T::Hatch(_) => k[2] += 1,
+                    T::MText(_) => k[3] += 1,
+                    T::LwPolyline(_) => k[4] += 1,
+                    _ => {}
+                }
+            }
+            k
+        };
+        assert_eq!(kinds(&doc), [2, 2, 2, 1, 1], "leitura do DXF 2000");
+        for (id, ver) in VERSIONS {
+            let back = write_doc(doc.clone(), Format::Dwg, ver).and_then(read_doc).unwrap_or_else(|e| panic!("{id}: {e}"));
+            assert!(back.entities().count() > 0, "{id}: vazio");
+            if matches!(id, "ACAD2004" | "ACAD2007" | "ACAD2010" | "ACAD2013" | "ACAD2018") {
+                assert_eq!(kinds(&back), [2, 2, 2, 1, 1], "{id}: objetos modernos devem voltar nativos");
+            }
+        }
+    }
+
     /// DWGs reais gerados pelo AutoCAD (pasta `tests/dwg` do repositório; CI define AGTN_DWG_SAMPLES).
     /// Cada um é lido e regravado em todas as versões de DWG e DXF, e relido.
     #[test]
@@ -293,3 +324,4 @@ mod tests {
         assert!(fails.is_empty(), "{}", fails.join("\n"));
     }
 }
+

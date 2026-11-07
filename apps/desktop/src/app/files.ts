@@ -2,8 +2,9 @@ import { DEFAULT_LAYER, DEFAULT_SETTINGS, type Layer, deserializeInto, serialize
 import type { LengthUnit } from "@agtn/geometry";
 import { toast } from "../ui/toast";
 import { recents } from "./recents";
-import { type DxfImportReport, dxfBytes, readDxf, writeDxfR12 } from "@agtn/dxf";
+import { type DxfImportReport, type DxfVersion, dxfBytes, readDxf, writeDxf } from "@agtn/dxf";
 import { type Entity, newId } from "@agtn/geometry";
+import { type PlotPage, plotToPdf, plotToSvg, scaleLabel } from "@agtn/plot";
 import type { CadController } from "../cad/controller";
 import {
   baseName,
@@ -14,6 +15,7 @@ import {
   readDwgAsDxf,
   writeDwgFromDxf,
   pickSavePath,
+  printSvg,
   readPath,
   saveRecovery,
   writeBytes,
@@ -68,6 +70,7 @@ export class FileActions {
   defaultUnits: LengthUnit = "mm";
   /** versão de DWG gravada (preferência do usuário) */
   dwgVersion = "ACAD2018";
+  dxfVersion: DxfVersion = "R12";
 
 
   async newDrawing(opts: { units?: LengthUnit } = {}): Promise<boolean> {
@@ -116,6 +119,12 @@ export class FileActions {
     } finally {
       this.setBusy(null);
     }
+  }
+
+  /** Abre um arquivo solto na janela no navegador (sem caminho; DWG só no desktop). */
+  async openDropped(file: File): Promise<boolean> {
+    if (!(await this.confirmDiscard())) return false;
+    return this.withBusy(`Abrindo ${file.name}…`, async () => this.loadBytes(file.name, null, new Uint8Array(await file.arrayBuffer())));
   }
 
   private async loadBytes(name: string, path: string | null, bytes: Uint8Array): Promise<boolean> {
@@ -211,8 +220,42 @@ export class FileActions {
     }
   }
 
-  /** Exporta DXF R12 (ou DWG) do desenho ou de camadas selecionadas. */
-  async exportDxf(opts: { layers?: string[]; entities?: Entity[]; layerDefs?: Layer[]; suggested?: string; format?: "dxf" | "dwg" } = {}) {
+  /** Salva a folha montada na janela de impressão como PDF vetorial. */
+  async savePdf(page: PlotPage) {
+    const suggested = `${this.file.name.replace(/\.(agtncad|dxf|dwg)$/i, "")}.pdf`;
+    const p = await pickSavePath("pdf", suggested);
+    if (!p) return;
+    const path = /\.pdf$/i.test(p) ? p : `${p}.pdf`;
+    try {
+      await writeBytes(path, plotToPdf(page, { title: this.file.name }));
+      this.ctl.message(`PDF salvo: ${baseName(path)} (folha ${Math.round(page.w)}×${Math.round(page.h)} mm, escala ${scaleLabel(page.scale)}).`);
+      toast(`PDF salvo: ${baseName(path)}`, "ok");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      this.ctl.message(`Falha ao salvar PDF: ${msg}`, "error");
+      toast(`Falha ao salvar PDF: ${msg}`, "error");
+    }
+  }
+
+  /** Abre o diálogo de impressão do sistema com a folha montada. */
+  async print(page: PlotPage) {
+    try {
+      await printSvg(plotToSvg(page), page.w, page.h, this.file.name);
+      this.ctl.message(`Impressão enviada (escala ${scaleLabel(page.scale)}). No diálogo do Windows, mantenha "Tamanho real" / 100%.`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      this.ctl.message(`Falha ao imprimir: ${msg}. Use "Salvar PDF" e imprima pelo leitor de PDF.`, "error");
+      toast(`Falha ao imprimir: ${msg}`, "error");
+    }
+  }
+
+  /**
+   * Exporta DXF (R12 ou 2000) ou DWG do desenho ou de camadas selecionadas.
+   * O DWG é gravado a partir de um DXF 2000 intermediário, para manter elipse, spline e hachura.
+   */
+  async exportDxf(
+    opts: { layers?: string[]; entities?: Entity[]; layerDefs?: Layer[]; suggested?: string; format?: "dxf" | "dwg"; dxfVersion?: DxfVersion } = {},
+  ) {
     const format = opts.format ?? "dxf";
     const suggested = (opts.suggested ?? `${this.file.name}.dxf`).replace(/\.(dxf|dwg)$/i, `.${format}`);
     const p = await pickSavePath(format, suggested);
@@ -220,13 +263,14 @@ export class FileActions {
     const path = new RegExp(`\\.${format}$`, "i").test(p) ? p : `${p}.${format}`;
     try {
       const doc = this.ctl.doc;
-      const txt = writeDxfR12(
+      const version: DxfVersion = format === "dwg" ? "R2000" : (opts.dxfVersion ?? this.dxfVersion);
+      const txt = writeDxf(
         {
           layers: opts.layerDefs ?? doc.layers,
           entities: opts.entities ?? doc.all(),
           dimStyle: { ...doc.settings.dimStyle, unitFactor: 1 },
         },
-        { layerFilter: opts.layers },
+        { layerFilter: opts.layers, version },
       );
       if (format === "dwg") {
         await this.withBusy(`Gravando ${baseName(path)}…`, () => writeDwgFromDxf(path, dxfBytes(txt), this.dwgVersion));
@@ -235,7 +279,7 @@ export class FileActions {
         return;
       }
       await writeBytes(path, dxfBytes(txt));
-      this.ctl.message(`DXF R12 exportado: ${baseName(path)} (unidades: mm).`);
+      this.ctl.message(`DXF ${version === "R2000" ? "2000" : "R12"} exportado: ${baseName(path)} (unidades: mm).`);
       toast(`DXF exportado: ${baseName(path)}`, "ok");
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

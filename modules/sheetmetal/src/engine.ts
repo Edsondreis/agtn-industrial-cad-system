@@ -51,7 +51,14 @@ export interface FlangeInput {
   label: string;
   /** Comprimento medido na face indicada, até os vértices virtuais (mm). */
   length: number;
+  /** face medida na ponta inicial da aba */
   face: Face;
+  /**
+   * Face medida na ponta final (padrão = `face`). Diferente quando a aba liga dobras de sentidos
+   * opostos e a cota é "de fora a fora" (ex.: alma do perfil Z): o comprimento é a projeção, na
+   * direção da aba, entre o vértice virtual da face inicial e o da face final.
+   */
+  faceEnd?: Face;
 }
 
 export interface BendInput {
@@ -115,11 +122,15 @@ export interface FlangeResult {
   label: string;
   inputLength: number;
   face: Face;
+  faceEnd: Face;
   /** Trecho reto (igual em todas as fibras) */
   flat: number;
   /** Comprimento até vértices virtuais na face A e na face B */
   lengthA: number;
   lengthB: number;
+  /** Medida externa e interna (faces de fora / de dentro de cada dobra vizinha, por ponta) */
+  lengthExt: number;
+  lengthInt: number;
   xStart: number;
   xEnd: number;
 }
@@ -218,7 +229,7 @@ export function solveProfile(inp: ProfileInput): SolveResult {
   const flats: number[] = inp.flanges.map((f, i) => {
     let L = f.length;
     if (i > 0) L -= faceRadius(f.face, inp.bends[i - 1], T) * Math.tan(deg(inp.bends[i - 1].angleDeg) / 2);
-    if (i < nB) L -= faceRadius(f.face, inp.bends[i], T) * Math.tan(deg(inp.bends[i].angleDeg) / 2);
+    if (i < nB) L -= faceRadius(f.faceEnd ?? f.face, inp.bends[i], T) * Math.tan(deg(inp.bends[i].angleDeg) / 2);
     return L;
   });
   flats.forEach((fl, i) => {
@@ -251,6 +262,15 @@ export function solveProfile(inp: ProfileInput): SolveResult {
     return L;
   };
 
+  // medida externa/interna por ponta: externa = face de fora da dobra vizinha (left → B, right → A)
+  const refLen = (i: number, ext: boolean) => {
+    const at = (b: BendInput): Face => ((b.dir === "left") === ext ? "B" : "A");
+    let L = flats[i];
+    if (i > 0) L += faceRadius(at(inp.bends[i - 1]), inp.bends[i - 1], T) * Math.tan(deg(inp.bends[i - 1].angleDeg) / 2);
+    if (i < nB) L += faceRadius(at(inp.bends[i]), inp.bends[i], T) * Math.tan(deg(inp.bends[i].angleDeg) / 2);
+    return L;
+  };
+
   // 3) geometria da seção (face A pelos vértices virtuais)
   const u = (i: number) => fromAngle(dirs[i]);
   const V: Vec2[] = [{ x: 0, y: 0 }];
@@ -265,9 +285,12 @@ export function solveProfile(inp: ProfileInput): SolveResult {
       label: f.label,
       inputLength: f.length,
       face: f.face,
+      faceEnd: f.faceEnd ?? f.face,
       flat: Math.max(0, flats[i]),
       lengthA: moldLen(i, "A"),
       lengthB: moldLen(i, "B"),
+      lengthExt: refLen(i, true),
+      lengthInt: refLen(i, false),
       xStart: x,
       xEnd: x + Math.max(0, flats[i]),
     });

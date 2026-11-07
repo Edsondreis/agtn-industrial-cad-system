@@ -1,7 +1,7 @@
 # Componentes de terceiros
 
-O AGTN Industrial CAD é software proprietário da AGTN. O conversor DWG ↔ DXF usa os componentes abaixo,
-sem modificação, conforme suas licenças.
+O AGTN Industrial CAD é software proprietário da AGTN. Usa os componentes abaixo, sem modificação, conforme
+suas licenças.
 
 ## acadrust 0.6.8 — MPL-2.0
 Leitura e gravação de DWG (R12–R2018) e DXF. Código-fonte: https://github.com/hakanaktt/acadrust
@@ -30,3 +30,17 @@ CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFT
 IN THE SOFTWARE.
 
 As amostras DWG de teste (`tests/dwg`) também vêm do ACadSharp (MIT).
+
+## Métricas da fonte Helvetica (Adobe Core 14 AFM)
+O PDF gerado na impressão usa a Helvetica, uma das 14 fontes-padrão do PDF (não é embutida no arquivo). As
+larguras dos caracteres em `modules/plot/src/helvetica.ts` vêm dos arquivos AFM públicos da Adobe:
+
+Copyright (c) 1985, 1987, 1989, 1990, 1997 Adobe Systems Incorporated. All Rights Reserved.
+This file and the 14 PostScript(R) AFM files it accompanies may be used, copied, and distributed for any purpose
+and without charge, with or without modification provided that all copyright notices are retained; that the AFM
+files are not distributed without this file; that all modifications to this file or any of the AFM files are
+prominently noted in the modified file(s); and that this paragraph is not modified. Adobe Systems has no
+responsibility or obligation to support the use of the AFM files.
+
+## Arquivos de teste gerados pelo ezdxf — MIT
+`tests/dxf/fixtures/curvas.dxf` foi gerado com o ezdxf (Manfred Moitzi, licença MIT) apenas para testes.

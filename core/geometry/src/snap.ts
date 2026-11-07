@@ -1,4 +1,5 @@
 import { angleWithin } from "./angle";
+import { ellipsePoint, ellipseSweep, isFullEllipse, splineDomain, splinePoint, splineValid } from "./curves";
 import type { Entity } from "./entities";
 import { entityIntersections } from "./intersect";
 import { closestOnEntity } from "./measure";
@@ -69,6 +70,35 @@ export function entitySnapPoints(e: Entity, modes: SnapModes): SnapCandidate[] {
       push("endpoint", e.p1);
       push("endpoint", e.p2);
     }
+    return out;
+  }
+  if (e.type === "hatch") return out;
+  if (e.type === "ellipse") {
+    const full = isFullEllipse(e);
+    if (modes.center) push("center", e.c);
+    if (modes.quadrant) {
+      const sw = ellipseSweep(e);
+      for (let k = 0; k < 4; k++) {
+        const t = (k * Math.PI) / 2;
+        if (full || angleWithin(t, e.t0, sw, 1e-9)) push("quadrant", ellipsePoint(e, t));
+      }
+    }
+    if (!full) {
+      if (modes.endpoint) {
+        push("endpoint", ellipsePoint(e, e.t0));
+        push("endpoint", ellipsePoint(e, e.t0 + ellipseSweep(e)));
+      }
+      if (modes.midpoint) push("midpoint", ellipsePoint(e, e.t0 + ellipseSweep(e) / 2));
+    }
+    return out;
+  }
+  if (e.type === "spline") {
+    const [u0, u1] = splineDomain(e);
+    if (modes.endpoint && !e.closed && splineValid(e)) {
+      push("endpoint", splinePoint(e, u0));
+      push("endpoint", splinePoint(e, u1));
+    }
+    if (modes.node && e.fit) for (const q of e.fit) push("node", q);
     return out;
   }
   const segs = entitySegs(e);

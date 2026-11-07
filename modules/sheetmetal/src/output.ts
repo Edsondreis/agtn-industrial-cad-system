@@ -66,6 +66,13 @@ const dim = (
     { color: opts.color ?? null },
   ) as DimensionEntity;
 
+/** A face medida é a externa da dobra vizinha? (dobra "left": externa = B; "right": externa = A) */
+function isExternal(face: "A" | "B", before: "left" | "right" | null, after: "left" | "right" | null): boolean {
+  const d = before ?? after;
+  if (!d) return face === "B";
+  return d === "left" ? face === "B" : face === "A";
+}
+
 /** Escala de cotas proporcional ao tamanho da peça (texto ≈ 1/45 da maior dimensão, mín. 1). */
 export function autoDimScale(size: number): number {
   const raw = size / 45 / 2.5;
@@ -189,19 +196,25 @@ export function sectionEntities(r: SolveResult, o: SectionOptions = {}): Entity[
   }
   const gap = 6 * sc;
   r.flanges.forEach((f, i) => {
-    const pts = f.face === "A" ? s.moldA : s.moldB;
-    const a = pts[i];
-    const b = pts[i + 1];
-    const u = norm(sub(b, a));
+    const ext = isExternal(f.face, i > 0 ? r.bends[i - 1].dir : null, i < r.bends.length ? r.bends[i].dir : null);
+    const a = (f.face === "A" ? s.moldA : s.moldB)[i];
+    const b = (f.faceEnd === "A" ? s.moldA : s.moldB)[i + 1];
+    // direção da aba (pela face A); a cota mede a projeção nessa direção
+    const u = norm(sub(s.moldA[i + 1], s.moldA[i]));
     const side = f.face === "B" ? perpR(u) : perpL(u);
-    const off = f.face === "B" ? gap * 1.6 : gap * 1.2;
-    out.push(
-      dim("COTAS", "aligned", mv(a), mv(b), mv(add(a, mul(side, off))), {
-        text: `<> ${f.face === "B" ? "EXT" : "INT"}`,
-        scale: sc,
-        color: f.face === "B" ? DIM_COLOR_EXT : DIM_COLOR_INT,
-      }),
-    );
+    const off = ext ? gap * 1.6 : gap * 1.2;
+    const tag = ext ? "EXT" : "INT";
+    const color = ext ? DIM_COLOR_EXT : DIM_COLOR_INT;
+    if (f.face === f.faceEnd) out.push(dim("COTAS", "aligned", mv(a), mv(b), mv(add(a, mul(side, off))), { text: `<> ${tag}`, scale: sc, color }));
+    else
+      out.push(
+        dim("COTAS", "linear", mv(a), mv(b), mv(add(a, mul(side, off))), {
+          text: `<> ${tag}`,
+          scale: sc,
+          color,
+          rot: Math.atan2(u.y, u.x),
+        }),
+      );
   });
   // espessura na extremidade inicial
   const a0 = s.moldA[0];

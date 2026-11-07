@@ -1,7 +1,7 @@
 {
   "name": "@agtn/desktop",
   "private": true,
-  "version": "1.1.0",
+  "version": "3.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -20,7 +20,8 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "@agtn/lasertext": "*",
-    "@agtn/parts": "*"
+    "@agtn/parts": "*",
+    "@agtn/plot": "*"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.12.0",

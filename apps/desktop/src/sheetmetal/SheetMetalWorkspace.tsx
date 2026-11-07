@@ -191,8 +191,12 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
         <div className="profile-pick" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
           {([...(Object.keys(PROFILE_DEFS) as ProfileKind[]), "CALANDRA"] as Kind[]).map((k) => (
             <button key={k} className={kind === k ? "on" : ""} onClick={() => pickKind(k)} title={k === "CALANDRA" ? "Chapa calandrada (cilindro ou segmento)" : PROFILE_DEFS[k as ProfileKind].description}>
-              <Icon name={k === "L" ? "profL" : k === "U" ? "profU" : k === "CALANDRA" ? "roll" : "profC"} />
-              {k === "U_ENRIJECIDO" ? "U enrij." : k === "CALANDRA" ? "Calandra" : `Perfil ${k}`}
+              <Icon
+                name={
+                  k === "L" ? "profL" : k === "U" ? "profU" : k === "CALANDRA" ? "roll" : k === "Z" || k === "Z_ENRIJECIDO" ? "profZ" : k === "CARTOLA" ? "profHat" : k === "OMEGA" ? "profOmega" : "profC"
+                }
+              />
+              {k === "CALANDRA" ? "Calandra" : PROFILE_DEFS[k as ProfileKind].short}
             </button>
           ))}
         </div>
@@ -610,8 +614,8 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
                 {result.flanges.map((f) => (
                   <tr key={f.index}>
                     <td>{f.label}</td>
-                    <td className="num">{fmtMM(f.lengthB, 2)}</td>
-                    <td className="num">{fmtMM(f.lengthA, 2)}</td>
+                    <td className="num">{fmtMM(f.lengthExt, 2)}</td>
+                    <td className="num">{fmtMM(f.lengthInt, 2)}</td>
                     <td className="num">{fmtMM(f.flat, 2)}</td>
                   </tr>
                 ))}

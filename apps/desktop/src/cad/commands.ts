@@ -16,6 +16,7 @@ import {
   StretchTool,
   TrimTool,
 } from "./tools/modify";
+import { EllipseTool, HatchTool } from "./tools/curves";
 import { DimAlignedTool, DimAngularTool, DimDiameterTool, DimLinearTool, DimRadialTool, DistTool, ZoomTool } from "./tools/annotate";
 
 export type ToolFactory = (h: ToolHost) => Tool;
@@ -41,6 +42,8 @@ export const COMMANDS: CommandDef[] = [
   { id: "RECTANG", label: "Retângulo", aliases: ["REC", "RECTANG", "RETANGULO"], group: "draw", tool: (h) => new RectTool(h), hint: "Retângulo por dois cantos" },
   { id: "CIRCLE", label: "Círculo", aliases: ["C", "CIRCLE", "CIRCULO"], group: "draw", tool: (h) => new CircleTool(h), hint: "Centro + raio/diâmetro, ou 3 pontos" },
   { id: "ARC", label: "Arco", aliases: ["A", "ARC", "ARCO"], group: "draw", tool: (h) => new ArcTool(h), hint: "3 pontos ou centro/início/fim" },
+  { id: "ELLIPSE", label: "Elipse", aliases: ["EL", "ELLIPSE", "ELIPSE"], group: "draw", tool: (h) => new EllipseTool(h), hint: "Centro, eixo e outro semieixo" },
+  { id: "HATCH", label: "Hachura", aliases: ["H", "HATCH", "HACHURA"], group: "draw", tool: (h) => new HatchTool(h), hint: "Preenche contornos fechados (ANSI31, sólido…)" },
   { id: "POLYGON", label: "Polígono", aliases: ["POL", "POLYGON", "POLIGONO"], group: "draw", tool: (h) => new PolygonTool(h), hint: "Polígono regular inscrito/circunscrito" },
   { id: "POINT", label: "Ponto", aliases: ["PO", "POINT", "PONTO"], group: "draw", tool: (h) => new PointTool(h), hint: "Ponto de referência" },
   { id: "TEXT", label: "Texto de anotação", aliases: ["DT", "TEXT", "TA"], group: "annotate", tool: (h) => new TextTool(h), hint: "Texto de anotação (não é corte)" },
@@ -55,7 +58,7 @@ export const COMMANDS: CommandDef[] = [
   { id: "FILLET", label: "Fillet", aliases: ["F", "FILLET", "CONCORDAR"], group: "modify", tool: (h) => new FilletTool(h), hint: "Concordância com raio entre linhas" },
   { id: "CHAMFER", label: "Chanfro", aliases: ["CHA", "CHAMFER", "CHANFRO"], group: "modify", tool: (h) => new ChamferTool(h), hint: "Chanfro por duas distâncias" },
   { id: "STRETCH", label: "Stretch", aliases: ["S", "STRETCH", "ESTICAR"], group: "modify", tool: (h) => new StretchTool(h), hint: "Estica pontos dentro de janela de cruzamento" },
-  { id: "EXPLODE", label: "Explodir", aliases: ["X", "EXPLODE", "EXPLODIR"], group: "modify", tool: (h) => new ExplodeTool(h), hint: "Decompõe polilinhas e cotas" },
+  { id: "EXPLODE", label: "Explodir", aliases: ["X", "EXPLODE", "EXPLODIR"], group: "modify", tool: (h) => new ExplodeTool(h), hint: "Decompõe polilinhas, cotas, elipses, splines e hachuras" },
   { id: "JOIN", label: "Unir", aliases: ["J", "JOIN", "UNIR"], group: "modify", tool: (h) => new JoinTool(h), hint: "Une linhas/arcos encadeados em polilinha" },
   { id: "ERASE", label: "Apagar", aliases: ["E", "ERASE", "APAGAR"], group: "modify", tool: (h) => new EraseTool(h), hint: "Exclui objetos (tecla Delete)" },
   { id: "DIMLINEAR", label: "Cota linear", aliases: ["DLI", "DIMLINEAR"], group: "annotate", tool: (h) => new DimLinearTool(h), hint: "Horizontal/vertical (H/V)" },

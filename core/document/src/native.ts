@@ -39,7 +39,7 @@ export function serializeDocument(doc: CadDocument, generator = "AGTN CAD"): str
   return JSON.stringify(file);
 }
 
-const KNOWN: EntityType[] = ["line", "circle", "arc", "polyline", "point", "text", "dimension"];
+const KNOWN: EntityType[] = ["line", "circle", "arc", "polyline", "point", "text", "dimension", "ellipse", "spline", "hatch"];
 const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 const isPt = (v: unknown): boolean => !!v && typeof v === "object" && isNum((v as { x: unknown }).x) && isNum((v as { y: unknown }).y);
 
@@ -62,6 +62,18 @@ function validEntity(e: Record<string, unknown>): string | null {
       return isPt(e.p) && isNum(e.h) && typeof e.value === "string" ? null : "texto inválido";
     case "dimension":
       return isPt(e.p1) && isPt(e.p2) && isPt(e.loc) ? null : "cota inválida";
+    case "ellipse":
+      return isPt(e.c) && isPt(e.major) && isNum(e.ratio) && (e.ratio as number) > 0 && isNum(e.t0) && isNum(e.t1) ? null : "elipse inválida";
+    case "spline":
+      return isNum(e.degree) && Array.isArray(e.ctrl) && e.ctrl.every(isPt) && Array.isArray(e.knots) && (e.knots as unknown[]).every(isNum)
+        ? null
+        : "spline inválido";
+    case "hatch":
+      return Array.isArray(e.loops) &&
+        (e.loops as { pts?: unknown; bulges?: unknown }[]).every((l) => Array.isArray(l.pts) && l.pts.every(isPt) && Array.isArray(l.bulges)) &&
+        Array.isArray(e.lines)
+        ? null
+        : "hachura inválida";
   }
   return "tipo desconhecido";
 }

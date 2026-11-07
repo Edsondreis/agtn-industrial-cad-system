@@ -3,7 +3,11 @@ import type { Entity } from "@agtn/geometry";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CadController } from "../cad/controller";
 import { InsertTool } from "../cad/tools/insert";
-import { clearRecovery, guardClose, loadRecovery, onOpenFileRequest, setWindowTitle, startupFile } from "../platform/platform";
+import { PickWindowTool } from "../cad/tools/curves";
+import { PlotDialog, loadPlotSettings } from "../ui/PlotDialog";
+import type { PlotSettings } from "@agtn/plot";
+import { clearRecovery, currentDropTarget, guardClose, isCadPath, isOpenablePath, loadRecovery, onFileDrop, onOpenFileRequest, setWindowTitle, startupFile } from "../platform/platform";
+import { toast } from "../ui/toast";
 import { ConvertDialog, DefaultAppButtons } from "../ui/CadConvert";
 // módulos pesados (cálculo de chapas, fontes, booleanas) carregados sob demanda: abertura mais rápida
 const SheetMetalWorkspace = lazy(() => import("../sheetmetal/SheetMetalWorkspace").then((m) => ({ default: m.SheetMetalWorkspace })));
@@ -34,7 +38,7 @@ import { recents } from "./recents";
 import { type AppPrefs, CAD_VERSIONS, type CadVersion, loadPrefs, savePrefs } from "./prefs";
 import { Toasts } from "../ui/toast";
 
-type Dialog = null | "about" | "shortcuts" | "dxf" | "bytype" | "settings" | "export" | "exportdwg" | "lasertext" | "prefs" | "convert";
+type Dialog = null | "about" | "shortcuts" | "dxf" | "bytype" | "settings" | "export" | "exportdwg" | "lasertext" | "prefs" | "convert" | "plot";
 
 const Loading = ({ label }: { label: string }) => (
   <div className="loading-pane">
@@ -51,6 +55,13 @@ export function App() {
   useCtl(ctl, "state");
   const [ws, setWs] = useState<Workspace>("desenho");
   const [dialog, setDialog] = useState<Dialog>(null);
+  const [plotInit, setPlotInit] = useState<PlotSettings | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [convertPaths, setConvertPaths] = useState<string[]>([]);
+  const openPlot = useCallback((s?: PlotSettings) => {
+    setPlotInit(s ?? loadPlotSettings());
+    setDialog("plot");
+  }, []);
   const [panels, setPanels] = useState({ left: true, right: true, history: true });
   const [recovery, setRecovery] = useState<{ when: string; name: string; payload: string } | null>(null);
   const [prefs, setPrefsState] = useState<AppPrefs>(loadPrefs);
@@ -60,6 +71,7 @@ export function App() {
   };
   files.defaultUnits = prefs.defaultUnits;
   files.dwgVersion = prefs.dwgVersion;
+  files.dxfVersion = prefs.dxfVersion;
   const [start, setStart] = useState<boolean>(() => prefs.showStartCenter);
   const [leaving, setLeaving] = useState(false);
   const enterCad = useCallback((target: StartTarget) => {
@@ -96,14 +108,18 @@ export function App() {
     a.set("DXFIN", () => void files.importDxf());
     a.set("DWGIN", () => void files.importDxf());
     a.set("DWGOUT", () => setDialog("exportdwg"));
-    for (const k of ["CONVERTER", "DWG2DXF", "DXF2DWG"]) a.set(k, () => setDialog("convert"));
+    for (const k of ["CONVERTER", "DWG2DXF", "DXF2DWG"]) a.set(k, () => {
+        setConvertPaths([]);
+        setDialog("convert");
+      });
     a.set("__EXPORT_DXF__", () => setDialog("export"));
     a.set("__DXF_REPORT__", () => setDialog("dxf"));
+    for (const k of ["PLOT", "PLOTAR", "IMPRIMIR", "PRINT", "PDF", "EXPORTPDF"]) a.set(k, () => openPlot());
     a.set("SELTIPO", () => setDialog("bytype"));
     a.set("CONFIG", () => setDialog("settings"));
     for (const k of ["T", "TEXTO", "TEXTOLASER", "TL", "__LASERTEXT__"]) a.set(k, () => setDialog("lasertext"));
     for (const k of ["PECAS", "PEÇAS", "BIBLIOTECA", "BIB"]) a.set(k, () => setWs("pecas"));
-  }, [ctl, files]);
+  }, [ctl, files, openPlot]);
 
   /* --------------------- título da janela, recuperação, fechar --------------------- */
   const [, force] = useState(0);
@@ -111,6 +127,52 @@ export function App() {
   useEffect(() => {
     void setWindowTitle(start ? `Start Center — ${PRODUCT}` : `${files.file.name}${ctl.doc.dirty ? " *" : ""} — ${PRODUCT}`);
   });
+  /* ------------------------------ arrastar e soltar ------------------------------ */
+  const dropRef = useRef<(e: import("../platform/platform").FileDropEvent) => void>(() => undefined);
+  dropRef.current = (e) => {
+    if (e.type === "enter") setDragging(true);
+    if (e.type === "leave") setDragging(false);
+    if (e.type !== "drop") return;
+    setDragging(false);
+    const target = currentDropTarget();
+    if (target) {
+      if (e.paths.length) target(e.paths);
+      return;
+    }
+    if (e.files.length) {
+      // navegador: abre o primeiro arquivo solto
+      const f = e.files.find((x) => isOpenablePath(x.name));
+      if (!f) return toast("Arraste um arquivo .dwg, .dxf ou .agtncad.", "warn");
+      void files.openDropped(f).then((ok) => ok && start && enterCad("desenho"));
+      return;
+    }
+    const ok = e.paths.filter(isOpenablePath);
+    if (!ok.length) return toast("Arraste um arquivo .dwg, .dxf ou .agtncad.", "warn");
+    const cad = ok.filter(isCadPath);
+    if (ok.length > 1 && cad.length > 1) {
+      // vários desenhos: abre o conversor já com a lista
+      setConvertPaths(cad);
+      setDialog("convert");
+      toast(`${cad.length} arquivos soltos: abri o conversor DWG ↔ DXF com eles. Para abrir um só, arraste apenas ele.`, "ok");
+      return;
+    }
+    void files.openPath(ok[0], true).then((opened) => {
+      if (opened) {
+        setStart(false);
+        setWs("desenho");
+      }
+    });
+  };
+  useEffect(() => {
+    let off: (() => void) | null = null;
+    let dead = false;
+    void onFileDrop((e) => dropRef.current(e)).then((u) => (dead ? u() : (off = u)));
+    return () => {
+      dead = true;
+      off?.();
+    };
+  }, []);
+
   useEffect(() => {
     void (async () => {
       const f = await startupFile().catch(() => null);
@@ -164,6 +226,7 @@ export function App() {
           o: () => void files.open().then((ok) => ok && start && enterCad("desenho")),
           n: () => void files.newDrawing().then((ok) => ok && start && enterCad("desenho")),
           a: () => ws === "desenho" && !start && ctl.sel.selectAll(),
+          p: () => ws === "desenho" && !start && openPlot(),
         };
         if (map[k] && !(inField && (k === "z" || k === "y" || k === "a"))) {
           e.preventDefault();
@@ -201,7 +264,7 @@ export function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [ctl, files, ws, dialog, focusCommand, start, enterCad]);
+  }, [ctl, files, ws, dialog, focusCommand, start, enterCad, openPlot]);
 
   /* ------------------------- integração com PLANIFICAÇÃO ------------------------- */
   const insertGenerated = useCallback(
@@ -223,7 +286,8 @@ export function App() {
   );
   const exportGenerated = useCallback(
     (ents: Entity[], layers: Layer[], filter: string[], name: string) => {
-      void files.exportDxf({ entities: ents, layerDefs: [{ name: "0", color: 7, lineweight: 0.25, linetype: "CONTINUOUS", visible: true, locked: false }, ...layers], layers: filter, suggested: name });
+      // peças/planificações vão para corte: DXF R12, o formato mais aceito por CAM
+      void files.exportDxf({ entities: ents, layerDefs: [{ name: "0", color: 7, lineweight: 0.25, linetype: "CONTINUOUS", visible: true, locked: false }, ...layers], layers: filter, suggested: name, dxfVersion: "R12" });
     },
     [files],
   );
@@ -256,7 +320,12 @@ export function App() {
         { label: "Importar DXF/DWG…", run: () => void files.importDxf() },
         { label: "Exportar DXF…", run: () => setDialog("export") },
         { label: "Exportar DWG…", run: () => setDialog("exportdwg") },
-        { label: "Converter DWG ↔ DXF…", run: () => setDialog("convert") },
+        { label: "Converter DWG ↔ DXF…", run: () => {
+          setConvertPaths([]);
+          setDialog("convert");
+        } },
+        { sep: true },
+        { label: "Imprimir / PDF…", key: "Ctrl+P", run: () => openPlot() },
         { label: "Relatório da última importação DXF", disabled: !files.lastDxfReport, run: () => setDialog("dxf") },
       ],
     },
@@ -296,7 +365,9 @@ export function App() {
         { label: "Retângulo", key: "REC", run: run("RECTANG") },
         { label: "Círculo", key: "C", run: run("CIRCLE") },
         { label: "Arco", key: "A", run: run("ARC") },
+        { label: "Elipse", key: "EL", run: run("ELLIPSE") },
         { label: "Polígono", key: "POL", run: run("POLYGON") },
+        { label: "Hachura", key: "H", run: run("HATCH") },
         { label: "Ponto", key: "PO", run: run("POINT") },
       ],
     },
@@ -357,7 +428,10 @@ export function App() {
         { label: "Biblioteca de chapas (flanges, bolachas, suportes…)", key: "PECAS", run: () => setWs("pecas") },
         { label: "Texto para laser…", key: "T", run: () => setDialog("lasertext") },
         { label: "Medir distância", key: "DI", run: run("DIST") },
-        { label: "Converter DWG ↔ DXF…", key: "CONVERTER", run: () => setDialog("convert") },
+        { label: "Converter DWG ↔ DXF…", key: "CONVERTER", run: () => {
+          setConvertPaths([]);
+          setDialog("convert");
+        } },
         { sep: true },
         { label: "Configurações do desenho…", run: () => setDialog("settings") },
         { label: "Preferências…", run: () => setDialog("prefs") },
@@ -462,7 +536,10 @@ export function App() {
           onEnter={enterCad}
           onPrefs={() => setDialog("prefs")}
           onAbout={() => setDialog("about")}
-          onConvert={() => setDialog("convert")}
+          onConvert={() => {
+            setConvertPaths([]);
+            setDialog("convert");
+          }}
           recovery={recovery}
           onRestore={() => {
             if (recovery) void files.restoreRecovery(recovery.payload).then((ok) => ok && enterCad("desenho"));
@@ -483,6 +560,15 @@ export function App() {
         </div>
       )}
       <Toasts />
+      {dragging && (
+        <div className="drop-overlay" aria-hidden="true">
+          <div className="drop-card">
+            <Icon name="import" />
+            <b>{currentDropTarget() ? "Solte para adicionar à conversão" : "Solte para abrir"}</b>
+            <span>{currentDropTarget() ? "Arquivos .dwg e .dxf" : "DWG, DXF ou projeto .agtncad · vários arquivos abrem o conversor"}</span>
+          </div>
+        </div>
+      )}
       {dialog === "shortcuts" && <ShortcutsDialog onClose={() => setDialog(null)} />}
       {dialog === "dxf" && files.lastDxfReport && <DxfReportDialog report={files.lastDxfReport} onClose={() => setDialog(null)} />}
       {dialog === "bytype" && <SelectByTypeDialog ctl={ctl} onClose={() => setDialog(null)} />}
@@ -492,15 +578,44 @@ export function App() {
           layers={doc.layers}
           initialFormat={dialog === "exportdwg" ? "dwg" : "dxf"}
           dwgVersion={prefs.dwgVersion}
+          dxfVersion={prefs.dxfVersion}
           onClose={() => setDialog(null)}
-          onExport={(layers, format) => {
+          onExport={(layers, format, dxfVersion) => {
             setDialog(null);
-            void files.exportDxf({ layers, format });
+            if (format === "dxf" && dxfVersion !== prefs.dxfVersion) setPrefs({ ...prefs, dxfVersion });
+            void files.exportDxf({ layers, format, dxfVersion });
+          }}
+        />
+      )}
+      {dialog === "plot" && plotInit && (
+        <PlotDialog
+          ctl={ctl}
+          initial={plotInit}
+          onClose={() => setDialog(null)}
+          onPickWindow={(s) => {
+            setDialog(null);
+            setWs("desenho");
+            setTimeout(() => {
+              ctl.cancel(true);
+              ctl.tool = new PickWindowTool(ctl, (box) => openPlot(box ? { ...s, area: "window", window: box } : s));
+              ctl.message("IMPRIMIR: clique dois cantos da área a imprimir (Esc volta).", "cmd");
+              ctl.refresh();
+              focusCommand();
+            }, 30);
+          }}
+          onPdf={(page) => {
+            setDialog(null);
+            void files.savePdf(page);
+          }}
+          onPrint={(page) => {
+            setDialog(null);
+            void files.print(page);
           }}
         />
       )}
       {dialog === "convert" && (
         <ConvertDialog
+          initialPaths={convertPaths}
           defaultVersion={prefs.dwgVersion}
           onClose={() => setDialog(null)}
           onOpen={(path) =>

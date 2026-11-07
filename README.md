@@ -26,11 +26,13 @@ indicador de carregamento, "não salvo" na barra superior, Esc fecha qualquer ja
 - Unidades de trabalho mm / cm / m (armazenamento interno sempre em mm).
 
 **Desenho**: linha, polilinha (trechos retos e arcos tangentes), retângulo, círculo (centro/raio, diâmetro, 3 pontos),
-arco (3 pontos ou centro/início/fim), polígono regular (inscrito/circunscrito), ponto, texto.
+arco (3 pontos ou centro/início/fim), elipse (`EL`), polígono regular (inscrito/circunscrito), ponto, texto,
+hachura (`H`: ANSI31, ANSI32, ANSI37, NET, STEEL, sólida…; contornos internos viram furos). Splines vindos de
+DXF/DWG são exatos (NURBS).
 
 **Modificação**: mover, copiar (múltiplo), rotacionar, escala (fator ou referência), espelhar, offset (linhas, círculos,
 arcos e polilinhas com arcos), trim (linhas, arcos, círculos, polilinhas abertas e fechadas), extend, fillet e chanfro
-(entre linhas), stretch (janela de cruzamento), explodir (polilinhas e cotas), unir (join), apagar,
+(entre linhas), stretch (janela de cruzamento), explodir (polilinhas, cotas, elipses, splines e hachuras), unir (join), apagar,
 edição por alças (grips) e edição numérica no painel de propriedades.
 
 **Seleção**: individual, múltipla, janela (→), cruzamento (←), desseleção (Shift), selecionar tudo, por tipo.
@@ -48,8 +50,13 @@ configurável (altura do texto, casas decimais, separador, tipo/tamanho de seta,
 **Arquivos**
 - Formato nativo `.agtncad` (JSON versionado): entidades, camadas, propriedades, cotas, configurações, unidade, dados
   do módulo de chapas. Gravação atômica, aviso de alterações não salvas, recuperação automática a cada 60 s.
-- DXF: abrir/importar (R12 até versões atuais, ASCII) e exportar DXF R12. Relatório de importação com entidades não
-  suportadas. Detalhes em [`docs/DXF.md`](docs/DXF.md).
+- DXF: abrir/importar (R12 até versões atuais, ASCII) e exportar DXF R12 ou DXF 2000 (unidade, espessura, elipse,
+  spline, hachura, texto de várias linhas). Relatório de importação com entidades não suportadas.
+  Detalhes em [`docs/DXF.md`](docs/DXF.md).
+- DWG R12–2018: abrir, importar, exportar e converter em lote (conversor próprio, nada para instalar).
+- **Imprimir / PDF** (Ctrl+P): folhas A4–A0, Carta e Ofício, retrato/paisagem, tudo/tela/janela, ajustar à folha ou
+  escala 1:N, monocromático/cinza/colorido, espessuras de linha. PDF vetorial próprio.
+- Arrastar arquivos para a janela abre o desenho; vários arquivos vão para o conversor DWG ↔ DXF.
 
 **AGTN SHEET METAL — Planificação** (aba `PLANIFICAÇÃO` ou comando `SM`)
 - Aba **PEÇA** só com o básico (tipo, medidas, espessura, comprimento, material, ângulo e raio de cada dobra);
@@ -57,7 +64,8 @@ configurável (altura do texto, casas decimais, separador, tipo/tamanho de seta,
 - **Calandra**: diâmetro externo ou interno, espessura, largura e ângulo (volta completa ou segmento) →
   desenvolvimento pelo eixo neutro e **marcação na chapa** com o raio de referência (interno/externo) e os raios da peça.
 - Marcações (dobra e calandra) saem na camada `MARCACAO` convertidas em **geometria** para o laser gravar.
-- Perfis L, U e U enrijecido, com abas, raios, ângulos e fator K independentes por dobra.
+- Perfis L, U, C (U enrijecido), Z, Z enrijecido, cartola e ômega, com abas, raios, ângulos e fator K
+  independentes por dobra.
 - Dimensões **externas** ou **internas** (globais ou por dimensão), convertidas explicitamente.
 - Ângulo informado como ângulo de dobra θ ou ângulo interno α.
 - Cálculo de BA, OSB, ISB, BD, trechos retos, desenvolvimento total, posição das linhas de dobra e peso teórico.
@@ -95,7 +103,7 @@ Pré-requisitos: Node.js 22+, Rust estável (MSVC no Windows), e para o shell de
 
 ```bash
 npm install            # instala todos os workspaces
-npm test               # 143 testes (geometria, documento, DXF, chapas, linha de comando)
+npm test               # 181 testes (geometria, curvas, documento, DXF, PDF, chapas, linha de comando)
 npm run typecheck      # TypeScript estrito
 npm run dev            # interface no navegador em http://localhost:1420 (sem recursos nativos)
 npm run tauri dev      # aplicativo desktop com recarga automática

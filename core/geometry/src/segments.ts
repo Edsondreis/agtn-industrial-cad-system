@@ -1,4 +1,5 @@
 import { TAU, ccwSweep, normAngle, angleWithin } from "./angle";
+import { ellipsePoints, splinePoints } from "./curves";
 import type { Entity, PolylineEntity } from "./entities";
 import { type Vec2, EPS, add, angleOf, dist, fromAngle, mid, mul, norm, perpL, sub } from "./vec";
 
@@ -97,9 +98,42 @@ export function entitySegs(e: Entity): Seg[] {
       return [arcSeg(e.c, e.r, e.a0, ccwSweep(e.a0, e.a1))];
     case "polyline":
       return polylineSegs(e);
+    case "ellipse":
+    case "spline":
+    case "hatch":
+      return cachedSegs(e);
     default:
       return [];
   }
+}
+
+/** Curvas aproximadas: a aproximação é guardada por objeto (entidades são imutáveis). */
+const segCache = new WeakMap<object, Seg[]>();
+
+function cachedSegs(e: Entity): Seg[] {
+  let out = segCache.get(e);
+  if (out) return out;
+  out = [];
+  if (e.type === "ellipse" || e.type === "spline") {
+    const pts = e.type === "ellipse" ? ellipsePoints(e) : splinePoints(e);
+    for (let i = 0; i + 1 < pts.length; i++) if (pts[i] !== pts[i + 1]) out.push(lineSeg(pts[i], pts[i + 1]));
+  } else if (e.type === "hatch") {
+    for (const l of e.loops) {
+      const n = l.pts.length;
+      for (let i = 0; i < n; i++) out.push(bulgeSeg(l.pts[i], l.pts[(i + 1) % n], l.bulges[i] ?? 0));
+    }
+  }
+  segCache.set(e, out);
+  return out;
+}
+
+/** Pontos da curva (elipse/spline) para desenho. */
+export function curvePoints(e: Entity): Vec2[] {
+  const segs = entitySegs(e);
+  if (!segs.length) return [];
+  const out = [segStart(segs[0])];
+  for (const s of segs) out.push(segEnd(s));
+  return out;
 }
 
 /** Ponto mais próximo sobre o segmento. */

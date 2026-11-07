@@ -23,6 +23,8 @@ import {
   rad2deg,
   sub,
   angleOf,
+  ellipseMinor,
+  entityBox,
   transformEntity,
   translation,
 } from "@agtn/geometry";
@@ -101,6 +103,22 @@ export function gripsOf(e: Entity): Grip[] {
       return [{ key: "p", p: e.p }];
     case "dimension":
       return [{ key: "loc", p: e.loc }];
+    case "ellipse": {
+      const mn = ellipseMinor(e);
+      return [
+        { key: "c", p: e.c },
+        { key: "M", p: add(e.c, e.major) },
+        { key: "M", p: sub(e.c, e.major) },
+        { key: "m", p: add(e.c, mn) },
+        { key: "m", p: sub(e.c, mn) },
+      ];
+    }
+    case "spline":
+      return e.ctrl.map((p, i) => ({ key: `v:${i}`, p }));
+    case "hatch": {
+      const b = entityBox(e);
+      return [{ key: "c", p: { x: (b.minX + b.maxX) / 2, y: (b.minY + b.maxY) / 2 } }];
+    }
   }
 }
 
@@ -131,6 +149,34 @@ export function applyGrip(e: Entity, key: string, p: Vec2): Entity {
       return { ...e, p };
     case "dimension":
       return { ...e, loc: p };
+    case "ellipse": {
+      if (key === "c") return { ...e, c: p };
+      const v = sub(p, e.c);
+      const L = Math.hypot(v.x, v.y);
+      if (L < 1e-9) return e;
+      if (key === "M") {
+        const b = Math.hypot(e.major.x, e.major.y) * e.ratio;
+        // o eixo menor mantém o tamanho; se ficar maior que o novo eixo maior, os eixos trocam de papel
+        if (b <= L) return { ...e, major: v, ratio: b / L };
+        const nm = { x: (-v.y / L) * b, y: (v.x / L) * b };
+        return { ...e, major: nm, ratio: L / b, t0: e.t0 - Math.PI / 2, t1: e.t1 - Math.PI / 2 };
+      }
+      const a = Math.hypot(e.major.x, e.major.y);
+      if (L <= a) return { ...e, ratio: L / a };
+      const mn = ellipseMinor(e);
+      const nm = { x: (mn.x / Math.hypot(mn.x, mn.y)) * L, y: (mn.y / Math.hypot(mn.x, mn.y)) * L };
+      return { ...e, major: nm, ratio: a / L, t0: e.t0 - Math.PI / 2, t1: e.t1 - Math.PI / 2 };
+    }
+    case "spline": {
+      const i = Number(key.slice(2));
+      const ctrl = e.ctrl.slice();
+      ctrl[i] = p;
+      return { ...e, ctrl, fit: undefined };
+    }
+    case "hatch": {
+      const b = entityBox(e);
+      return transformEntity(e, translation(p.x - (b.minX + b.maxX) / 2, p.y - (b.minY + b.maxY) / 2));
+    }
   }
 }
 

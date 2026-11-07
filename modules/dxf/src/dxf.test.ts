@@ -145,10 +145,10 @@ describe("importação de DXF de terceiros", () => {
   });
   it("informa entidades não suportadas (sem simular)", () => {
     const r = readDxf(
-      dxf(0, "SECTION", 2, "ENTITIES", 0, "SPLINE", 8, "0", 70, 8, 0, "HATCH", 8, "0", 0, "ELLIPSE", 8, "0", 0, "LINE", 8, "0", 10, 0, 20, 0, 11, 1, 21, 1, 0, "ENDSEC", 0, "EOF"),
+      dxf(0, "SECTION", 2, "ENTITIES", 0, "3DFACE", 8, "0", 0, "IMAGE", 8, "0", 0, "SPLINE", 8, "0", 70, 8, 0, "HATCH", 8, "0", 0, "ELLIPSE", 8, "0", 0, "LINE", 8, "0", 10, 0, 20, 0, 11, 1, 21, 1, 0, "ENDSEC", 0, "EOF"),
     );
     expect(r.entities).toHaveLength(1);
-    expect(r.report.unsupported).toEqual({ SPLINE: 1, HATCH: 1, ELLIPSE: 1 });
+    expect(r.report.unsupported).toEqual({ "3DFACE": 1, IMAGE: 1, "SPLINE inválido": 1, "HATCH sem contorno": 1, "ELLIPSE inválida": 1 });
   });
   it("interpreta cota alinhada e de raio", () => {
     const r = readDxf(

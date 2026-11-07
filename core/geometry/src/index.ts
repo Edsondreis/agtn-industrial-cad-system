@@ -1,6 +1,7 @@
 export * from "./vec";
 export * from "./angle";
 export * from "./entities";
+export * from "./curves";
 export * from "./segments";
 export * from "./bbox";
 export * from "./intersect";

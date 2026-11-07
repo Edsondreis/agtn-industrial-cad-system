@@ -3,9 +3,16 @@ import {
   type Entity,
   ENTITY_TYPE_LABEL,
   type Vec2,
+  HATCH_PATTERNS,
   ccwSweep,
   deg2rad,
   dimensionValue,
+  ellipseSweep,
+  hatchArea,
+  hatchLoopPolygon,
+  hatchPatternByName,
+  isFullEllipse,
+  patternLines,
   entityLength,
   formatNumber,
   polylineSignedArea,
@@ -236,6 +243,98 @@ function Geometry({
           <NumField value={rad2deg(e.rot)} onCommit={(v) => upd("Rotação do texto", [{ ...e, rot: deg2rad(v) }])} />
         </>
       );
+    case "ellipse": {
+      const a = Math.hypot(e.major.x, e.major.y);
+      const rot = Math.atan2(e.major.y, e.major.x);
+      const full = isFullEllipse(e);
+      return (
+        <>
+          <div className="sec">Geometria — {full ? "Elipse" : "Arco elíptico"}</div>
+          {ptRow("Centro X, Y", e.c, (p) => ({ ...e, c: p }))}
+          <div className="k">Semieixo maior</div>
+          <NumField
+            value={a / u}
+            min={1e-9}
+            onCommit={(v) => {
+              const na = v * u;
+              const b = a * e.ratio;
+              if (b > na) return;
+              upd("Semieixo maior", [{ ...e, major: { x: Math.cos(rot) * na, y: Math.sin(rot) * na }, ratio: b / na }]);
+            }}
+          />
+          <div className="k">Semieixo menor</div>
+          <NumField value={(a * e.ratio) / u} min={1e-9} onCommit={(v) => v * u <= a && upd("Semieixo menor", [{ ...e, ratio: (v * u) / a }])} />
+          <div className="k">Rotação (°)</div>
+          <NumField value={rad2deg(rot)} onCommit={(v) => upd("Rotação da elipse", [{ ...e, major: { x: Math.cos(deg2rad(v)) * a, y: Math.sin(deg2rad(v)) * a } }])} />
+          {!full && (
+            <>
+              <div className="k">Parâmetro inicial (°)</div>
+              <div className="ro">{formatNumber(rad2deg(e.t0), 4, ",")}°</div>
+              <div className="k">Varredura (°)</div>
+              <div className="ro">{formatNumber(rad2deg(ellipseSweep(e)), 4, ",")}°</div>
+            </>
+          )}
+          <div className="k">{full ? "Perímetro" : "Comprimento"}</div>
+          <div className="ro">{ctl.fmtLen(entityLength(e))}</div>
+          {full && (
+            <>
+              <div className="k">Área</div>
+              <div className="ro">{area(Math.PI * a * a * e.ratio)}</div>
+            </>
+          )}
+        </>
+      );
+    }
+    case "spline":
+      return (
+        <>
+          <div className="sec">Geometria — Spline</div>
+          <div className="k">Grau</div>
+          <div className="ro">{e.degree}</div>
+          <div className="k">Pontos de controle</div>
+          <div className="ro">{e.ctrl.length}</div>
+          <div className="k">Racional (NURBS)</div>
+          <div className="ro">{e.weights && e.weights.some((w) => Math.abs(w - 1) > 1e-12) ? "Sim" : "Não"}</div>
+          <div className="k">Fechado</div>
+          <div className="ro">{e.closed ? "Sim" : "Não"}</div>
+          <div className="k">Comprimento</div>
+          <div className="ro">{ctl.fmtLen(entityLength(e))}</div>
+        </>
+      );
+    case "hatch": {
+      const regen = (name: string, ang: number, sc: number) => {
+        const def = hatchPatternByName(name);
+        if (!def) return;
+        upd("Hachura", [{ ...e, pattern: def.name, solid: def.name === "SOLID", patternAngle: ang, patternScale: sc, lines: patternLines(def, ang, sc) }]);
+      };
+      const known = !!hatchPatternByName(e.pattern);
+      return (
+        <>
+          <div className="sec">Hachura</div>
+          <div className="k">Padrão</div>
+          <select value={known ? e.pattern.toUpperCase() : ""} onChange={(ev) => regen(ev.target.value, e.patternAngle, e.patternScale || 1)}>
+            {!known && <option value="">{e.pattern} (do arquivo)</option>}
+            {HATCH_PATTERNS.map((p) => (
+              <option key={p.name} value={p.name}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+          {!e.solid && (
+            <>
+              <div className="k">Escala</div>
+              <NumField value={e.patternScale || 1} min={1e-6} onCommit={(v) => known && regen(e.pattern, e.patternAngle, v)} />
+              <div className="k">Ângulo (°)</div>
+              <NumField value={rad2deg(e.patternAngle)} onCommit={(v) => known && regen(e.pattern, deg2rad(v), e.patternScale || 1)} />
+            </>
+          )}
+          <div className="k">Contornos</div>
+          <div className="ro">{e.loops.length}</div>
+          <div className="k">Área</div>
+          <div className="ro">{area(hatchArea(e.loops.map(hatchLoopPolygon), e.loops))}</div>
+        </>
+      );
+    }
     case "dimension":
       return (
         <>

@@ -6,12 +6,13 @@ import { invoke } from "@tauri-apps/api/core";
 
 export const isTauri = (): boolean => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
-export type FileKind = "agtncad" | "dxf" | "dwg" | "cad" | "drawing";
+export type FileKind = "agtncad" | "dxf" | "dwg" | "cad" | "drawing" | "pdf";
 
 const FILTERS: Record<FileKind, { name: string; extensions: string[] }[]> = {
   agtncad: [{ name: "Projeto AGTN CAD", extensions: ["agtncad"] }],
   dxf: [{ name: "DXF (Drawing Exchange Format)", extensions: ["dxf"] }],
   dwg: [{ name: "DWG (AutoCAD Drawing)", extensions: ["dwg"] }],
+  pdf: [{ name: "PDF", extensions: ["pdf"] }],
   cad: [
     { name: "Desenhos CAD (DWG, DXF)", extensions: ["dwg", "dxf"] },
     { name: "DWG", extensions: ["dwg"] },
@@ -87,7 +88,38 @@ export async function writeText(path: string, text: string): Promise<void> {
 
 export async function writeBytes(path: string, bytes: Uint8Array): Promise<void> {
   if (isTauri()) return invoke("write_file", bytes, { headers: { "x-path": encodeURIComponent(path) } });
-  download(baseName(path), bytes, "application/dxf");
+  const ext = path.toLowerCase().split(".").pop();
+  download(baseName(path), bytes, ext === "pdf" ? "application/pdf" : ext === "dwg" ? "application/acad" : "application/dxf");
+}
+
+/**
+ * Imprime um SVG da folha pela impressora do sistema (diálogo de impressão do Windows).
+ * A página CSS tem o tamanho exato da folha e margem zero: a escala no papel é a escolhida.
+ */
+export function printSvg(svg: string, w: number, h: number, title = "AGTN Industrial CAD"): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const frame = document.createElement("iframe");
+    frame.setAttribute("aria-hidden", "true");
+    Object.assign(frame.style, { position: "fixed", right: "0", bottom: "0", width: "0", height: "0", border: "0", visibility: "hidden" });
+    const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    frame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>@page{size:${w}mm ${h}mm;margin:0}html,body{margin:0;padding:0;background:#fff}svg{display:block;width:${w}mm;height:${h}mm}</style></head><body>${svg}</body></html>`;
+    frame.onload = () => {
+      try {
+        const win = frame.contentWindow!;
+        const cleanup = () => setTimeout(() => frame.remove(), 1000);
+        win.addEventListener("afterprint", cleanup);
+        win.focus();
+        win.print();
+        // alguns WebViews não disparam afterprint: remove depois de um tempo
+        setTimeout(cleanup, 60000);
+        resolve();
+      } catch (e) {
+        frame.remove();
+        reject(e);
+      }
+    };
+    document.body.appendChild(frame);
+  });
 }
 
 /* --------------------------- recuperação automática --------------------------- */
@@ -233,3 +265,68 @@ export async function onOpenFileRequest(fn: (path: string) => void): Promise<() 
   const { listen } = await import("@tauri-apps/api/event");
   return listen<string>("open-file", (ev) => fn(ev.payload));
 }
+
+/* ------------------------------ arrastar e soltar ------------------------------ */
+export interface FileDropEvent {
+  type: "enter" | "over" | "leave" | "drop";
+  /** caminhos (app desktop) */
+  paths: string[];
+  /** arquivos (navegador, sem caminho) */
+  files: File[];
+}
+
+/** Arquivos arrastados para a janela. No desktop usa o evento nativo do Tauri (traz o caminho). */
+export async function onFileDrop(fn: (e: FileDropEvent) => void): Promise<() => void> {
+  if (isTauri()) {
+    const { getCurrentWebview } = await import("@tauri-apps/api/webview");
+    return getCurrentWebview().onDragDropEvent((ev) => {
+      const p = ev.payload;
+      fn({ type: p.type, paths: p.type === "enter" || p.type === "drop" ? p.paths : [], files: [] });
+    });
+  }
+  let depth = 0;
+  const hasFiles = (e: DragEvent) => !!e.dataTransfer && [...e.dataTransfer.types].includes("Files");
+  const enter = (e: DragEvent) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    if (depth++ === 0) fn({ type: "enter", paths: [], files: [] });
+  };
+  const over = (e: DragEvent) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+  };
+  const leave = (e: DragEvent) => {
+    if (!hasFiles(e)) return;
+    if (--depth <= 0) {
+      depth = 0;
+      fn({ type: "leave", paths: [], files: [] });
+    }
+  };
+  const drop = (e: DragEvent) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    depth = 0;
+    fn({ type: "drop", paths: [], files: [...(e.dataTransfer?.files ?? [])] });
+  };
+  window.addEventListener("dragenter", enter);
+  window.addEventListener("dragover", over);
+  window.addEventListener("dragleave", leave);
+  window.addEventListener("drop", drop);
+  return () => {
+    window.removeEventListener("dragenter", enter);
+    window.removeEventListener("dragover", over);
+    window.removeEventListener("dragleave", leave);
+    window.removeEventListener("drop", drop);
+  };
+}
+
+/** Quem recebe os arquivos soltos enquanto está aberto (ex.: o conversor). */
+let dropTarget: ((paths: string[]) => void) | null = null;
+export function setDropTarget(fn: ((paths: string[]) => void) | null): void {
+  dropTarget = fn;
+}
+export const currentDropTarget = () => dropTarget;
+
+export const isCadPath = (p: string) => /\.(dwg|dxf)$/i.test(p);
+export const isOpenablePath = (p: string) => /\.(dwg|dxf|agtncad)$/i.test(p);

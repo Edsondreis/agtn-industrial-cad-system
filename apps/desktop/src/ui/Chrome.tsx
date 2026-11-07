@@ -63,9 +63,13 @@ export function TopBar({
         <Icon name="import" />
         <span className="lbl">Importar</span>
       </button>
-      <button className="ibtn" title="Exportar DXF R12" onClick={() => ctl.actions.get("__EXPORT_DXF__")?.()}>
+      <button className="ibtn" title="Exportar DXF ou DWG" onClick={() => ctl.actions.get("__EXPORT_DXF__")?.()}>
         <Icon name="export" />
         <span className="lbl">Exportar</span>
+      </button>
+      <button className="ibtn" title="Imprimir / salvar PDF (Ctrl+P)" onClick={() => ctl.actions.get("PLOT")?.()}>
+        <Icon name="print" />
+        <span className="lbl">Imprimir</span>
       </button>
       <div className="filechip" title={files.file.path ?? "Ainda não salvo em disco"}>
         <span className="ico">
@@ -143,7 +147,9 @@ const PALETTE: (string | [id: string, icon: string, title: string])[] = [
   ["RECTANG", "rect", "Retângulo (REC)"],
   ["CIRCLE", "circle", "Círculo (C)"],
   ["ARC", "arc", "Arco (A)"],
+  ["ELLIPSE", "ellipse", "Elipse (EL)"],
   ["POLYGON", "polygon", "Polígono (POL)"],
+  ["HATCH", "hatch", "Hachura (H)"],
   ["POINT", "point", "Ponto (PO)"],
   "|",
   ["MOVE", "move", "Mover (M)"],

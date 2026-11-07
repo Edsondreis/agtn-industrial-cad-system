@@ -20,9 +20,11 @@ export interface AppPrefs {
   defaultUnits: LengthUnit;
   /** Versão usada ao gravar DWG (exportar / converter). */
   dwgVersion: CadVersion;
+  /** Versão do DXF exportado (R12 = máxima compatibilidade com CAM; R2000 = elipse/spline/hachura nativas). */
+  dxfVersion: "R12" | "R2000";
 }
 const KEY = "agtncad.prefs.v1";
-const DEFAULTS: AppPrefs = { showStartCenter: true, defaultUnits: "mm", dwgVersion: "ACAD2018" };
+const DEFAULTS: AppPrefs = { showStartCenter: true, defaultUnits: "mm", dwgVersion: "ACAD2018", dxfVersion: "R12" };
 
 export function loadPrefs(): AppPrefs {
   try {
@@ -32,6 +34,7 @@ export function loadPrefs(): AppPrefs {
       showStartCenter: typeof p.showStartCenter === "boolean" ? p.showStartCenter : DEFAULTS.showStartCenter,
       defaultUnits: p.defaultUnits === "cm" || p.defaultUnits === "m" ? p.defaultUnits : "mm",
       dwgVersion: isVersion(p.dwgVersion) ? p.dwgVersion : DEFAULTS.dwgVersion,
+      dxfVersion: p.dxfVersion === "R2000" ? "R2000" : "R12",
     };
   } catch {
     return { ...DEFAULTS };

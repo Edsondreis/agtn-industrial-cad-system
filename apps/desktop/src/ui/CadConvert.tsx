@@ -8,8 +8,10 @@ import {
   isDefaultApp,
   isTauri,
   makeDefaultApp,
+  isCadPath,
   pickFolder,
   pickPaths,
+  setDropTarget,
   revealInFolder,
 } from "../platform/platform";
 import { Modal } from "./Dialogs";
@@ -76,26 +78,36 @@ export function ConvertDialog({
   defaultVersion,
   onClose,
   onOpen,
+  initialPaths = [],
 }: {
   defaultVersion: CadVersion;
   onClose: () => void;
   onOpen: (path: string) => void;
+  /** arquivos já soltos na janela */
+  initialPaths?: string[];
 }) {
-  const [rows, setRows] = useState<Row[]>([]);
+  const [rows, setRows] = useState<Row[]>(() => [...new Set(initialPaths.filter(isCadPath))].map((input) => ({ input, state: "pendente" as const })));
   const [target, setTarget] = useState<Target>("auto");
   const [version, setVersion] = useState<CadVersion>(defaultVersion);
   const [folder, setFolder] = useState<string | null>(null);
   const [overwrite, setOverwrite] = useState(false);
   const [running, setRunning] = useState(false);
 
-  const add = async () => {
-    const ps = await pickPaths("cad");
-    if (!ps.length) return;
+  const addPaths = useCallback((ps: string[]) => {
+    const cad = ps.filter(isCadPath);
+    if (cad.length < ps.length) toast(`${ps.length - cad.length} arquivo(s) ignorado(s): o conversor aceita só .dwg e .dxf.`, "warn");
+    if (!cad.length) return;
     setRows((r) => {
       const have = new Set(r.map((x) => x.input.toLowerCase()));
-      return [...r, ...ps.filter((p) => !have.has(p.toLowerCase())).map((input) => ({ input, state: "pendente" as const }))];
+      return [...r, ...cad.filter((p) => !have.has(p.toLowerCase())).map((input) => ({ input, state: "pendente" as const }))];
     });
-  };
+  }, []);
+  const add = async () => addPaths(await pickPaths("cad"));
+  // enquanto o conversor está aberto, arquivos soltos na janela entram na lista
+  useEffect(() => {
+    setDropTarget(addPaths);
+    return () => setDropTarget(null);
+  }, [addPaths]);
 
   const run = async () => {
     const todo = rows.filter((r) => r.state !== "ok");
@@ -200,7 +212,7 @@ export function ConvertDialog({
           <button className="conv-empty" onClick={() => void add()} disabled={!isTauri()}>
             <Icon name="convert" />
             <b>Adicionar arquivos DWG ou DXF</b>
-            <span>Pode selecionar vários de uma vez</span>
+            <span>Clique para escolher ou arraste os arquivos para cá — vários de uma vez</span>
           </button>
         ) : (
           rows.map((r) => {

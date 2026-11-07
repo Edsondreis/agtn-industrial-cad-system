@@ -74,6 +74,8 @@ export function ShortcutsDialog({ onClose }: { onClose: () => void }) {
     ["Ctrl+Z / Ctrl+Y", "Desfazer / Refazer"],
     ["Ctrl+S / Ctrl+O / Ctrl+N", "Salvar / Abrir / Novo"],
     ["Ctrl+A", "Selecionar tudo"],
+    ["Ctrl+P / PLOT / PDF", "Imprimir ou salvar PDF"],
+    ["Arrastar arquivo para a janela", "Abrir (vários arquivos: conversor DWG ↔ DXF)"],
     ["Delete", "Apagar seleção"],
     ["Esc", "Cancelar comando / limpar seleção"],
     ["Enter / Espaço / Botão direito", "Confirmar / repetir último comando"],
@@ -264,15 +266,18 @@ export function ExportDxfDialog({
   onClose,
   initialFormat = "dxf",
   dwgVersion,
+  dxfVersion = "R12",
 }: {
   layers: readonly Layer[];
-  onExport: (layers: string[], format: "dxf" | "dwg") => void;
+  onExport: (layers: string[], format: "dxf" | "dwg", dxfVersion: "R12" | "R2000") => void;
   onClose: () => void;
   initialFormat?: "dxf" | "dwg";
   dwgVersion: string;
+  dxfVersion?: "R12" | "R2000";
 }) {
   const [on, setOn] = useState<Set<string>>(new Set(layers.map((l) => l.name)));
-  const [format, setFormat] = useState<"dxf" | "dwg">(initialFormat);
+  const [kind, setKind] = useState<"R12" | "R2000" | "dwg">(initialFormat === "dwg" ? "dwg" : dxfVersion);
+  const format = kind === "dwg" ? "dwg" : "dxf";
   return (
     <Modal
       title={format === "dwg" ? "Exportar DWG" : "Exportar DXF"}
@@ -282,7 +287,7 @@ export function ExportDxfDialog({
           <button className="btn" onClick={onClose}>
             Cancelar
           </button>
-          <button className="btn primary" disabled={!on.size} onClick={() => onExport([...on], format)}>
+          <button className="btn primary" disabled={!on.size} onClick={() => onExport([...on], format, kind === "R2000" ? "R2000" : "R12")}>
             Exportar
           </button>
         </>
@@ -291,18 +296,23 @@ export function ExportDxfDialog({
       <div className="sm-row" style={{ gridTemplateColumns: "80px 1fr" }}>
         <span className="k">Formato</span>
         <div className="seg" style={{ justifySelf: "start" }}>
-          <button className={format === "dxf" ? "on" : ""} onClick={() => setFormat("dxf")}>
+          <button className={kind === "R12" ? "on" : ""} onClick={() => setKind("R12")}>
             DXF R12
           </button>
-          <button className={format === "dwg" ? "on" : ""} onClick={() => setFormat("dwg")}>
+          <button className={kind === "R2000" ? "on" : ""} onClick={() => setKind("R2000")}>
+            DXF 2000
+          </button>
+          <button className={kind === "dwg" ? "on" : ""} onClick={() => setKind("dwg")}>
             DWG
           </button>
         </div>
       </div>
       <p className="note">
-        {format === "dwg"
-          ? `DWG ${dwgVersion.replace("ACAD", "")} gravado pelo conversor do AGTN CAD (versão em Preferências), coordenadas em milímetros; cotas como geometria.`
-          : "Formato DXF R12 (AC1009), ASCII, coordenadas em milímetros. R12 não registra unidade nem espessura de linha; cotas são exportadas como geometria."}
+        {kind === "dwg"
+          ? `DWG ${dwgVersion.replace("ACAD", "")} gravado pelo conversor do AGTN CAD (versão em Preferências), coordenadas em milímetros; elipse, spline e hachura nativas; cotas como geometria.`
+          : kind === "R2000"
+            ? "DXF 2000 (AC1015): guarda elipse, spline, hachura, texto de várias linhas, unidade (mm) e espessura de linha. Cotas como geometria."
+            : "DXF R12 (AC1009): o mais aceito por máquinas e CAM de corte. Elipse/spline viram polilinhas, hachura vira linhas; não guarda unidade nem espessura de linha."}
       </p>
       <h4>Camadas</h4>
       {layers.map((l) => (

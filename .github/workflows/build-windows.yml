@@ -53,8 +53,39 @@ jobs:
         env:
           AGTN_DWG_SAMPLES: ${{ github.workspace }}/tests/dwg
         run: cargo test --release
-      - name: Build Tauri
-        run: npm run tauri -- build
+      - name: Build Tauri (assina se houver certificado nos secrets)
+        shell: pwsh
+        env:
+          SIGN_COMMAND: ${{ secrets.SIGN_COMMAND }}
+          WINDOWS_CERT_PFX_BASE64: ${{ secrets.WINDOWS_CERT_PFX_BASE64 }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+          SIGN_TIMESTAMP_URL: ${{ vars.SIGN_TIMESTAMP_URL }}
+          # credenciais de fornecedores de assinatura em nuvem usadas dentro do SIGN_COMMAND
+          ES_USERNAME: ${{ secrets.ES_USERNAME }}
+          ES_PASSWORD: ${{ secrets.ES_PASSWORD }}
+          ES_CREDENTIAL_ID: ${{ secrets.ES_CREDENTIAL_ID }}
+          ES_TOTP_SECRET: ${{ secrets.ES_TOTP_SECRET }}
+        run: |
+          if ($env:SIGN_COMMAND -or $env:WINDOWS_CERT_PFX_BASE64) {
+            $script = Join-Path $env:GITHUB_WORKSPACE "apps/desktop/src-tauri/windows/sign.ps1"
+            $cfg = @{ bundle = @{ windows = @{ signCommand = @{ cmd = "pwsh"; args = @("-NoProfile", "-File", $script, "%1") } } } }
+            $cfgPath = Join-Path $env:RUNNER_TEMP "assinatura.conf.json"
+            $cfg | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8 $cfgPath
+            Write-Host "Assinatura de código: ATIVADA"
+            "SIGNED=true" >> $env:GITHUB_ENV
+            npm run tauri -- build --config $cfgPath
+          } else {
+            Write-Host "::notice::Assinatura de código desativada (sem certificado nos secrets) — veja docs/ASSINATURA.md"
+            npm run tauri -- build
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Conferir assinatura
+        if: env.SIGNED == 'true'
+        shell: pwsh
+        run: |
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName | Select-Object -Last 1
+          $files = @(Get-Item apps/desktop/src-tauri/target/release/agtn-cad.exe) + (Get-ChildItem apps/desktop/src-tauri/target/release/bundle/nsis/*.exe) + (Get-ChildItem apps/desktop/src-tauri/target/release/bundle/msi/*.msi)
+          foreach ($f in $files) { & $signtool.FullName verify /pa /v $f.FullName; if ($LASTEXITCODE -ne 0) { exit 1 } }
       - name: Publicar artefatos
         uses: actions/upload-artifact@v4
         with:

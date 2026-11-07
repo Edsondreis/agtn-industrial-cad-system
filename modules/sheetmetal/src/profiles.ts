@@ -30,7 +30,7 @@ export interface FabricationParams {
   kTableId: string;
 }
 
-export type ProfileKind = "L" | "U" | "U_ENRIJECIDO";
+export type ProfileKind = "L" | "U" | "U_ENRIJECIDO" | "Z" | "Z_ENRIJECIDO" | "CARTOLA" | "OMEGA";
 
 export interface ProfileParams {
   kind: ProfileKind;
@@ -45,6 +45,8 @@ export interface ProfileParams {
 export interface ProfileDef {
   kind: ProfileKind;
   name: string;
+  /** rótulo curto do botão */
+  short: string;
   description: string;
   flangeLabels: string[];
   bendLabels: string[];
@@ -58,14 +60,14 @@ export interface ProfileDef {
 const bend = (angleDeg = 90, R = 3, K = 0.43): BendParams => ({ angleDeg, R, K, kSource: "manual", kRuleId: null });
 
 /**
- * Registro de perfis. Novos perfis (Z, C, cartola, ômega...) entram aqui:
- * basta declarar abas, dobras e sentidos — o motor genérico resolve qualquer sequência
- * de abas e dobras, inclusive com sentidos alternados (ex.: Z = left, right).
+ * Registro de perfis. Basta declarar abas, dobras e sentidos — o motor genérico resolve qualquer
+ * sequência de abas e dobras, inclusive com sentidos alternados (Z, cartola, ômega).
  */
 export const PROFILE_DEFS: Record<ProfileKind, ProfileDef> = {
   L: {
     kind: "L",
     name: "Perfil L (cantoneira)",
+    short: "Perfil L",
     description: "Uma dobra. Aba vertical + aba horizontal.",
     flangeLabels: ["Aba vertical", "Aba horizontal"],
     bendLabels: ["Dobra 1"],
@@ -85,6 +87,7 @@ export const PROFILE_DEFS: Record<ProfileKind, ProfileDef> = {
   U: {
     kind: "U",
     name: "Perfil U",
+    short: "Perfil U",
     description: "Duas dobras. Abas podem ter alturas, raios e ângulos diferentes.",
     flangeLabels: ["Aba 1 (altura)", "Base (largura)", "Aba 2 (altura)"],
     bendLabels: ["Dobra 1", "Dobra 2"],
@@ -104,8 +107,9 @@ export const PROFILE_DEFS: Record<ProfileKind, ProfileDef> = {
   },
   U_ENRIJECIDO: {
     kind: "U_ENRIJECIDO",
-    name: "Perfil U enrijecido",
-    description: "Quatro dobras. U com abas de retorno (enrijecedores) nas extremidades.",
+    name: "Perfil C (U enrijecido, Ue)",
+    short: "C / U enrij.",
+    description: "Quatro dobras. U com abas de retorno (enrijecedores) nas extremidades — o \"perfil C\" de terças e travessas.",
     flangeLabels: ["Enrijecedor 1", "Aba 1 (altura)", "Base (largura)", "Aba 2 (altura)", "Enrijecedor 2"],
     bendLabels: ["Dobra 1 (enrijecedor)", "Dobra 2", "Dobra 3", "Dobra 4 (enrijecedor)"],
     baseIndex: 2,
@@ -124,6 +128,96 @@ export const PROFILE_DEFS: Record<ProfileKind, ProfileDef> = {
       bends: [bend(90, 2), bend(90, 2), bend(90, 2), bend(90, 2)],
     }),
   },
+  Z: {
+    kind: "Z",
+    name: "Perfil Z",
+    short: "Perfil Z",
+    description: "Duas dobras em sentidos opostos. Abas paralelas, uma para cada lado da alma.",
+    flangeLabels: ["Aba 1", "Alma (altura)", "Aba 2"],
+    bendLabels: ["Dobra 1", "Dobra 2"],
+    baseIndex: 0,
+    dirs: ["left", "right"],
+    defaults: () => ({
+      kind: "Z",
+      T: 2,
+      partLength: 1000,
+      dims: [
+        { value: 50, ref: "externa" },
+        { value: 150, ref: "externa" },
+        { value: 50, ref: "externa" },
+      ],
+      bends: [bend(90, 2), bend(90, 2)],
+    }),
+  },
+  Z_ENRIJECIDO: {
+    kind: "Z_ENRIJECIDO",
+    name: "Perfil Z enrijecido (Ze)",
+    short: "Z enrij.",
+    description: "Quatro dobras. Z com enrijecedores nas abas — usado em terças de cobertura.",
+    flangeLabels: ["Enrijecedor 1", "Aba 1", "Alma (altura)", "Aba 2", "Enrijecedor 2"],
+    bendLabels: ["Dobra 1 (enrijecedor)", "Dobra 2", "Dobra 3", "Dobra 4 (enrijecedor)"],
+    baseIndex: 1,
+    dirs: ["left", "left", "right", "right"],
+    defaults: () => ({
+      kind: "Z_ENRIJECIDO",
+      T: 2,
+      partLength: 1000,
+      dims: [
+        { value: 17, ref: "externa" },
+        { value: 60, ref: "externa" },
+        { value: 200, ref: "externa" },
+        { value: 60, ref: "externa" },
+        { value: 17, ref: "externa" },
+      ],
+      bends: [bend(90, 2), bend(90, 2), bend(90, 2), bend(90, 2)],
+    }),
+  },
+  CARTOLA: {
+    kind: "CARTOLA",
+    name: "Perfil cartola",
+    short: "Cartola",
+    description: "Quatro dobras a 90°. Topo, duas laterais e abas para fora (chapéu).",
+    flangeLabels: ["Aba 1", "Lateral 1 (altura)", "Topo (largura)", "Lateral 2 (altura)", "Aba 2"],
+    bendLabels: ["Dobra 1", "Dobra 2", "Dobra 3", "Dobra 4"],
+    baseIndex: 0,
+    dirs: ["left", "right", "right", "left"],
+    defaults: () => ({
+      kind: "CARTOLA",
+      T: 2,
+      partLength: 1000,
+      dims: [
+        { value: 25, ref: "externa" },
+        { value: 50, ref: "externa" },
+        { value: 50, ref: "externa" },
+        { value: 50, ref: "externa" },
+        { value: 25, ref: "externa" },
+      ],
+      bends: [bend(90, 2), bend(90, 2), bend(90, 2), bend(90, 2)],
+    }),
+  },
+  OMEGA: {
+    kind: "OMEGA",
+    name: "Perfil ômega",
+    short: "Ômega",
+    description: "Cartola com laterais inclinadas (trapézio). Ângulo das dobras ajustável (padrão 60°).",
+    flangeLabels: ["Aba 1", "Lateral 1 (inclinada)", "Topo (largura)", "Lateral 2 (inclinada)", "Aba 2"],
+    bendLabels: ["Dobra 1", "Dobra 2", "Dobra 3", "Dobra 4"],
+    baseIndex: 0,
+    dirs: ["left", "right", "right", "left"],
+    defaults: () => ({
+      kind: "OMEGA",
+      T: 2,
+      partLength: 1000,
+      dims: [
+        { value: 25, ref: "externa" },
+        { value: 60, ref: "externa" },
+        { value: 50, ref: "externa" },
+        { value: 60, ref: "externa" },
+        { value: 25, ref: "externa" },
+      ],
+      bends: [bend(60, 2), bend(60, 2), bend(60, 2), bend(60, 2)],
+    }),
+  },
 };
 
 /**
@@ -140,16 +234,30 @@ export function refToFace(ref: DimRef, dirs: BendDir[]): Face {
   throw new Error("Perfil com dobras em sentidos alternados requer mapeamento explícito de faces.");
 }
 
+/**
+ * Faces medidas em cada ponta de uma aba. "Externa" = face de fora da dobra vizinha:
+ * dobra "left" → face B por fora; "right" → face A por fora. Ponta livre usa a face da outra ponta.
+ * Nos perfis com todas as dobras no mesmo sentido o resultado é igual ao de `refToFace`.
+ */
+export function flangeFaces(ref: DimRef, i: number, dirs: BendDir[]): [Face, Face] {
+  const at = (d: BendDir): Face => {
+    const outer: Face = d === "left" ? "B" : "A";
+    return ref === "externa" ? outer : outer === "A" ? "B" : "A";
+  };
+  const before = i > 0 ? at(dirs[i - 1]) : null;
+  const after = i < dirs.length ? at(dirs[i]) : null;
+  return [before ?? after!, after ?? before!];
+}
+
 /** Monta a entrada do motor a partir dos parâmetros do configurador. */
 export function buildProfileInput(p: ProfileParams): ProfileInput {
   const def = PROFILE_DEFS[p.kind];
   if (p.dims.length !== def.flangeLabels.length || p.bends.length !== def.bendLabels.length)
     throw new Error(`Parâmetros incompatíveis com ${def.name}.`);
-  const flanges: FlangeInput[] = p.dims.map((d, i) => ({
-    label: def.flangeLabels[i],
-    length: d.value,
-    face: refToFace(d.ref, def.dirs),
-  }));
+  const flanges: FlangeInput[] = p.dims.map((d, i) => {
+    const [face, faceEnd] = flangeFaces(d.ref, i, def.dirs);
+    return { label: def.flangeLabels[i], length: d.value, face, faceEnd };
+  });
   const bends: BendInput[] = p.bends.map((b, j) => ({
     label: def.bendLabels[j],
     angleDeg: b.angleDeg,
