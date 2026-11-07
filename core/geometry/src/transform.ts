@@ -1,6 +1,7 @@
-import { normAngle } from "./angle";
-import type { Entity } from "./entities";
-import { type Vec2, angleOf, sub } from "./vec";
+import { TAU, ccwSweep, normAngle } from "./angle";
+import { type HatchLoop, type HatchPatternLine, ellipseFromConjugate, ellipseMinor, hatchLoopPolygon } from "./curves";
+import type { Entity, EntityBase } from "./entities";
+import { type Vec2, angleOf, len, sub } from "./vec";
 
 /**
  * Transformação afim 2D: x' = a·x + c·y + e ; y' = b·x + d·y + f.
@@ -119,6 +120,78 @@ export function transformEntity<E extends Entity>(e: E, m: Affine): E {
         loc: p(e.loc),
         rot: e.kind === "linear" ? normAngle(mirrored ? -e.rot + 2 * rotationOf(m) : e.rot + rotationOf(m)) : e.rot,
       };
+    case "ellipse": {
+      const g = ellipseFromConjugate(p(e.c), linear(m, e.major), linear(m, ellipseMinor(e)), e.t0, e.t1);
+      return g ? { ...e, ...g } : e;
+    }
+    case "spline":
+      return { ...e, ctrl: e.ctrl.map(p), fit: e.fit ? e.fit.map(p) : undefined };
+    case "hatch":
+      return { ...e, loops: e.loops.map((l) => transformLoop(l, m)), lines: e.lines.map((l) => transformPatternLine(l, m)) };
   }
+  return e;
+}
+
+/** Parte linear da transformação aplicada a um vetor. */
+export const linear = (m: Affine, v: Vec2): Vec2 => ({ x: m.a * v.x + m.c * v.y, y: m.b * v.x + m.d * v.y });
+
+function transformLoop(l: HatchLoop, m: Affine): HatchLoop {
+  const mirrored = det(m) < 0;
+  return { pts: l.pts.map((q) => applyPt(m, q)), bulges: mirrored ? l.bulges.map((b) => -b) : l.bulges.slice() };
+}
+
+function transformPatternLine(l: HatchPatternLine, m: Affine): HatchPatternLine {
+  const dir = linear(m, { x: Math.cos(l.angle), y: Math.sin(l.angle) });
+  const k = len(dir);
+  return { angle: angleOf(dir), base: applyPt(m, l.base), offset: linear(m, l.offset), dashes: l.dashes.map((d) => d * k) };
+}
+
+/**
+ * Transformação afim QUALQUER (inclusive escala não uniforme, usada em blocos do DXF/DWG).
+ * Círculos e arcos viram elipses; splines e polilinhas retas são exatos.
+ * Retorna `null` quando o tipo não pode ser representado (polilinha com arcos, texto, cota).
+ */
+export function transformEntityAffine(e: Entity, m: Affine): Entity | null {
+  if (isConformal(m)) return transformEntity(e, m);
+  const p = (q: Vec2) => applyPt(m, q);
+  const base: EntityBase = { id: e.id, layer: e.layer, color: e.color, lineweight: e.lineweight, linetype: e.linetype };
+  switch (e.type) {
+    case "line":
+      return { ...e, a: p(e.a), b: p(e.b) };
+    case "point":
+      return { ...e, p: p(e.p) };
+    case "polyline":
+      return e.bulges.every((b) => b === 0) ? { ...e, pts: e.pts.map(p) } : null;
+    case "circle":
+    case "arc": {
+      const t0 = e.type === "arc" ? e.a0 : 0;
+      const t1 = e.type === "arc" ? normAngle(e.a0 + ccwSweep(e.a0, e.a1)) : TAU;
+      const g = ellipseFromConjugate(p(e.c), linear(m, { x: e.r, y: 0 }), linear(m, { x: 0, y: e.r }), t0, e.type === "arc" && t1 === t0 ? t0 + TAU : t1);
+      return g ? { ...base, type: "ellipse", ...g } : null;
+    }
+    case "ellipse":
+    case "spline":
+      return transformEntityUnchecked(e, m);
+    case "hatch":
+      return {
+        ...e,
+        loops: e.loops.map((l) => {
+          const pts = hatchLoopPolygon(l).map(p);
+          return { pts, bulges: pts.map(() => 0) };
+        }),
+        lines: e.lines.map((l) => transformPatternLine(l, m)),
+      };
+    default:
+      return null;
+  }
+}
+
+function transformEntityUnchecked(e: Entity, m: Affine): Entity {
+  const p = (q: Vec2) => applyPt(m, q);
+  if (e.type === "ellipse") {
+    const g = ellipseFromConjugate(p(e.c), linear(m, e.major), linear(m, ellipseMinor(e)), e.t0, e.t1);
+    return g ? { ...e, ...g } : e;
+  }
+  if (e.type === "spline") return { ...e, ctrl: e.ctrl.map(p), fit: e.fit ? e.fit.map(p) : undefined };
   return e;
 }

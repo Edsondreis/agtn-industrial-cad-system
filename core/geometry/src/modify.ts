@@ -2,6 +2,7 @@ import { ccwSweep, normAngle, TAU } from "./angle";
 import { type BBox, boxContainsPoint } from "./bbox";
 import type { ArcEntity, Entity, LineEntity, PolylineEntity } from "./entities";
 import { newId } from "./entities";
+import { hatchLoopPolygon, hatchPatternSegments } from "./curves";
 import { circleCircle, lineCircleParams, lineLine, segParam, segSeg } from "./intersect";
 import {
   type Seg,
@@ -515,6 +516,31 @@ export function explodePolyline(p: PolylineEntity): Entity[] {
   });
 }
 
+/**
+ * Explode elipse/spline (→ polilinha de segmentos retos com erro < 0,05 % do tamanho) e
+ * hachura (→ linhas do padrão; hachura sólida → contornos fechados), como o EXPLODE do AutoCAD.
+ */
+export function explodeCurve(e: Entity): Entity[] | null {
+  const base = { layer: e.layer, color: e.color, lineweight: e.lineweight, linetype: e.linetype };
+  if (e.type === "ellipse" || e.type === "spline") {
+    const segs = entitySegs(e);
+    if (!segs.length) return [];
+    const pts = [segStart(segs[0]), ...segs.map(segEnd)];
+    const closed = samePoint(pts[0], pts[pts.length - 1], 1e-9) && pts.length > 3;
+    if (closed) pts.pop();
+    return [{ ...base, id: newId(), type: "polyline", pts, bulges: pts.map(() => 0), closed }];
+  }
+  if (e.type === "hatch") {
+    if (e.solid)
+      return e.loops.map((l): Entity => ({ ...base, id: newId(), type: "polyline", pts: l.pts.slice(), bulges: l.bulges.slice(), closed: true }));
+    const polys = e.loops.map(hatchLoopPolygon);
+    return hatchPatternSegments(polys, e.lines).segs.map(([a, b]): Entity =>
+      dist(a, b) < 1e-9 ? { ...base, id: newId(), type: "point", p: a } : { ...base, id: newId(), type: "line", a, b },
+    );
+  }
+  return null;
+}
+
 /** Une linhas, arcos e polilinhas abertas encadeadas (extremidades coincidentes) em uma polilinha. */
 export function joinEntities(list: readonly Entity[], tol = 1e-6): OpResult<PolylineEntity> {
   type Piece = { segs: Seg[] };
@@ -591,11 +617,20 @@ export function stretchEntity(e: Entity, win: BBox, delta: Vec2): Entity | null 
       if (!any) return null;
       return { ...e, p1: mv(e.p1), p2: mv(e.p2), loc: mv(e.loc), assoc: null };
     }
+    case "spline": {
+      if (!e.ctrl.some(inside)) return null;
+      return { ...e, ctrl: e.ctrl.map(mv), fit: undefined };
+    }
+    case "hatch": {
+      if (!e.loops.some((l) => l.pts.some(inside))) return null;
+      return { ...e, loops: e.loops.map((l) => ({ pts: l.pts.map(mv), bulges: l.bulges.slice() })) };
+    }
     case "circle":
     case "arc":
+    case "ellipse":
     case "point":
     case "text": {
-      const key = e.type === "circle" || e.type === "arc" ? e.c : e.p;
+      const key = e.type === "circle" || e.type === "arc" || e.type === "ellipse" ? e.c : e.p;
       if (!inside(key)) return null;
       return transformEntity(e, translation(delta.x, delta.y));
     }

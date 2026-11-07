@@ -1,5 +1,6 @@
 import { ccwSweep, TAU } from "./angle";
 import { entityBox, textCorners } from "./bbox";
+import { hatchLoopPolygon, pointInHatch } from "./curves";
 import type { Entity } from "./entities";
 import { closestOnSeg, entitySegs, lineSeg, segLength } from "./segments";
 import { type Vec2, dist } from "./vec";
@@ -14,6 +15,8 @@ export function entityLength(e: Entity): number {
     case "arc":
       return e.r * ccwSweep(e.a0, e.a1);
     case "polyline":
+    case "ellipse":
+    case "spline":
       return entitySegs(e).reduce((s, g) => s + segLength(g), 0);
     default:
       return 0;
@@ -79,6 +82,9 @@ export function distToEntity(p: Vec2, e: Entity): number {
     let d = Infinity;
     for (let i = 0; i < 4; i++) d = Math.min(d, dist(p, closestOnSeg(p, lineSeg(c[i], c[(i + 1) % 4]))));
     return d;
+  }
+  if (e.type === "hatch") {
+    if (pointInHatch(p, e.loops.map(hatchLoopPolygon))) return 0;
   }
   if (e.type === "dimension") {
     const b = entityBox(e);

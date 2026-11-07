@@ -3,9 +3,13 @@ import {
   type DimStyle,
   type Entity,
   type Vec2,
+  TEXT_LINE_SPACING,
   bulgeSeg,
   ccwSweep,
+  curvePoints,
   dimensionGeometry,
+  hatchLoopPolygon,
+  hatchPatternSegments,
 } from "@agtn/geometry";
 import { type Layer, linetypeByName } from "@agtn/document";
 import type { Viewport } from "./view";
@@ -115,6 +119,16 @@ export function entityPath(path: Path2D, e: Entity, v: Viewport): void {
       for (let i = 0; i < segs; i++) addSegPath(path, v, e.pts[i], e.pts[(i + 1) % n], e.bulges[i] ?? 0, i === 0);
       return;
     }
+    case "ellipse":
+    case "spline": {
+      const pts = curvePoints(e);
+      pts.forEach((q, i) => {
+        const sq = v.toScreen(q);
+        if (i === 0) path.moveTo(sq.x, sq.y);
+        else path.lineTo(sq.x, sq.y);
+      });
+      return;
+    }
     case "point": {
       const p = v.toScreen(e.p);
       path.moveTo(p.x - 4, p.y);
@@ -125,6 +139,86 @@ export function entityPath(path: Path2D, e: Entity, v: Viewport): void {
     }
     default:
       return;
+  }
+}
+
+/** Geometria de hachura em coordenadas do desenho, calculada uma vez por objeto. */
+export interface HatchDrawData {
+  polys: Vec2[][];
+  segs: [Vec2, Vec2][];
+  truncated: boolean;
+}
+const hatchCache = new WeakMap<object, HatchDrawData>();
+
+export function hatchDrawData(e: Extract<Entity, { type: "hatch" }>): HatchDrawData {
+  let d = hatchCache.get(e);
+  if (!d) {
+    const polys = e.loops.map(hatchLoopPolygon);
+    const r = e.solid ? { segs: [], truncated: false } : hatchPatternSegments(polys, e.lines);
+    d = { polys, segs: r.segs, truncated: r.truncated };
+    hatchCache.set(e, d);
+  }
+  return d;
+}
+
+function drawHatch(ctx: CanvasRenderingContext2D, e: Extract<Entity, { type: "hatch" }>, v: Viewport, r: Resolved, highlight: boolean) {
+  const d = hatchDrawData(e);
+  if (e.solid || highlight) {
+    const path = new Path2D();
+    for (const poly of d.polys) {
+      poly.forEach((q, i) => {
+        const sq = v.toScreen(q);
+        if (i === 0) path.moveTo(sq.x, sq.y);
+        else path.lineTo(sq.x, sq.y);
+      });
+      path.closePath();
+    }
+    if (e.solid) {
+      ctx.fillStyle = r.color;
+      ctx.globalAlpha = highlight ? 0.55 : 1;
+      ctx.fill(path, "evenodd");
+      ctx.globalAlpha = 1;
+    }
+    if (highlight) {
+      ctx.strokeStyle = r.color;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 3]);
+      ctx.stroke(path);
+      ctx.setLineDash([]);
+    }
+  }
+  if (!e.solid && d.segs.length) {
+    // padrão mais denso que ~1,5 px na tela vira um tom suave (como o AutoCAD faz ao afastar o zoom)
+    const sp = e.lines.reduce((m, l) => Math.min(m, Math.abs(l.offset.x * -Math.sin(l.angle) + l.offset.y * Math.cos(l.angle))), Infinity);
+    if (sp * v.scale < 1.5) {
+      const path = new Path2D();
+      for (const poly of d.polys) {
+        poly.forEach((q, i) => {
+          const sq = v.toScreen(q);
+          if (i === 0) path.moveTo(sq.x, sq.y);
+          else path.lineTo(sq.x, sq.y);
+        });
+        path.closePath();
+      }
+      ctx.fillStyle = r.color;
+      ctx.globalAlpha = 0.35;
+      ctx.fill(path, "evenodd");
+      ctx.globalAlpha = 1;
+      return;
+    }
+    const path = new Path2D();
+    const vb = v.worldBox();
+    for (const [a, b] of d.segs) {
+      if ((a.x < vb.minX && b.x < vb.minX) || (a.x > vb.maxX && b.x > vb.maxX) || (a.y < vb.minY && b.y < vb.minY) || (a.y > vb.maxY && b.y > vb.maxY)) continue;
+      const sa = v.toScreen(a);
+      const sb = v.toScreen(b);
+      path.moveTo(sa.x, sa.y);
+      path.lineTo(sb.x === sa.x && sb.y === sa.y ? sb.x + 0.01 : sb.x, sb.y);
+    }
+    ctx.strokeStyle = r.color;
+    ctx.lineWidth = Math.max(1, r.width * 0.75);
+    ctx.setLineDash([]);
+    ctx.stroke(path);
   }
 }
 
@@ -146,7 +240,7 @@ function drawText(ctx: CanvasRenderingContext2D, v: Viewport, p: Vec2, h: number
   ctx.textAlign = halign === 0 ? "left" : halign === 1 ? "center" : "right";
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = color;
-  ctx.fillText(value, 0, 0);
+  value.split("\n").forEach((line, i) => ctx.fillText(line, 0, i * px * TEXT_LINE_SPACING));
   ctx.restore();
 }
 
@@ -160,6 +254,7 @@ export function drawEntities(ctx: CanvasRenderingContext2D, ents: Iterable<Entit
   const groups = new Map<string, { r: Resolved; path: Path2D }>();
   const texts: Entity[] = [];
   const dims: { e: Entity; r: Resolved }[] = [];
+  const hatches: { e: Extract<Entity, { type: "hatch" }>; r: Resolved }[] = [];
   for (const e of ents) {
     const r0 = resolve(e, st, v.scale);
     const r: Resolved = opt.override ? { color: opt.override.color, width: opt.override.width ?? r0.width, dash: opt.override.dash ?? r0.dash } : r0;
@@ -169,6 +264,10 @@ export function drawEntities(ctx: CanvasRenderingContext2D, ents: Iterable<Entit
     }
     if (e.type === "dimension") {
       dims.push({ e, r });
+      continue;
+    }
+    if (e.type === "hatch") {
+      hatches.push({ e, r });
       continue;
     }
     const key = `${r.color}|${r.width}|${r.dash.join(",")}`;
@@ -181,6 +280,8 @@ export function drawEntities(ctx: CanvasRenderingContext2D, ents: Iterable<Entit
   }
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
+  // hachuras primeiro: ficam por baixo das linhas, como no AutoCAD (DRAWORDER padrão)
+  for (const { e, r } of hatches) drawHatch(ctx, e, v, r, !!opt.override);
   for (const { r, path } of groups.values()) {
     ctx.strokeStyle = r.color;
     ctx.lineWidth = r.width;

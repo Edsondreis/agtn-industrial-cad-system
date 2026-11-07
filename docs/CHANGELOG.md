@@ -1,5 +1,25 @@
 # Changelog
 
+## 3.0.0 — Impressão/PDF, elipse/spline/hachura, DXF 2000, arrastar e soltar, perfis Z/cartola/ômega
+- **Imprimir / PDF** (`@agtn/plot`, comando `PLOT`/`IMPRIMIR`/`PDF`, Ctrl+P): folha, orientação, área
+  (tudo/tela/janela), escala (ajustar ou 1:N), centralizar, margem, cores, espessuras. PDF 1.4 vetorial próprio
+  (Helvetica WinAnsi, recorte na área) e SVG para a impressora do sistema (página CSS do tamanho da folha).
+- **Entidades novas** em `core/geometry` (`curves.ts`): `ellipse`, `spline` (B-spline/NURBS, de Boor;
+  interpolação por pontos de ajuste igual ao AutoCAD), `hatch` (contornos com bulge, sólida ou padrão,
+  regra par-ímpar). Desenho, seleção, snap (centro/quadrantes/extremidades), alças, propriedades, transformações
+  (inclusive afim não uniforme), explodir, stretch, formato `.agtncad`.
+- Comandos `EL`/`ELIPSE` e `H`/`HACHURA`; texto com várias linhas (`\n`).
+- **Leitura DXF**: `ELLIPSE`, `SPLINE`, `HATCH` (arestas linha/arco/elipse/spline, padrões, degradê como sólida),
+  `MTEXT` com `\P` e ponto de anexação, `SOLID`/`TRACE`, `LEADER`, `ACAD_TABLE`, `POLYLINE` 3D plana,
+  espessura de linha (370) dos objetos.
+- **Escrita DXF 2000** (`writer2000.ts`): handles, BLOCK_RECORD, layouts, dicionários; LWPOLYLINE, ELLIPSE, SPLINE,
+  HATCH, MTEXT, `$INSUNITS`, 370. R12 converte as curvas novas em polilinhas/linhas. Exportar DWG usa DXF 2000.
+- **Arrastar e soltar** (evento nativo do Tauri): abre arquivo; vários → conversor; conversor aberto → lista.
+- **Planificação**: perfis Z, Z enrijecido, cartola, ômega; motor aceita face diferente em cada ponta da aba
+  (`faceEnd`) para medidas de fora a fora em dobras de sentidos opostos; tabela de abas com medida
+  externa/interna por ponta.
+- **CI**: assinatura de código opcional (`windows/sign.ps1`, secrets `SIGN_COMMAND` ou PFX) + `signtool verify`.
+
 ## 1.1.0 — DWG próprio, conversor DWG ↔ DXF e programa padrão
 - **Conversor DWG próprio, embutido** (`cadconv.rs`, motor acadrust MPL-2.0): nada para instalar. DWG R12 até
   2018 — abrir (Ctrl+O, recentes, duplo clique), importar, exportar. Validado contra DXF gerado pelo AutoCAD.

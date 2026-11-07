@@ -10,6 +10,7 @@ import {
   deg2rad,
   dist,
   entityBox,
+  explodeCurve,
   explodePolyline,
   extendEntity,
   filletLines,
@@ -525,6 +526,10 @@ export class ExplodeTool extends SelectionTool {
       if (e.type === "polyline") {
         ch.push({ kind: "remove", e }, ...this.h.doc.addChanges(explodePolyline(e)));
         n++;
+      } else if (e.type === "ellipse" || e.type === "spline" || e.type === "hatch") {
+        const parts = explodeCurve(e) ?? [];
+        ch.push({ kind: "remove", e }, ...this.h.doc.addChanges(parts));
+        n++;
       } else if (e.type === "dimension") {
         const g = dimensionGeometry(e, this.h.doc.settings.dimStyle);
         const st = { color: e.color, linetype: null, lineweight: null };
@@ -536,7 +541,7 @@ export class ExplodeTool extends SelectionTool {
         n++;
       }
     }
-    if (!n) this.h.message("Nenhum objeto explodível (polilinhas e cotas).", "warn");
+    if (!n) this.h.message("Nenhum objeto explodível (polilinhas, cotas, elipses, splines e hachuras).", "warn");
     else this.h.commit(`Explodir ${n} objeto(s)`, ch);
     this.h.sel.clear();
     this.h.finish();
