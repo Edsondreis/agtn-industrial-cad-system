@@ -14,6 +14,12 @@ import {
   SM_LAYERS,
   SOURCE_LABEL,
   type SolveResult,
+  TRAY_CORNER_LABEL,
+  TRAY_SIDES,
+  TRAY_SIDE_LABEL,
+  type TrayCorner,
+  type TrayInput,
+  type TraySide,
   buildProfileInput,
   flatPatternEntities,
   fmtMM,
@@ -24,6 +30,9 @@ import {
   sectionEntities,
   solveProfile,
   solveRolling,
+  solveTray,
+  trayFlatEntities,
+  trayViewEntities,
 } from "@agtn/sheetmetal";
 import { type Entity, formatNumber } from "@agtn/geometry";
 import { useEffect, useMemo, useState } from "react";
@@ -38,7 +47,21 @@ import { PreviewCanvas } from "./PreviewCanvas";
 import { readSM, writeSM } from "./state";
 
 const SM_LAYER_DEFS: Layer[] = SM_LAYERS.map((l) => ({ name: l.name, color: l.color, lineweight: l.lineweight, linetype: l.linetype, visible: true, locked: false }));
-type Kind = ProfileKind | "CALANDRA";
+type Kind = ProfileKind | "CALANDRA" | "BANDEJA";
+type TrayForm = Omit<TrayInput, "K"> & { K: number };
+const TRAY_DEFAULT: TrayForm = {
+  A: 535,
+  B: 520,
+  flanges: { S: 25.4, N: 25.4, O: 25.4, L: 25.4 },
+  ref: "externa",
+  T: 3.18,
+  R: 2,
+  K: 0.33,
+  corner: "sobreposto",
+  overlap: "A",
+  gap: 0,
+};
+const fmtH = (v: number) => (v % 1 ? fmtMM(v, 2).replace(/0+$/, "").replace(/,$/, "") : fmtMM(v, 0));
 
 const defaultsFor = (kind: ProfileKind, fab?: ProfileParams["fab"]): ProfileParams => ({
   ...PROFILE_DEFS[kind].defaults(),
@@ -83,6 +106,9 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
   const [kind, setKind] = useState<Kind>("L");
   const [params, setParams] = useState<ProfileParams>(() => defaultsFor("L"));
   const [roll, setRoll] = useState({ diameter: 1000, ref: "externo" as RollRef, T: 6.35, width: 1000, angleDeg: 360 });
+  const [tray, setTrayState] = useState<TrayForm>(TRAY_DEFAULT);
+  const setTray = (p: Partial<TrayForm>) => setTrayState((s) => ({ ...s, ...p }));
+  const setTrayH = (sd: TraySide, v: number) => setTrayState((s) => ({ ...s, flanges: { ...s.flanges, [sd]: v } }));
   const [tab, setTab] = useState<"peca" | "config">("peca");
   const [cfg, setCfgState] = useState<Config>(savedConfig);
   const setCfg = (p: Partial<Config>) =>
@@ -92,6 +118,7 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
     });
   const [dlg, setDlg] = useState<null | "k" | "cal">(null);
   const isRoll = kind === "CALANDRA";
+  const isTray = kind === "BANDEJA";
   const def = PROFILE_DEFS[params.kind];
   const table = sm.kTables.find((t) => t.id === params.fab.kTableId) ?? sm.kTables[0];
 
@@ -105,26 +132,39 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
       }),
     };
   }, [params, cfg.kMode, table]);
-  const missingRule = !isRoll && cfg.kMode === "tabela" && effective.bends.some((b) => b.kRuleId === null);
+  const trayRule = useMemo(
+    () => (cfg.kMode === "tabela" ? lookupK(table, { material: params.fab.material, process: params.fab.process, T: tray.T, R: tray.R }) : null),
+    [cfg.kMode, table, params.fab.material, params.fab.process, tray.T, tray.R],
+  );
+  const trayK = cfg.kMode === "tabela" && trayRule ? trayRule.k : tray.K;
+  const missingRule = !isRoll && cfg.kMode === "tabela" && (isTray ? !trayRule : effective.bends.some((b) => b.kRuleId === null));
 
   const result: SolveResult | null = useMemo(() => {
-    if (isRoll) return null;
+    if (isRoll || isTray) return null;
     try {
       return solveProfile(buildProfileInput(effective));
     } catch {
       return null;
     }
-  }, [effective, isRoll]);
+  }, [effective, isRoll, isTray]);
+  const trayRes = useMemo(() => solveTray({ ...tray, K: trayK }), [tray, trayK]);
+  const trayHs = TRAY_SIDES.filter((sd) => tray.flanges[sd] > 0).map((sd) => tray.flanges[sd]);
   const rollRes = useMemo(() => solveRolling({ ...roll, K: cfg.kRoll }), [roll, cfg.kRoll]);
 
-  const title = isRoll
+  const title = isTray
+    ? `BANDEJA ${fmtH(tray.A)}x${fmtH(tray.B)}x${trayHs.every((h) => h === trayHs[0]) ? fmtH(trayHs[0] ?? 0) : trayHs.map(fmtH).join("/")}${tray.ref === "interna" ? " INT" : ""} #${fmtMM(tray.T, 2)}`
+    : isRoll
     ? `CALANDRA Ø${fmtMM(roll.diameter, 1)} ${roll.ref === "externo" ? "EXT" : "INT"} #${fmtMM(roll.T, 2)} x ${fmtMM(roll.width, 0)}`
     : `PERFIL ${params.kind.replace("_", " ")} ${params.dims.map((d) => fmtMM(d.value, 1)).join("x")} #${fmtMM(params.T, 2)}`;
   const flatRaw = useMemo(() => {
+    if (isTray) return trayFlatEntities(trayRes, { dims: cfg.dims, notes: cfg.notes, bendRegions: cfg.regions, title, markHeight: cfg.markHeight });
     if (isRoll) return rollingFlatEntities(rollRes, { dims: cfg.dims, markHeight: cfg.markHeight });
     return result?.ok ? flatPatternEntities(result, { dims: cfg.dims, notes: cfg.notes, bendRegions: cfg.regions, title, markHeight: cfg.markHeight }) : [];
-  }, [isRoll, rollRes, result, cfg.dims, cfg.notes, cfg.regions, cfg.markHeight, title]);
-  const section = useMemo(() => (isRoll ? rollingSectionEntities(rollRes) : result?.section ? sectionEntities(result) : []), [isRoll, rollRes, result]);
+  }, [isTray, trayRes, isRoll, rollRes, result, cfg.dims, cfg.notes, cfg.regions, cfg.markHeight, title]);
+  const section = useMemo(
+    () => (isTray ? trayViewEntities(trayRes) : isRoll ? rollingSectionEntities(rollRes) : result?.section ? sectionEntities(result) : []),
+    [isTray, trayRes, isRoll, rollRes, result],
+  );
   const [flat, setFlat] = useState<Entity[]>(flatRaw);
   useEffect(() => {
     if (!cfg.markGeom) {
@@ -149,7 +189,7 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
   const globalRef: DimRef | "misto" = params.dims.every((d) => d.ref === params.dims[0].ref) ? params.dims[0].ref : "misto";
   const pickKind = (k: Kind) => {
     setKind(k);
-    if (k !== "CALANDRA") setParams(defaultsFor(k, params.fab));
+    if (k !== "CALANDRA" && k !== "BANDEJA") setParams(defaultsFor(k, params.fab));
   };
 
   const layerChanges = (): Change[] => {
@@ -159,12 +199,14 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
     return out;
   };
   const density = materialById(params.fab.material).density;
-  const okNow = isRoll ? rollRes.ok : !!result?.ok;
-  const devLen = isRoll ? rollRes.developed : result?.developedLength ?? 0;
-  const width = isRoll ? roll.width : params.partLength;
-  const T = isRoll ? roll.T : params.T;
-  const weightKg = okNow ? (devLen * width * T * density) / 1e6 : 0;
-  const issues = isRoll ? rollRes.issues : result?.issues ?? [];
+  const okNow = isTray ? trayRes.ok : isRoll ? rollRes.ok : !!result?.ok;
+  const devLen = isTray ? trayRes.blank.w : isRoll ? rollRes.developed : result?.developedLength ?? 0;
+  const width = isTray ? trayRes.blank.h : isRoll ? roll.width : params.partLength;
+  const T = isTray ? tray.T : isRoll ? roll.T : params.T;
+  const areaMm2 = isTray ? trayRes.area : devLen * width;
+  const cutM = (isTray ? trayRes.cutLength : 2 * (devLen + width)) / 1000;
+  const weightKg = okNow ? (areaMm2 * T * density) / 1e6 : 0;
+  const issues = isTray ? trayRes.issues : isRoll ? rollRes.issues : result?.issues ?? [];
   const errors = issues.filter((i) => i.level === "error");
   const warnings = issues.filter((i) => i.level === "warning");
   const bendIssue = (j: number) => result?.issues.some((i) => i.ref?.bend === j && i.level === "error");
@@ -189,20 +231,104 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
       <div className="sm-sec">
         <h4>Tipo</h4>
         <div className="profile-pick" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
-          {([...(Object.keys(PROFILE_DEFS) as ProfileKind[]), "CALANDRA"] as Kind[]).map((k) => (
-            <button key={k} className={kind === k ? "on" : ""} onClick={() => pickKind(k)} title={k === "CALANDRA" ? "Chapa calandrada (cilindro ou segmento)" : PROFILE_DEFS[k as ProfileKind].description}>
+          {([...(Object.keys(PROFILE_DEFS) as ProfileKind[]), "CALANDRA", "BANDEJA"] as Kind[]).map((k) => (
+            <button
+              key={k}
+              className={kind === k ? "on" : ""}
+              onClick={() => pickKind(k)}
+              title={k === "CALANDRA" ? "Chapa calandrada (cilindro ou segmento)" : k === "BANDEJA" ? "Bandeja / caixa com abas nas bordas e recorte de canto" : PROFILE_DEFS[k as ProfileKind].description}
+            >
               <Icon
                 name={
-                  k === "L" ? "profL" : k === "U" ? "profU" : k === "CALANDRA" ? "roll" : k === "Z" || k === "Z_ENRIJECIDO" ? "profZ" : k === "CARTOLA" ? "profHat" : k === "OMEGA" ? "profOmega" : "profC"
+                  k === "L" ? "profL" : k === "U" ? "profU" : k === "CALANDRA" ? "roll" : k === "BANDEJA" ? "tray" : k === "Z" || k === "Z_ENRIJECIDO" ? "profZ" : k === "CARTOLA" ? "profHat" : k === "OMEGA" ? "profOmega" : "profC"
                 }
               />
-              {k === "CALANDRA" ? "Calandra" : PROFILE_DEFS[k as ProfileKind].short}
+              {k === "CALANDRA" ? "Calandra" : k === "BANDEJA" ? "Bandeja" : PROFILE_DEFS[k as ProfileKind].short}
             </button>
           ))}
         </div>
       </div>
 
-      {isRoll ? (
+      {isTray ? (
+        <>
+          <div className="sm-sec">
+            <h4>Bandeja (mm)</h4>
+            <div className="seg full" style={{ marginBottom: 10 }}>
+              <button className={tray.ref === "externa" ? "on" : ""} onClick={() => setTray({ ref: "externa" })}>
+                Medidas externas
+              </button>
+              <button className={tray.ref === "interna" ? "on" : ""} onClick={() => setTray({ ref: "interna" })}>
+                Medidas internas
+              </button>
+            </div>
+            <MeasureField label="Comprimento A" kind={tray.ref === "externa" ? "ext" : "int"} tag="A" value={tray.A} min={0} onCommit={(v) => setTray({ A: v })} />
+            <MeasureField label="Largura B" kind={tray.ref === "externa" ? "ext" : "int"} tag="B" value={tray.B} min={0} onCommit={(v) => setTray({ B: v })} />
+            {TRAY_SIDES.map((sd) => (
+              <MeasureField
+                key={sd}
+                label={TRAY_SIDE_LABEL[sd]}
+                kind={tray.ref === "externa" ? "ext" : "int"}
+                tag={`H${sd}`}
+                value={tray.flanges[sd]}
+                min={0}
+                bad={trayRes.issues.some((i) => i.level === "error" && i.message.startsWith(TRAY_SIDE_LABEL[sd]))}
+                onCommit={(v) => setTrayH(sd, v)}
+              />
+            ))}
+            <div className="note" style={{ marginBottom: 6 }}>Altura 0 = borda sem aba.</div>
+            <button
+              className="btn"
+              style={{ width: "100%", marginBottom: 8 }}
+              onClick={() => setTrayState((s) => ({ ...s, flanges: { S: s.flanges.S, N: s.flanges.S, O: s.flanges.S, L: s.flanges.S } }))}
+            >
+              Todas as abas iguais à inferior
+            </button>
+            <MeasureField label="Espessura" kind="thk" value={tray.T} min={0} onCommit={(v) => setTray({ T: v })} />
+            <MeasureField label="Raio interno" kind="rad" tag="Ri" value={tray.R} min={0} onCommit={(v) => setTray({ R: v })} />
+            {materialRow}
+          </div>
+          <div className="sm-sec">
+            <h4>Canto</h4>
+            <div className="seg full" style={{ marginBottom: 8 }}>
+              {(Object.keys(TRAY_CORNER_LABEL) as TrayCorner[]).map((c) => (
+                <button
+                  key={c}
+                  className={tray.corner === c ? "on" : ""}
+                  onClick={() => setTray({ corner: c })}
+                  title={
+                    c === "sobreposto"
+                      ? "A aba avança R+T e cobre a ponta da vizinha (face externa)"
+                      : c === "encosto"
+                        ? "A aba avança R e encosta na face interna da vizinha"
+                        : "Todas as abas param na borda do fundo"
+                  }
+                >
+                  {TRAY_CORNER_LABEL[c]}
+                </button>
+              ))}
+            </div>
+            {tray.corner !== "aberto" && (
+              <>
+                <div className="sm-row">
+                  <span className="k">Fecham o canto</span>
+                  <div className="seg">
+                    <button className={tray.overlap === "A" ? "on" : ""} onClick={() => setTray({ overlap: "A" })} title="Abas inferior e superior (lado A) avançam e fecham o canto">
+                      Lado A
+                    </button>
+                    <button className={tray.overlap === "B" ? "on" : ""} onClick={() => setTray({ overlap: "B" })} title="Abas esquerda e direita (lado B) avançam e fecham o canto">
+                      Lado B
+                    </button>
+                  </div>
+                </div>
+                <MeasureField label="Folga de solda" kind="len" tag="g" value={tray.gap} min={0} onCommit={(v) => setTray({ gap: v })} />
+              </>
+            )}
+            <div className="note">O alívio da dobra no canto (avanço × BA) sai pronto no contorno de corte.</div>
+            {missingRule && <div className="errbox">Sem fator K na tabela para este material/espessura/raio. Veja CONFIGURAÇÕES.</div>}
+            <MeasureLegend kinds={["ext", "int", "thk", "rad"]} />
+          </div>
+        </>
+      ) : isRoll ? (
         <div className="sm-sec">
           <h4>Calandra (mm)</h4>
           <div className="seg full" style={{ marginBottom: 10 }}>
@@ -321,7 +447,10 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
             </button>
           </div>
         </div>
-        {cfg.kMode === "manual" && !isRoll && (
+        {cfg.kMode === "manual" && isTray && (
+          <MeasureField label="K das dobras da bandeja" kind="k" unit="" digits={4} value={tray.K} min={0} onCommit={(v) => setTray({ K: v })} />
+        )}
+        {cfg.kMode === "manual" && !isRoll && !isTray && (
           <div>
             {params.bends.map((b, j) => (
               <MeasureField key={j} label={def.bendLabels[j]} kind="k" unit="" digits={4} value={b.K} min={0} onCommit={(v) => setBend(j, { K: v })} />
@@ -399,7 +528,7 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
           </label>
         ))}
       </div>
-      {!isRoll && (
+      {!isRoll && !isTray && (
         <div className="sm-sec">
           <h4>Configurações salvas no projeto</h4>
           <button
@@ -457,7 +586,7 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
         <PreviewCanvas
           entities={section}
           layers={SM_LAYER_DEFS}
-          label={isRoll ? "Peça calandrada — vista" : "Perfil dobrado — seção transversal"}
+          label={isTray ? "Bandeja dobrada — planta e seções" : isRoll ? "Peça calandrada — vista" : "Perfil dobrado — seção transversal"}
           legend={
             <>
               <span>
@@ -507,6 +636,36 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
             <div className="errbox">Não foi possível calcular. Corrija os itens abaixo.</div>
           ) : (
             <>
+            {isTray ? (
+              <>
+                <div className="result-big" title="Retângulo envolvente da chapa plana (comprimento × largura)">
+                  <span className="k">Blank</span>
+                  <span>
+                    <span className="v">
+                      {fmtMM(devLen, 2)} × {fmtMM(width, 2)}
+                    </span>
+                    <span className="u">mm</span>
+                  </span>
+                </div>
+                <div className="res">
+                  <span className="k">Espessura</span>
+                  <span className="v">{fmtMM(T, 2)}</span>
+                  <span className="k">Fundo plano</span>
+                  <span className="v">
+                    {fmtMM(trayRes.base.a, 2)} × {fmtMM(trayRes.base.b, 2)}
+                  </span>
+                  <span className="k">Externas A × B</span>
+                  <span className="v">
+                    {fmtMM(trayRes.Aext, 2)} × {fmtMM(trayRes.Bext, 2)}
+                  </span>
+                  <span className="k">Peso teórico (líquido)</span>
+                  <span className="v">{formatNumber(weightKg, 3, ",")} kg</span>
+                  <span className="k">Comprimento de corte</span>
+                  <span className="v">{formatNumber(cutM, 3, ",")} m</span>
+                </div>
+              </>
+            ) : (
+              <>
             <div className="result-big" title="Comprimento da chapa plana a cortar">
               <span className="k">Desenvolvido</span>
               <span>
@@ -524,8 +683,10 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
               <span className="k">Peso teórico</span>
               <span className="v">{formatNumber(weightKg, 3, ",")} kg</span>
               <span className="k">Comprimento de corte</span>
-              <span className="v">{formatNumber((2 * (devLen + width)) / 1000, 3, ",")} m</span>
+              <span className="v">{formatNumber(cutM, 3, ",")} m</span>
             </div>
+              </>
+            )}
             </>
           )}
           {errors.map((i, k) => (
@@ -572,7 +733,52 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
           </div>
         )}
 
-        {!isRoll && result?.ok && (
+        {isTray && trayRes.ok && (
+          <div className="sm-sec">
+            <h4>Dobras da bandeja</h4>
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Dobra</th>
+                  <th style={{ textAlign: "right" }}>Ext.</th>
+                  <th style={{ textAlign: "right" }}>Int.</th>
+                  <th style={{ textAlign: "right" }}>Reto</th>
+                  <th style={{ textAlign: "right" }} title="Quanto a aba passa da borda do fundo no canto">Avanço</th>
+                </tr>
+              </thead>
+              <tbody>
+                {trayRes.bends.map((b) => (
+                  <tr key={b.side} title={`Linha de dobra a ${fmtMM(b.side === "O" || b.side === "L" ? b.line[0].x : b.line[0].y, 2)} mm da borda (${b.side === "O" || b.side === "L" ? "X" : "Y"})`}>
+                    <td>
+                      D{b.n} {TRAY_SIDE_LABEL[b.side].replace(/^Aba /, "").replace(/ \(.*\)$/, "").slice(0, 3)}.
+                    </td>
+                    <td className="num">{fmtMM(b.heightExt, 2)}</td>
+                    <td className="num">{fmtMM(b.heightInt, 2)}</td>
+                    <td className="num">{fmtMM(b.flat, 2)}</td>
+                    <td className="num">{b.ext[0] || b.ext[1] ? fmtMM(Math.max(b.ext[0], b.ext[1]), 2) : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="res" style={{ marginTop: 8 }}>
+              <span className="k">θ / Ri / K</span>
+              <span className="v" style={{ color: cfg.kMode === "tabela" && trayRule?.source === "calibrado" ? "var(--ok)" : cfg.kMode === "tabela" && trayRule?.source === "estimado" ? "var(--warn)" : undefined }}>
+                90° / {fmtMM(tray.R, 2)} / {fmtMM(trayK, 3)}
+              </span>
+              <span className="k">BA / BD</span>
+              <span className="v">
+                {fmtMM(trayRes.BA, 3)} / {fmtMM(trayRes.BD, 3)}
+              </span>
+              <span className="k">Ordem de dobra</span>
+              <span className="v">{trayRes.bends.map((b) => `D${b.n}`).join(" → ")}</span>
+            </div>
+            <div className="note" style={{ marginTop: 4 }}>
+              Dobrar primeiro as abas cobertas e por último as que fecham o canto. Marcação “D1 CIMA…” gravada no fundo.
+            </div>
+          </div>
+        )}
+
+        {!isRoll && !isTray && result?.ok && (
           <div className="sm-sec">
             <h4>Dobras</h4>
             <table className="tbl">
@@ -629,15 +835,15 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
 
         {okNow && (
           <div className="sm-sec">
-            <button className="btn primary" style={{ width: "100%" }} onClick={() => onInsert(flat, layerChanges, isRoll ? "Planificação da calandra" : "Planificação")}>
+            <button className="btn primary" style={{ width: "100%" }} onClick={() => onInsert(flat, layerChanges, isTray ? "Planificação da bandeja" : isRoll ? "Planificação da calandra" : "Planificação")}>
               Inserir planificação no desenho
             </button>
             <button
               className="btn"
               style={{ width: "100%", marginTop: 6 }}
-              onClick={async () => onInsert(cfg.markGeom ? await textsToGeometry(section) : section, layerChanges, isRoll ? "Vista da calandra" : "Seção do perfil")}
+              onClick={async () => onInsert(cfg.markGeom ? await textsToGeometry(section) : section, layerChanges, isTray ? "Vista da bandeja" : isRoll ? "Vista da calandra" : "Seção do perfil")}
             >
-              {isRoll ? "Inserir vista no desenho" : "Inserir seção no desenho"}
+              {isRoll || isTray ? "Inserir vista no desenho" : "Inserir seção no desenho"}
             </button>
             <button
               className="btn"

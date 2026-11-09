@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.1.0 — Bandejas na planificação
+- **Bandeja** (`solveTray`, `modules/sheetmetal/src/tray.ts`): caixa com abas de 90° nas 4 bordas (altura por aba,
+  0 = sem aba), medidas externas ou internas, canto **sobreposto**, **encosto** ou **aberto**, escolha das abas que
+  fecham o canto (lado A ou B) e folga de solda. Contorno de corte já com o recorte/alívio de canto.
+- Saída igual aos perfis: `CONTORNO_CORTE`, `LINHAS_DOBRA`, `REGIAO_DOBRA`, marcação `D1 CIMA 90,0° RI…` no fundo
+  (numerada na ordem de dobra sugerida), cotas de batente, título; DXF R12.
+- Vista da bandeja dobrada: planta mostrando o tipo de canto + seções ao longo de A e de B, cotas externas.
+- Painel: blank, fundo plano, peso líquido (área real), comprimento de corte, tabela das abas
+  (externa/interna/reto/avanço), BA/BD, ordem de dobra. K pela tabela (material/processo/T/R) ou manual.
+- `rectUnionOutline`: união de retângulos alinhados → contorno único (base para chapas com abas/recortes).
+- Gabarito real `tests/dxf/fixtures/bandeja_710.0CUH25-01-03.dxf` reproduzido exatamente; 191 testes.
+
 ## 3.0.0 — Impressão/PDF, elipse/spline/hachura, DXF 2000, arrastar e soltar, perfis Z/cartola/ômega
 - **Imprimir / PDF** (`@agtn/plot`, comando `PLOT`/`IMPRIMIR`/`PDF`, Ctrl+P): folha, orientação, área
   (tudo/tela/janela), escala (ajustar ou 1:N), centralizar, margem, cores, espessuras. PDF 1.4 vetorial próprio

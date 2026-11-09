@@ -31,9 +31,10 @@ Perfis L, U, U enrijecido; interna/externa; K manual/tabela; calibração; seç�
 DXF de fabricação.
 - ✅ Calandra (cilindro e segmento) com marcação; UI básica + CONFIGURAÇÕES.
 - ✅ Perfis Z, Z enrijecido, cartola e ômega; C = U enrijecido (3.0.0).
+- ✅ Bandejas: abas nas 4 bordas, canto sobreposto/encosto/aberto com alívio, ordem de dobra (3.1.0).
 - 🔜 Cone/redução calandrada.
 - 🔜 Referência dimensional “até a tangente” para θ > 90°; bainha (hem).
-- ⏳ Chapas com recortes, abas e retornos, alívios; caixas; dutos e transições; sequência de dobra;
+- ⏳ Chapas com recortes, abas e retornos, alívios; bandeja com retorno/pestana e ângulo ≠ 90°; dutos e transições; sequência de dobra;
   integração com tabelas reais da dobradeira (Delem DA66T).
 
 ## Biblioteca de chapas ✅ (1ª entrega)

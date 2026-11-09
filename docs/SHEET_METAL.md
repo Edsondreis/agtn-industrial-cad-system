@@ -69,7 +69,7 @@ Outros casos de referência nos testes (`sheetmetal.test.ts`): 45° (108,7755), 
 - 0 < θ < 180°. Acima de 150° o vértice virtual se afasta muito; o programa avisa para conferir a referência.
 - Dimensão externa para θ > 90° é medida ao **vértice virtual**. Desenhos que cotam até a tangência externa
   precisam de conversão manual (referência “tangente” está no roadmap).
-- Perfis de seção constante, dobras simples, sem alívios ou recortes (próximas fases).
+- Perfis de seção constante, dobras simples, sem alívios ou recortes (próximas fases). Bandejas: ver abaixo.
 
 ## Fator K
 
@@ -130,6 +130,44 @@ Desenvolvido = θ · Rn        (volta completa: π · (Di + 2·K·T))
 - Como a calandra não marca a chapa, a planificação leva, na camada `MARCACAO`:
   `CALANDRAR RAIO EXTERNO|INTERNO R…` (a referência escolhida), os raios/diâmetros interno e externo, ângulo,
   espessura e desenvolvimento. Com “Marcação como geometria” ligada, o texto vira contorno para o laser gravar.
+
+## Bandeja (caixa com abas e recorte de canto)
+
+Motor: `solveTray` / `trayFlatEntities` / `trayViewEntities` (`modules/sheetmetal/src/tray.ts`).
+
+Fundo A (comprimento, X) × B (largura, Y). Abas de 90° nas quatro bordas — inferior (S) e superior (N) no lado A,
+esquerda (O) e direita (L) no lado B — cada uma com altura própria; altura 0 = borda sem aba.
+
+```
+BA = (π/2)·(R + K·T)      s = R + T (recuo: face externa → início da dobra)
+fundo plano  a = A − s·(nº de abas O/L)      b = B − s·(nº de abas S/N)
+reto da aba  f = H − s
+```
+
+Medidas internas: A, B e H são convertidas para externas somando T por aba (A_ext = A_int + T·nº de abas no lado).
+
+### Canto
+
+As abas de um dos lados (A ou B — "fecham o canto") avançam além da borda do fundo; as do outro lado param na borda.
+O avanço fica só no trecho reto da aba: a região de dobra vai de borda a borda do fundo, e o recorte
+**avanço × BA** que sobra no canto é o alívio da dobra (sai pronto no contorno de corte).
+
+| Canto | Avanço | Resultado dobrado |
+|---|---|---|
+| Sobreposto | s − folga | a aba chega à face externa da vizinha e cobre a ponta dela |
+| Encosto | R − folga | a aba chega à face interna da vizinha (fica entre as duas) |
+| Aberto | 0 | todas param na borda do fundo |
+
+A folga de solda é descontada do avanço. Ordem de dobra sugerida: abas cobertas primeiro, depois as que fecham o
+canto (D1…D4 na marcação).
+
+### Validação
+
+Gabarito real `tests/dxf/fixtures/bandeja_710.0CUH25-01-03.dxf` (CHAPA SUPERIOR, CH 3,18; 535 × 520 × 25,4
+externas; Ri 2; K 0,33; sobreposto pelas abas do lado A): contorno de 20 vértices e 4 linhas de dobra idênticos
+(BA 4,79; chapa 574,66 × 559,66). DXF R12 gerado passa na auditoria do ezdxf.
+
+Limites: só 90°; aba simples (sem retorno/pestana); alívio retangular (sem furo de alívio redondo).
 
 ## Marcação de dobra
 

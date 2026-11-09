@@ -67,6 +67,7 @@ const P: Record<string, string> = {
   profZ: "M4 5h7v14h9",
   profHat: "M3 19h4V6h10v13h4",
   profOmega: "M3 19h4l3-13h4l3 13h4",
+  tray: "M3 9l9-4 9 4-9 4z M3 9v4l9 4 9-4V9 M12 13v4",
   info: "M12 3a9 9 0 1 0 0.01 0z M12 10v7 M12 7v.5",
   close: "M6 6l12 12 M18 6L6 18",
   check: "M5 12l5 5 9-10",
