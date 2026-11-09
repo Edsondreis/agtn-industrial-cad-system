@@ -69,7 +69,7 @@ Outros casos de referência nos testes (`sheetmetal.test.ts`): 45° (108,7755), 
 - 0 < θ < 180°. Acima de 150° o vértice virtual se afasta muito; o programa avisa para conferir a referência.
 - Dimensão externa para θ > 90° é medida ao **vértice virtual**. Desenhos que cotam até a tangência externa
   precisam de conversão manual (referência “tangente” está no roadmap).
-- Perfis de seção constante, dobras simples, sem alívios ou recortes (próximas fases).
+- Perfis de seção constante, dobras simples, sem alívios ou recortes (próximas fases). Bandejas: ver abaixo.
 
 ## Fator K
 
@@ -130,6 +130,63 @@ Desenvolvido = θ · Rn        (volta completa: π · (Di + 2·K·T))
 - Como a calandra não marca a chapa, a planificação leva, na camada `MARCACAO`:
   `CALANDRAR RAIO EXTERNO|INTERNO R…` (a referência escolhida), os raios/diâmetros interno e externo, ângulo,
   espessura e desenvolvimento. Com “Marcação como geometria” ligada, o texto vira contorno para o laser gravar.
+
+## Bandeja e bandeja enrijecida
+
+Motor: `solveTray` / `trayFlatEntities` / `trayViewEntities` (`modules/sheetmetal/src/tray.ts`).
+
+Fundo A (comprimento, X) × B (largura, Y). Abas nas quatro bordas — inferior (S) e superior (N) no lado A,
+esquerda (O) e direita (L) no lado B — com comprimento próprio (0 = borda sem aba). Ângulo θ das abas comum
+(90° = parede reta; < 90° abre para fora; > 90° fecha para dentro). **Enrijecida**: pestana (retorno) na ponta de
+cada aba, comprimento por borda (0 = sem pestana), ângulo θ₂ e sentido **para dentro** (enrijecimento) ou
+**para fora** (aba de fixação).
+
+```
+SB(θ) = (R+T)·tan(θ/2) externo  ·  R·tan(θ/2) interno        BA = θ·(R + K·T)
+fundo plano   a = A − Σ SB(θ1)                 (bordas com aba)
+reto da aba   f = H − SB(θ1) − SB(θ2)          (sem pestana: H − SB(θ1))
+reto pestana  p = P − SB(θ2)
+```
+
+H é medido **ao longo da parede**, até os vértices virtuais, como nos perfis (em 90° é a altura); com pestana para
+fora a medida externa da aba é de fora a fora (igual ao Z). Os retos e as posições das linhas de dobra são
+conferidos nos testes contra o motor de perfis (`solveProfile`) para cada seção. A altura vertical da aba dobrada
+aparece no resultado.
+
+### Canto
+
+A ponta de cada faixa do desenvolvimento (aba, pestana) vem de uma regra na peça dobrada, aplicada em cada
+posição `v` do desenvolvimento — por isso vale para qualquer ângulo (a aresta sai inclinada quando precisa):
+
+| Canto | Aba que fecha (lado A ou B) | Aba vizinha |
+|---|---|---|
+| Sobreposto | até a face externa da vizinha − folga | para na borda do fundo |
+| Encosto | até a face externa da vizinha | até a face interna da que fecha − folga (canto fechado) |
+| Esquadria | plano bissetor do canto (fibra mais interna) − folga/2 | idem (meia-esquadria) |
+| Aberto | borda do fundo | borda do fundo |
+
+Em 90°: sobreposto avança R+T (gabarito 710.0CUH25), encosto R+T e R, esquadria R nas duas. Com aba inclinada
+use **esquadria**: a ponta da aba inclina cos θ por mm de aba (aresta da quina).
+
+Pestanas: com pestana nas duas vizinhas, sempre em esquadria (a 45° em 90°) — senão se cruzariam; com pestana
+só de um lado, a pestana para dentro vai até a face interna da aba vizinha e a para fora até a face externa.
+A região de dobra vai de borda a borda da faixa anterior; o degrau que sobra é o alívio retangular.
+
+**Alívio redondo** (opcional): furo no cruzamento das linhas de dobra das abas, em cada canto com duas abas.
+Ø automático = √2·BA + T arredondado a 0,5 mm (alcança o canto do fundo); aviso se o Ø não alcançar.
+
+Ordem de dobra: pestanas primeiro; depois as abas (cobertas antes das que fecham o canto). Marcação
+`D1 CIMA 90,0° RI2,00` ao lado de cada linha (pestana para fora = BAIXO). Se as abas se cruzarem na chapa plana
+(pestana grande demais para o canto escolhido) o cálculo para com erro.
+
+### Validação
+
+- Gabarito real `tests/dxf/fixtures/bandeja_710.0CUH25-01-03.dxf` (CH 3,18; 535 × 520 × 25,4; Ri 2; K 0,33;
+  sobreposto pelo lado A): contorno de 20 vértices e 4 linhas de dobra idênticos.
+- Retos e linhas de dobra = motor de perfis em 7 combinações (θ 60/75/120°, pestanas para dentro/fora,
+  medidas internas, pestana a 45°, abas e pestanas diferentes por borda).
+- Esquadria: inclinação da aresta = cos θ e simetria entre vizinhas; pestana em esquadria a 45°.
+- DXF R12 (com os arcos dos furos de alívio) passa na auditoria do ezdxf.
 
 ## Marcação de dobra
 

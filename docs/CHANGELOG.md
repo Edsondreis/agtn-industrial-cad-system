@@ -1,5 +1,23 @@
 # Changelog
 
+## 3.1.0 — Bandejas e bandejas enrijecidas na planificação
+- **Bandeja** (`solveTray`, `modules/sheetmetal/src/tray.ts`): abas nas 4 bordas (comprimento por aba, 0 = sem
+  aba), medidas externas ou internas, **ângulo das abas** qualquer (evasê para fora ou para dentro).
+- **Bandeja enrijecida**: pestana (retorno) por borda, ângulo próprio, para dentro ou para fora.
+- **Cantos**: sobreposto, encosto (fechado), **esquadria** (meia-esquadria, plano bissetor — para abas inclinadas)
+  e aberto; lado que fecha o canto e folga de solda. Pestanas sempre em esquadria quando as duas vizinhas têm.
+- **Alívio**: retangular (natural) ou **furo redondo** no cruzamento das linhas de dobra (Ø automático ou
+  informado; polígono menos círculo com arcos no contorno).
+- Saída igual aos perfis: `CONTORNO_CORTE`, `LINHAS_DOBRA`, `REGIAO_DOBRA`, marcação `D# CIMA/BAIXO θ RI`
+  legível (0°/90°) na ordem de dobra (pestanas → abas cobertas → abas que fecham), cotas de batente; DXF R12.
+- Vista: planta (projeção de abas e pestanas, mostra o canto) + seções ao longo de A e de B pelo motor de perfis,
+  com cotas EXT/INT.
+- Painel: blank, fundo, peso líquido, corte, tabela das abas/pestanas (reto e avanço), θ, Ri/K, BA, altura
+  vertical, ordem de dobra.
+- `subtractCircle`; verificação de sobreposição na chapa plana.
+- Gabarito real `bandeja_710.0CUH25-01-03.dxf` reproduzido exatamente; retos conferidos contra `solveProfile`;
+  202 testes.
+
 ## 3.0.0 — Impressão/PDF, elipse/spline/hachura, DXF 2000, arrastar e soltar, perfis Z/cartola/ômega
 - **Imprimir / PDF** (`@agtn/plot`, comando `PLOT`/`IMPRIMIR`/`PDF`, Ctrl+P): folha, orientação, área
   (tudo/tela/janela), escala (ajustar ou 1:N), centralizar, margem, cores, espessuras. PDF 1.4 vetorial próprio

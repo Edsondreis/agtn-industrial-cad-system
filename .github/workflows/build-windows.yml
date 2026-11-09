@@ -88,9 +88,12 @@ jobs:
           foreach ($f in $files) { & $signtool.FullName verify /pa /v $f.FullName; if ($LASTEXITCODE -ne 0) { exit 1 } }
       - name: Publicar artefatos
         uses: actions/upload-artifact@v4
+        # cota de armazenamento de artefatos cheia não pode impedir a Release (os instaladores vão para a Release)
+        continue-on-error: true
         with:
           name: AGTN-CAD-windows
           if-no-files-found: error
+          retention-days: 7
           path: |
             apps/desktop/src-tauri/target/release/agtn-cad.exe
             apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
