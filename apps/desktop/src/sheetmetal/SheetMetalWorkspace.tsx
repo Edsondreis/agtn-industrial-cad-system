@@ -17,6 +17,7 @@ import {
   TRAY_CORNER_LABEL,
   TRAY_SIDES,
   TRAY_SIDE_LABEL,
+  TRAY_SIDE_SHORT,
   type TrayCorner,
   type TrayInput,
   type TraySide,
@@ -47,7 +48,7 @@ import { PreviewCanvas } from "./PreviewCanvas";
 import { readSM, writeSM } from "./state";
 
 const SM_LAYER_DEFS: Layer[] = SM_LAYERS.map((l) => ({ name: l.name, color: l.color, lineweight: l.lineweight, linetype: l.linetype, visible: true, locked: false }));
-type Kind = ProfileKind | "CALANDRA" | "BANDEJA";
+type Kind = ProfileKind | "CALANDRA" | "BANDEJA" | "BANDEJA_ENRIJ";
 type TrayForm = Omit<TrayInput, "K"> & { K: number };
 const TRAY_DEFAULT: TrayForm = {
   A: 535,
@@ -60,7 +61,14 @@ const TRAY_DEFAULT: TrayForm = {
   corner: "sobreposto",
   overlap: "A",
   gap: 0,
+  angleDeg: 90,
+  lips: { S: 15, N: 15, O: 15, L: 15 },
+  lipAngleDeg: 90,
+  lipDir: "dentro",
+  relief: "retangular",
+  reliefD: null,
 };
+const NO_LIPS = { S: 0, N: 0, O: 0, L: 0 };
 const fmtH = (v: number) => (v % 1 ? fmtMM(v, 2).replace(/0+$/, "").replace(/,$/, "") : fmtMM(v, 0));
 
 const defaultsFor = (kind: ProfileKind, fab?: ProfileParams["fab"]): ProfileParams => ({
@@ -109,6 +117,7 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
   const [tray, setTrayState] = useState<TrayForm>(TRAY_DEFAULT);
   const setTray = (p: Partial<TrayForm>) => setTrayState((s) => ({ ...s, ...p }));
   const setTrayH = (sd: TraySide, v: number) => setTrayState((s) => ({ ...s, flanges: { ...s.flanges, [sd]: v } }));
+  const setTrayP = (sd: TraySide, v: number) => setTrayState((s) => ({ ...s, lips: { ...(s.lips ?? NO_LIPS), [sd]: v } }));
   const [tab, setTab] = useState<"peca" | "config">("peca");
   const [cfg, setCfgState] = useState<Config>(savedConfig);
   const setCfg = (p: Partial<Config>) =>
@@ -118,7 +127,8 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
     });
   const [dlg, setDlg] = useState<null | "k" | "cal">(null);
   const isRoll = kind === "CALANDRA";
-  const isTray = kind === "BANDEJA";
+  const isTray = kind === "BANDEJA" || kind === "BANDEJA_ENRIJ";
+  const isEnrij = kind === "BANDEJA_ENRIJ";
   const def = PROFILE_DEFS[params.kind];
   const table = sm.kTables.find((t) => t.id === params.fab.kTableId) ?? sm.kTables[0];
 
@@ -147,12 +157,15 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
       return null;
     }
   }, [effective, isRoll, isTray]);
-  const trayRes = useMemo(() => solveTray({ ...tray, K: trayK }), [tray, trayK]);
+  const trayRes = useMemo(() => solveTray({ ...tray, lips: isEnrij ? tray.lips : NO_LIPS, K: trayK }), [tray, trayK, isEnrij]);
+  const trayPs = TRAY_SIDES.filter((sd) => tray.flanges[sd] > 0 && (tray.lips?.[sd] ?? 0) > 0).map((sd) => tray.lips![sd]);
   const trayHs = TRAY_SIDES.filter((sd) => tray.flanges[sd] > 0).map((sd) => tray.flanges[sd]);
   const rollRes = useMemo(() => solveRolling({ ...roll, K: cfg.kRoll }), [roll, cfg.kRoll]);
 
   const title = isTray
-    ? `BANDEJA ${fmtH(tray.A)}x${fmtH(tray.B)}x${trayHs.every((h) => h === trayHs[0]) ? fmtH(trayHs[0] ?? 0) : trayHs.map(fmtH).join("/")}${tray.ref === "interna" ? " INT" : ""} #${fmtMM(tray.T, 2)}`
+    ? `BANDEJA${isEnrij ? " ENRIJ." : ""} ${fmtH(tray.A)}x${fmtH(tray.B)}x${trayHs.every((h) => h === trayHs[0]) ? fmtH(trayHs[0] ?? 0) : trayHs.map(fmtH).join("/")}${
+        isEnrij && trayPs.length ? ` P${trayPs.every((h) => h === trayPs[0]) ? fmtH(trayPs[0]) : trayPs.map(fmtH).join("/")}${tray.lipDir === "fora" ? " FORA" : ""}` : ""
+      }${(tray.angleDeg ?? 90) !== 90 ? ` ${fmtH(tray.angleDeg ?? 90)}°` : ""}${tray.ref === "interna" ? " INT" : ""} #${fmtMM(tray.T, 2)}`
     : isRoll
     ? `CALANDRA Ø${fmtMM(roll.diameter, 1)} ${roll.ref === "externo" ? "EXT" : "INT"} #${fmtMM(roll.T, 2)} x ${fmtMM(roll.width, 0)}`
     : `PERFIL ${params.kind.replace("_", " ")} ${params.dims.map((d) => fmtMM(d.value, 1)).join("x")} #${fmtMM(params.T, 2)}`;
@@ -189,7 +202,7 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
   const globalRef: DimRef | "misto" = params.dims.every((d) => d.ref === params.dims[0].ref) ? params.dims[0].ref : "misto";
   const pickKind = (k: Kind) => {
     setKind(k);
-    if (k !== "CALANDRA" && k !== "BANDEJA") setParams(defaultsFor(k, params.fab));
+    if (k !== "CALANDRA" && k !== "BANDEJA" && k !== "BANDEJA_ENRIJ") setParams(defaultsFor(k, params.fab));
   };
 
   const layerChanges = (): Change[] => {
@@ -231,19 +244,19 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
       <div className="sm-sec">
         <h4>Tipo</h4>
         <div className="profile-pick" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
-          {([...(Object.keys(PROFILE_DEFS) as ProfileKind[]), "CALANDRA", "BANDEJA"] as Kind[]).map((k) => (
+          {([...(Object.keys(PROFILE_DEFS) as ProfileKind[]), "CALANDRA", "BANDEJA", "BANDEJA_ENRIJ"] as Kind[]).map((k) => (
             <button
               key={k}
               className={kind === k ? "on" : ""}
               onClick={() => pickKind(k)}
-              title={k === "CALANDRA" ? "Chapa calandrada (cilindro ou segmento)" : k === "BANDEJA" ? "Bandeja / caixa com abas nas bordas e recorte de canto" : PROFILE_DEFS[k as ProfileKind].description}
+              title={k === "CALANDRA" ? "Chapa calandrada (cilindro ou segmento)" : k === "BANDEJA" ? "Bandeja / caixa com abas nas bordas e recorte de canto" : k === "BANDEJA_ENRIJ" ? "Bandeja enrijecida: aba + pestana (retorno) em cada borda" : PROFILE_DEFS[k as ProfileKind].description}
             >
               <Icon
                 name={
-                  k === "L" ? "profL" : k === "U" ? "profU" : k === "CALANDRA" ? "roll" : k === "BANDEJA" ? "tray" : k === "Z" || k === "Z_ENRIJECIDO" ? "profZ" : k === "CARTOLA" ? "profHat" : k === "OMEGA" ? "profOmega" : "profC"
+                  k === "L" ? "profL" : k === "U" ? "profU" : k === "CALANDRA" ? "roll" : k === "BANDEJA" ? "tray" : k === "BANDEJA_ENRIJ" ? "trayLip" : k === "Z" || k === "Z_ENRIJECIDO" ? "profZ" : k === "CARTOLA" ? "profHat" : k === "OMEGA" ? "profOmega" : "profC"
                 }
               />
-              {k === "CALANDRA" ? "Calandra" : k === "BANDEJA" ? "Bandeja" : PROFILE_DEFS[k as ProfileKind].short}
+              {k === "CALANDRA" ? "Calandra" : k === "BANDEJA" ? "Bandeja" : k === "BANDEJA_ENRIJ" ? "Bandeja enrij." : PROFILE_DEFS[k as ProfileKind].short}
             </button>
           ))}
         </div>
@@ -285,8 +298,61 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
             </button>
             <MeasureField label="Espessura" kind="thk" value={tray.T} min={0} onCommit={(v) => setTray({ T: v })} />
             <MeasureField label="Raio interno" kind="rad" tag="Ri" value={tray.R} min={0} onCommit={(v) => setTray({ R: v })} />
+            <MeasureField
+              label={cfg.angleMode === "dobra" ? "Ângulo das abas" : "Ângulo interno das abas"}
+              kind="ang"
+              tag={cfg.angleMode === "dobra" ? "θ" : "α"}
+              unit="°"
+              digits={2}
+              title="θ = 90° parede reta; menor que 90° abre para fora (bandeja evasê); maior que 90° fecha para dentro"
+              value={cfg.angleMode === "dobra" ? tray.angleDeg ?? 90 : 180 - (tray.angleDeg ?? 90)}
+              onCommit={(v) => setTray({ angleDeg: cfg.angleMode === "dobra" ? v : 180 - v })}
+            />
+            {(tray.angleDeg ?? 90) !== 90 && <div className="note" style={{ marginBottom: 6 }}>Aba inclinada: a medida da aba é ao longo da parede (igual aos perfis). A altura vertical aparece no resultado.</div>}
             {materialRow}
           </div>
+          {isEnrij && (
+            <div className="sm-sec">
+              <h4>Pestana (retorno)</h4>
+              <div className="seg full" style={{ marginBottom: 8 }}>
+                <button className={tray.lipDir !== "fora" ? "on" : ""} onClick={() => setTray({ lipDir: "dentro" })} title="Retorno para dentro da bandeja (enrijecimento)">
+                  Para dentro
+                </button>
+                <button className={tray.lipDir === "fora" ? "on" : ""} onClick={() => setTray({ lipDir: "fora" })} title="Aba de fixação para fora">
+                  Para fora
+                </button>
+              </div>
+              {TRAY_SIDES.filter((sd) => tray.flanges[sd] > 0).map((sd) => (
+                <MeasureField
+                  key={sd}
+                  label={`Pestana ${TRAY_SIDE_SHORT[sd]}`}
+                  kind={tray.ref === "externa" ? "ext" : "int"}
+                  tag={`P${sd}`}
+                  value={tray.lips?.[sd] ?? 0}
+                  min={0}
+                  bad={trayRes.issues.some((i) => i.level === "error" && i.message.startsWith(`Pestana ${TRAY_SIDE_SHORT[sd]}`))}
+                  onCommit={(v) => setTrayP(sd, v)}
+                />
+              ))}
+              <div className="note" style={{ marginBottom: 6 }}>Pestana 0 = aba sem retorno.</div>
+              <button
+                className="btn"
+                style={{ width: "100%", marginBottom: 8 }}
+                onClick={() => setTrayState((s) => { const v = s.lips?.S ?? 0; return { ...s, lips: { S: v, N: v, O: v, L: v } }; })}
+              >
+                Todas as pestanas iguais à inferior
+              </button>
+              <MeasureField
+                label={cfg.angleMode === "dobra" ? "Ângulo da pestana" : "Ângulo interno da pestana"}
+                kind="ang"
+                tag={cfg.angleMode === "dobra" ? "θ" : "α"}
+                unit="°"
+                digits={2}
+                value={cfg.angleMode === "dobra" ? tray.lipAngleDeg ?? 90 : 180 - (tray.lipAngleDeg ?? 90)}
+                onCommit={(v) => setTray({ lipAngleDeg: cfg.angleMode === "dobra" ? v : 180 - v })}
+              />
+            </div>
+          )}
           <div className="sm-sec">
             <h4>Canto</h4>
             <div className="seg full" style={{ marginBottom: 8 }}>
@@ -297,18 +363,19 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
                   onClick={() => setTray({ corner: c })}
                   title={
                     c === "sobreposto"
-                      ? "A aba avança R+T e cobre a ponta da vizinha (face externa)"
+                      ? "A aba que fecha cobre a ponta da vizinha (vai até a face externa); a outra para na borda"
                       : c === "encosto"
-                        ? "A aba avança R e encosta na face interna da vizinha"
-                        : "Todas as abas param na borda do fundo"
+                        ? "Canto fechado: a que fecha vai até a face externa da vizinha e a outra encosta na face interna dela"
+                        : c === "esquadria"
+                          ? "Meia-esquadria: as duas abas cortadas no plano bissetor do canto — use com aba inclinada"
+                          : "Todas as abas param na borda do fundo"
                   }
                 >
                   {TRAY_CORNER_LABEL[c]}
                 </button>
               ))}
             </div>
-            {tray.corner !== "aberto" && (
-              <>
+            {(tray.corner === "sobreposto" || tray.corner === "encosto") && (
                 <div className="sm-row">
                   <span className="k">Fecham o canto</span>
                   <div className="seg">
@@ -320,10 +387,33 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
                     </button>
                   </div>
                 </div>
-                <MeasureField label="Folga de solda" kind="len" tag="g" value={tray.gap} min={0} onCommit={(v) => setTray({ gap: v })} />
-              </>
             )}
-            <div className="note">O alívio da dobra no canto (avanço × BA) sai pronto no contorno de corte.</div>
+            {tray.corner !== "aberto" && (
+              <MeasureField label="Folga de solda" kind="len" tag="g" value={tray.gap} min={0} onCommit={(v) => setTray({ gap: v })} />
+            )}
+            <div className="sm-row" style={{ marginTop: 6 }}>
+              <span className="k">Alívio no canto</span>
+              <div className="seg">
+                <button className={tray.relief !== "redondo" ? "on" : ""} onClick={() => setTray({ relief: "retangular" })} title="Recorte retangular que sobra entre as regiões de dobra">
+                  Retangular
+                </button>
+                <button className={tray.relief === "redondo" ? "on" : ""} onClick={() => setTray({ relief: "redondo" })} title="Furo redondo no cruzamento das linhas de dobra">
+                  Redondo
+                </button>
+              </div>
+            </div>
+            {tray.relief === "redondo" && (
+              <MeasureField
+                label="Ø furo de alívio"
+                title="0 = automático (alcança o canto do fundo)"
+                kind="len"
+                tag="Ø"
+                value={tray.reliefD ?? trayRes.reliefD}
+                min={0}
+                onCommit={(v) => setTray({ reliefD: v > 0 ? v : null })}
+              />
+            )}
+            <div className="note">O recorte de canto e o alívio da dobra saem prontos no contorno de corte.</div>
             {missingRule && <div className="errbox">Sem fator K na tabela para este material/espessura/raio. Veja CONFIGURAÇÕES.</div>}
             <MeasureLegend kinds={["ext", "int", "thk", "rad"]} />
           </div>
@@ -735,45 +825,63 @@ export function SheetMetalWorkspace({ ctl, onInsert, onExportDxf }: SheetMetalPr
 
         {isTray && trayRes.ok && (
           <div className="sm-sec">
-            <h4>Dobras da bandeja</h4>
+            <h4>Abas da bandeja</h4>
             <table className="tbl">
               <thead>
                 <tr>
-                  <th>Dobra</th>
-                  <th style={{ textAlign: "right" }}>Ext.</th>
-                  <th style={{ textAlign: "right" }}>Int.</th>
+                  <th>Lado</th>
+                  <th style={{ textAlign: "right" }}>Aba</th>
                   <th style={{ textAlign: "right" }}>Reto</th>
-                  <th style={{ textAlign: "right" }} title="Quanto a aba passa da borda do fundo no canto">Avanço</th>
+                  {trayRes.hasLips && <th style={{ textAlign: "right" }}>Pest.</th>}
+                  {trayRes.hasLips && <th style={{ textAlign: "right" }}>Reto</th>}
+                  <th style={{ textAlign: "right" }} title="Quanto a aba passa da borda do fundo no canto (negativo = recua)">Avanço</th>
                 </tr>
               </thead>
               <tbody>
-                {trayRes.bends.map((b) => (
-                  <tr key={b.side} title={`Linha de dobra a ${fmtMM(b.side === "O" || b.side === "L" ? b.line[0].x : b.line[0].y, 2)} mm da borda (${b.side === "O" || b.side === "L" ? "X" : "Y"})`}>
-                    <td>
-                      D{b.n} {TRAY_SIDE_LABEL[b.side].replace(/^Aba /, "").replace(/ \(.*\)$/, "").slice(0, 3)}.
-                    </td>
-                    <td className="num">{fmtMM(b.heightExt, 2)}</td>
-                    <td className="num">{fmtMM(b.heightInt, 2)}</td>
-                    <td className="num">{fmtMM(b.flat, 2)}</td>
-                    <td className="num">{b.ext[0] || b.ext[1] ? fmtMM(Math.max(b.ext[0], b.ext[1]), 2) : "—"}</td>
+                {trayRes.sides.map((sd) => (
+                  <tr key={sd.side} title={`Altura vertical externa ${fmtMM(sd.heightVert, 2)} mm`}>
+                    <td>{TRAY_SIDE_SHORT[sd.side]}</td>
+                    <td className="num">{fmtMM(sd.H, 2)}</td>
+                    <td className="num">{fmtMM(sd.flat, 2)}</td>
+                    {trayRes.hasLips && <td className="num">{sd.P ? fmtMM(sd.P, 2) : "—"}</td>}
+                    {trayRes.hasLips && <td className="num">{sd.P ? fmtMM(sd.lipFlat, 2) : "—"}</td>}
+                    <td className="num">{Math.abs(sd.ext[0]) > 1e-9 || Math.abs(sd.ext[1]) > 1e-9 ? fmtMM(Math.abs(sd.ext[0]) > Math.abs(sd.ext[1]) ? sd.ext[0] : sd.ext[1], 2) : "—"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             <div className="res" style={{ marginTop: 8 }}>
-              <span className="k">θ / Ri / K</span>
-              <span className="v" style={{ color: cfg.kMode === "tabela" && trayRule?.source === "calibrado" ? "var(--ok)" : cfg.kMode === "tabela" && trayRule?.source === "estimado" ? "var(--warn)" : undefined }}>
-                90° / {fmtMM(tray.R, 2)} / {fmtMM(trayK, 3)}
-              </span>
-              <span className="k">BA / BD</span>
+              <span className="k">θ{trayRes.hasLips ? " aba / pest." : ""}</span>
               <span className="v">
-                {fmtMM(trayRes.BA, 3)} / {fmtMM(trayRes.BD, 3)}
+                {fmtMM(trayRes.theta, 1)}°{trayRes.hasLips ? ` / ${fmtMM(trayRes.lipTheta, 1)}°` : ""}
               </span>
-              <span className="k">Ordem de dobra</span>
-              <span className="v">{trayRes.bends.map((b) => `D${b.n}`).join(" → ")}</span>
+              <span className="k">Ri / K</span>
+              <span className="v" style={{ color: cfg.kMode === "tabela" && trayRule?.source === "calibrado" ? "var(--ok)" : cfg.kMode === "tabela" && trayRule?.source === "estimado" ? "var(--warn)" : undefined }}>
+                {fmtMM(tray.R, 2)} / {fmtMM(trayK, 3)}
+              </span>
+              <span className="k">BA{trayRes.hasLips ? " aba / pest." : ""}</span>
+              <span className="v">
+                {fmtMM(trayRes.BA, 3)}
+                {trayRes.hasLips ? ` / ${fmtMM(trayRes.BA2, 3)}` : ""}
+              </span>
+              {trayRes.theta !== 90 && (
+                <>
+                  <span className="k">Altura vertical</span>
+                  <span className="v">{[...new Set(trayRes.sides.map((x) => fmtMM(x.heightVert, 2)))].join(" / ")}</span>
+                </>
+              )}
+            </div>
+            <h4 style={{ marginTop: 10 }}>Ordem de dobra</h4>
+            <div className="mono" style={{ fontSize: 11, lineHeight: 1.6 }}>
+              {trayRes.bends.map((b) => (
+                <div key={`${b.side}${b.kind}`}>
+                  D{b.n} — {b.kind === "pestana" ? "pestana" : "aba"} {TRAY_SIDE_SHORT[b.side]} · {b.sense} {fmtMM(b.thetaDeg, 1)}°
+                </div>
+              ))}
             </div>
             <div className="note" style={{ marginTop: 4 }}>
-              Dobrar primeiro as abas cobertas e por último as que fecham o canto. Marcação “D1 CIMA…” gravada no fundo.
+              {trayRes.hasLips ? "Pestanas primeiro; depois as abas" : "Abas"}
+              {tray.corner === "sobreposto" || tray.corner === "encosto" ? " cobertas antes das que fecham o canto" : ""}. Marcação “D1 CIMA…” gravada na chapa.
             </div>
           </div>
         )}

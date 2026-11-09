@@ -131,43 +131,62 @@ Desenvolvido = θ · Rn        (volta completa: π · (Di + 2·K·T))
   `CALANDRAR RAIO EXTERNO|INTERNO R…` (a referência escolhida), os raios/diâmetros interno e externo, ângulo,
   espessura e desenvolvimento. Com “Marcação como geometria” ligada, o texto vira contorno para o laser gravar.
 
-## Bandeja (caixa com abas e recorte de canto)
+## Bandeja e bandeja enrijecida
 
 Motor: `solveTray` / `trayFlatEntities` / `trayViewEntities` (`modules/sheetmetal/src/tray.ts`).
 
-Fundo A (comprimento, X) × B (largura, Y). Abas de 90° nas quatro bordas — inferior (S) e superior (N) no lado A,
-esquerda (O) e direita (L) no lado B — cada uma com altura própria; altura 0 = borda sem aba.
+Fundo A (comprimento, X) × B (largura, Y). Abas nas quatro bordas — inferior (S) e superior (N) no lado A,
+esquerda (O) e direita (L) no lado B — com comprimento próprio (0 = borda sem aba). Ângulo θ das abas comum
+(90° = parede reta; < 90° abre para fora; > 90° fecha para dentro). **Enrijecida**: pestana (retorno) na ponta de
+cada aba, comprimento por borda (0 = sem pestana), ângulo θ₂ e sentido **para dentro** (enrijecimento) ou
+**para fora** (aba de fixação).
 
 ```
-BA = (π/2)·(R + K·T)      s = R + T (recuo: face externa → início da dobra)
-fundo plano  a = A − s·(nº de abas O/L)      b = B − s·(nº de abas S/N)
-reto da aba  f = H − s
+SB(θ) = (R+T)·tan(θ/2) externo  ·  R·tan(θ/2) interno        BA = θ·(R + K·T)
+fundo plano   a = A − Σ SB(θ1)                 (bordas com aba)
+reto da aba   f = H − SB(θ1) − SB(θ2)          (sem pestana: H − SB(θ1))
+reto pestana  p = P − SB(θ2)
 ```
 
-Medidas internas: A, B e H são convertidas para externas somando T por aba (A_ext = A_int + T·nº de abas no lado).
+H é medido **ao longo da parede**, até os vértices virtuais, como nos perfis (em 90° é a altura); com pestana para
+fora a medida externa da aba é de fora a fora (igual ao Z). Os retos e as posições das linhas de dobra são
+conferidos nos testes contra o motor de perfis (`solveProfile`) para cada seção. A altura vertical da aba dobrada
+aparece no resultado.
 
 ### Canto
 
-As abas de um dos lados (A ou B — "fecham o canto") avançam além da borda do fundo; as do outro lado param na borda.
-O avanço fica só no trecho reto da aba: a região de dobra vai de borda a borda do fundo, e o recorte
-**avanço × BA** que sobra no canto é o alívio da dobra (sai pronto no contorno de corte).
+A ponta de cada faixa do desenvolvimento (aba, pestana) vem de uma regra na peça dobrada, aplicada em cada
+posição `v` do desenvolvimento — por isso vale para qualquer ângulo (a aresta sai inclinada quando precisa):
 
-| Canto | Avanço | Resultado dobrado |
+| Canto | Aba que fecha (lado A ou B) | Aba vizinha |
 |---|---|---|
-| Sobreposto | s − folga | a aba chega à face externa da vizinha e cobre a ponta dela |
-| Encosto | R − folga | a aba chega à face interna da vizinha (fica entre as duas) |
-| Aberto | 0 | todas param na borda do fundo |
+| Sobreposto | até a face externa da vizinha − folga | para na borda do fundo |
+| Encosto | até a face externa da vizinha | até a face interna da que fecha − folga (canto fechado) |
+| Esquadria | plano bissetor do canto (fibra mais interna) − folga/2 | idem (meia-esquadria) |
+| Aberto | borda do fundo | borda do fundo |
 
-A folga de solda é descontada do avanço. Ordem de dobra sugerida: abas cobertas primeiro, depois as que fecham o
-canto (D1…D4 na marcação).
+Em 90°: sobreposto avança R+T (gabarito 710.0CUH25), encosto R+T e R, esquadria R nas duas. Com aba inclinada
+use **esquadria**: a ponta da aba inclina cos θ por mm de aba (aresta da quina).
+
+Pestanas: com pestana nas duas vizinhas, sempre em esquadria (a 45° em 90°) — senão se cruzariam; com pestana
+só de um lado, a pestana para dentro vai até a face interna da aba vizinha e a para fora até a face externa.
+A região de dobra vai de borda a borda da faixa anterior; o degrau que sobra é o alívio retangular.
+
+**Alívio redondo** (opcional): furo no cruzamento das linhas de dobra das abas, em cada canto com duas abas.
+Ø automático = √2·BA + T arredondado a 0,5 mm (alcança o canto do fundo); aviso se o Ø não alcançar.
+
+Ordem de dobra: pestanas primeiro; depois as abas (cobertas antes das que fecham o canto). Marcação
+`D1 CIMA 90,0° RI2,00` ao lado de cada linha (pestana para fora = BAIXO). Se as abas se cruzarem na chapa plana
+(pestana grande demais para o canto escolhido) o cálculo para com erro.
 
 ### Validação
 
-Gabarito real `tests/dxf/fixtures/bandeja_710.0CUH25-01-03.dxf` (CHAPA SUPERIOR, CH 3,18; 535 × 520 × 25,4
-externas; Ri 2; K 0,33; sobreposto pelas abas do lado A): contorno de 20 vértices e 4 linhas de dobra idênticos
-(BA 4,79; chapa 574,66 × 559,66). DXF R12 gerado passa na auditoria do ezdxf.
-
-Limites: só 90°; aba simples (sem retorno/pestana); alívio retangular (sem furo de alívio redondo).
+- Gabarito real `tests/dxf/fixtures/bandeja_710.0CUH25-01-03.dxf` (CH 3,18; 535 × 520 × 25,4; Ri 2; K 0,33;
+  sobreposto pelo lado A): contorno de 20 vértices e 4 linhas de dobra idênticos.
+- Retos e linhas de dobra = motor de perfis em 7 combinações (θ 60/75/120°, pestanas para dentro/fora,
+  medidas internas, pestana a 45°, abas e pestanas diferentes por borda).
+- Esquadria: inclinação da aresta = cos θ e simetria entre vizinhas; pestana em esquadria a 45°.
+- DXF R12 (com os arcos dos furos de alívio) passa na auditoria do ezdxf.
 
 ## Marcação de dobra
 
