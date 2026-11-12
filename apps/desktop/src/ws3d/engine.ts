@@ -33,7 +33,21 @@ export class Engine {
   initMs = 0;
   wasmBytesOnDisk = 0;
 
+  private idleTimer = 0;
+
+  /** Libera o worker (e os ~130 MB do motor) depois de `ms` sem uso — chamado ao sair da área 3D. */
+  releaseLater(ms: number) {
+    window.clearTimeout(this.idleTimer);
+    this.idleTimer = window.setTimeout(() => {
+      if (!this.syncing && !this.pending.size) this.dispose();
+    }, ms);
+  }
+  get alive() {
+    return !!this.worker;
+  }
+
   start(): Promise<{ kernel: string; ms: number }> {
+    window.clearTimeout(this.idleTimer);
     if (!this.ready) {
       this.ready = (async () => {
         const t0 = performance.now();
@@ -120,9 +134,12 @@ export class Engine {
   }
 
   dispose() {
+    window.clearTimeout(this.idleTimer);
     this.worker?.terminate();
     this.worker = null;
     this.ready = null;
+    for (const p of this.pending.values()) p.fail(new EngineError("Motor 3D encerrado."));
+    this.pending.clear();
   }
 }
 

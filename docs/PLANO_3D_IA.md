@@ -7,11 +7,11 @@ Este documento é a entrega da FASE 1 (nenhum código existente alterado).
 **Decisões do usuário (12/11/2026):** motor OCCT 8 em WASM · IA = **somente Google Gemini, nível gratuito** ·
 modelo 3D dentro do `.agtncad` (extras) · solver de restrições próprio em TypeScript.
 
-**Progresso da FASE 2:** `core/solid` criado — interface `SolidKernel`, `OcctSolidKernel` (occt-wasm 5.17.1),
-primitivas paramétricas validadas (caixa, cilindro, esfera, cone, toro, plano, tubo, perfis L/U/I/tubo retangular/
-barra chata), posicionamento, booleanas, malha e arestas com IDs por face/aresta, STEP e BREP. 26 testes contra
-fórmulas exatas (erro < 1e-9). Pendente na FASE 2: worker no WebView, CSP/WASM, `.wasm` em resources do
-instalador, viewport three.js, ViewCube, seleção, medição, árvore, persistência no `.agtncad`.
+**FASE 2 concluída (12/11/2026, branch `feature/agtn-3d-ia`):** `core/solid` (kernel, topologia exata, medição,
+STEP de montagem), `core/model3d` (árvore, persistência, undo/redo, cache de regeneração) e área 3D completa
+(`apps/desktop/src/ws3d`). Evidências: 264 testes unitários, 34 verificações de ponta a ponta no Chromium
+(`tests/e2e/e2e3d.py`), carga com 38 perfis (`tests/e2e/load3d.py`) e 5/5 no binário Tauri release instalado
+(`tests/e2e/tauri_compiled.py`, Linux/WebKitGTK). Build Windows pelo CI bloqueado por cobrança da conta GitHub.
 
 ---
 

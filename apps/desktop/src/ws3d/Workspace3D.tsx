@@ -113,6 +113,9 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
       .catch((e: Error) => !dead && setEng({ s: "error", msg: e.message }));
     return () => {
       dead = true;
+      // fora da área 3D o motor é liberado após 2 min (memória para o 2D/CNC); voltar reinicia em ~0,5 s
+      const ms = Number(localStorage.getItem("agtn.engineIdleMs")) || 120_000;
+      engine().releaseLater(ms);
     };
   }, []);
 

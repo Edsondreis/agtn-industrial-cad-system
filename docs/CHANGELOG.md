@@ -1,5 +1,23 @@
 # Changelog
 
+## Em desenvolvimento (branch `feature/agtn-3d-ia`, não publicado) — AGTN 3D, fundação
+- Nova área **3D** (aba 3D, Start Center → Modelo 3D, comando `3D`): motor B-Rep **OCCT 8** em WebAssembly num
+  Web Worker; o `.wasm` vai como recurso separado do instalador (`occt/occt-wasm.wasm`), fora do `.exe`.
+- Viewport: órbita em torno do ponto clicado, pan (meio/direito), zoom no cursor, enquadrar (F / Shift+F),
+  7 vistas (teclas 1–7), ViewCube clicável (faces, arestas, cantos, setas para faces vizinhas, giro 90°),
+  ortográfica/perspectiva (P), grade adaptativa (G), eixos e tríedro, sombreado / sombreado com arestas / arame.
+- Seleção de corpo, face, aresta e vértice pelos índices topológicos reais do OCCT; filtro inteligente.
+- Propriedades exatas: área, tipo de superfície, raio, eixo, normal, comprimento de aresta, coordenadas;
+  volume, área, massa por material, centro de massa, caixa envolvente.
+- Medir (M ou Ctrl+clique): distância mínima exata, ΔX/ΔY/ΔZ, ângulo, folga entre planos paralelos.
+- Árvore de componentes com conjuntos/subconjuntos: selecionar, ocultar (H / Shift+H), renomear (F2),
+  enquadrar, agrupar (Ctrl+G), duplicar (Ctrl+D), excluir; posição relativa ao conjunto.
+- Primitivas paramétricas editáveis: caixa, cilindro, esfera, cone, toro, plano, tubo, perfis L, U, I,
+  tubo retangular e barra chata.
+- STEP (importar/exportar com montagem e nomes), STL (malha). Modelo 3D salvo no `.agtncad` (`extras.agtn3d`),
+  compatível com a 3.1.x; Undo/Redo em todas as edições. Layout para tela vertical.
+- Motor liberado 2 min depois de sair da área 3D (devolve ~130 MB ao 2D).
+
 ## 3.1.1 — Tela na vertical (retrato)
 - Layout automático para monitor girado (`@media (orientation: portrait)` em `styles.css`): troca sozinho quando
   a janela fica mais alta que larga e volta ao girar de novo; paisagem fica idêntica (conferido pixel a pixel).

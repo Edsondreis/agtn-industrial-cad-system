@@ -18,6 +18,10 @@ Exception 1.0". Este software faz uso de recursos fornecidos pelo Open CASCADE T
 O `.wasm` é distribuído como arquivo separado, carregado em tempo de execução, e pode ser substituído pelo usuário
 por outra compilação compatível, conforme a LGPL.
 
+## three.js 0.187.0 — MIT
+Renderização do viewport do AGTN 3D. Código-fonte: https://github.com/mrdoob/three.js.
+Copyright © 2010-2026 three.js authors. Licença MIT (mesmo texto da seção do ACadSharp abaixo).
+
 ## ACadSharp — MIT
 O leitor/gravador DWG do acadrust inclui código adaptado do ACadSharp.
 
