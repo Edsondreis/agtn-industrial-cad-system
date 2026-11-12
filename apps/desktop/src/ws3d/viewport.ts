@@ -35,6 +35,9 @@ import {
   zoomAt,
 } from "./camera";
 import { Grid3D } from "./grid";
+import type { Frame } from "@agtn/solid";
+import type { SketchEditor } from "./sketch/editor";
+import { SketchOverlay } from "./sketch/overlay";
 import type { BodyGeom, SyncResult } from "./protocol";
 import { type Sel, type Ws3dStore, sameSel, selKey } from "./store";
 import { ACCENT, BodyVisual, HOVER, disposeOverlay } from "./visuals";
@@ -77,6 +80,9 @@ export class Viewport3D {
   private readonly ro: ResizeObserver;
   private disposed = false;
   private sceneSphere = new Sphere(new Vector3(), 200);
+  private sketchOv: SketchOverlay | null = null;
+  private sketchDrag: string | null = null;
+  private preview: { body: NodeId; visual: BodyVisual; mode: "replace" | "ghost" } | null = null;
   frameMs = 0;
 
   constructor(
@@ -211,6 +217,7 @@ export class Viewport3D {
       this.removeBody(g.id);
       const v = new BodyVisual(g);
       v.setMode(this.store.snap.mode);
+      if (this.sketchOv) v.setGhost(true);
       this.bodies.set(g.id, v);
       this.scene.add(v.root);
     }
@@ -331,6 +338,69 @@ export class Viewport3D {
     return { x: ((v.x + 1) / 2) * this.w, y: ((1 - v.y) / 2) * this.h, z: v.z };
   }
 
+  /* ------------------------------------------------------------------ esboço */
+
+  /** Ativa o modo esboço: plano em coordenadas do MUNDO, editor com a lógica das ferramentas. */
+  setSketch(frame: Frame | null, editor?: SketchEditor) {
+    this.sketchOv?.dispose();
+    this.sketchOv = null;
+    this.sketchDrag = null;
+    for (const b of this.bodies.values()) b.setGhost(!!frame);
+    if (frame && editor) {
+      this.sketchOv = new SketchOverlay(frame, editor, this.overlay, () => (this.dirty = true), () => worldPerPixel(this.cam, this.h));
+      this.scene.add(this.sketchOv.root);
+      const ext = this.sketchOv.extent();
+      const to: CamState = { ...this.cam, dir: new Vector3(frame.n.x, frame.n.y, frame.n.z).normalize(), up: new Vector3(frame.y.x, frame.y.y, frame.y.z).normalize(), ortho: true };
+      this.animateTo(fitSphere(to, ext.c, Math.max(ext.r, this.cam.height / 4), this.w / this.h));
+    }
+    this.dirty = true;
+  }
+  get sketching() {
+    return !!this.sketchOv;
+  }
+  /** Olha o esboço de frente (botão "Normal ao esboço"). */
+  sketchNormal() {
+    const ov = this.sketchOv;
+    if (!ov) return;
+    const f = ov.frame;
+    const ext = ov.extent();
+    this.animateTo(fitSphere({ ...this.cam, dir: new Vector3(f.n.x, f.n.y, f.n.z), up: new Vector3(f.y.x, f.y.y, f.y.z) }, ext.c, ext.r, this.w / this.h));
+  }
+  private sketchHit(px: number, py: number) {
+    const ov = this.sketchOv!;
+    this.ray.setFromCamera(this.ndc(px, py), this.activeCamera());
+    const p = ov.project(this.ray.ray);
+    return p ? ov.hitTest(p) : null;
+  }
+
+  /* ------------------------------------------------------------------ prévia de operação */
+
+  /** Mostra a prévia de uma peça: "replace" substitui o corpo; "ghost" sobrepõe translúcido. */
+  setPreview(body: NodeId | null, geom: BodyGeom | null, mode: "replace" | "ghost" = "replace") {
+    if (this.preview) {
+      this.scene.remove(this.preview.visual.root);
+      this.preview.visual.dispose();
+      const orig = this.bodies.get(this.preview.body);
+      if (orig && this.model) orig.root.visible = isShown(this.model, this.preview.body);
+      this.preview = null;
+    }
+    if (body && geom) {
+      const v = new BodyVisual(geom);
+      v.setColor("#7fb6f0");
+      v.setMode(this.store.snap.mode);
+      v.mesh.raycast = () => undefined;
+      v.edges.raycast = () => undefined;
+      if (mode === "ghost") v.setGhost(true, 0.45);
+      else {
+        const orig = this.bodies.get(body);
+        if (orig) orig.root.visible = false;
+      }
+      this.scene.add(v.root);
+      this.preview = { body, visual: v, mode };
+    }
+    this.dirty = true;
+  }
+
   /** Posição na janela (clientX/Y) de um ponto do mundo — usado pelos testes de ponta a ponta. */
   clientOf(x: number, y: number, z: number): { x: number; y: number } {
     this.syncCamera();
@@ -425,6 +495,16 @@ export class Viewport3D {
   private onDown = (e: PointerEvent) => {
     this.renderer.domElement.focus({ preventScroll: true });
     const p = this.local(e);
+    if (this.sketchOv && e.button === 0) {
+      const hit = this.sketchHit(p.x, p.y);
+      const ed = this.sketchOv.editor;
+      if (hit?.point && ed.currentTool === "select" && ed.beginDrag(hit.point)) {
+        this.sketchDrag = hit.point;
+        this.renderer.domElement.setPointerCapture(e.pointerId);
+        this.drag = { button: 0, x: p.x, y: p.y, lx: p.x, ly: p.y, moved: false, mode: "pan", pivot: this.cam.target.clone() };
+        return;
+      }
+    }
     const orbitBtn = e.button === 0 || (e.button === 1 && e.shiftKey);
     const panBtn = (e.button === 1 && !e.shiftKey) || e.button === 2;
     if (!orbitBtn && !panBtn) return;
@@ -438,6 +518,14 @@ export class Viewport3D {
   private onMove = (e: PointerEvent) => {
     const p = this.local(e);
     const d = this.drag;
+    if (d && this.sketchDrag && this.sketchOv) {
+      if (!d.moved && Math.hypot(p.x - d.x, p.y - d.y) < DRAG_PX) return;
+      d.moved = true;
+      this.ray.setFromCamera(this.ndc(p.x, p.y), this.activeCamera());
+      const q = this.sketchOv.project(this.ray.ray);
+      if (q) this.sketchOv.editor.dragTo(this.sketchDrag, q);
+      return;
+    }
     if (d) {
       if (!d.moved && Math.hypot(p.x - d.x, p.y - d.y) < DRAG_PX) return;
       if (!d.moved) {
@@ -459,8 +547,21 @@ export class Viewport3D {
     this.drag = null;
     this.renderer.domElement.classList.remove("orbiting", "panning");
     if (this.renderer.domElement.hasPointerCapture(e.pointerId)) this.renderer.domElement.releasePointerCapture(e.pointerId);
-    if (!d || d.moved || d.button !== 0) return;
     const p = this.local(e);
+    if (this.sketchOv) {
+      const ed = this.sketchOv.editor;
+      if (this.sketchDrag) {
+        const wasMoved = !!d?.moved;
+        this.sketchDrag = null;
+        ed.endDrag();
+        if (wasMoved) return;
+      }
+      if (!d || d.moved || d.button !== 0) return;
+      const hit = this.sketchHit(p.x, p.y);
+      if (hit) ed.click(hit, e.ctrlKey || e.shiftKey || e.metaKey);
+      return;
+    }
+    if (!d || d.moved || d.button !== 0) return;
     const hit = this.pickAt(p.x, p.y);
     this.store.pick(hit.sel, e.ctrlKey || e.shiftKey || e.metaKey);
   };
@@ -476,6 +577,7 @@ export class Viewport3D {
     this.setCam(zoomAt(this.cam, factor, this.ndc(p.x, p.y), this.w / this.h));
   };
   private onDbl = (e: MouseEvent) => {
+    if (this.sketchOv) return;
     // duplo clique em elemento seleciona o corpo inteiro; no vazio, enquadra tudo
     const p = this.local(e);
     const hit = this.pickAt(p.x, p.y);
@@ -487,6 +589,13 @@ export class Viewport3D {
     const q = this.hoverQueued;
     this.hoverQueued = null;
     if (!q || this.drag) return;
+    if (this.sketchOv) {
+      const h = this.sketchHit(q.x, q.y);
+      this.sketchOv.editor.hover(h);
+      this.store.set({ cursor: h ? (() => { const w = this.sketchOv!.toWorld(h.p); return { x: w.x, y: w.y, z: w.z }; })() : null });
+      this.renderer.domElement.style.cursor = "crosshair";
+      return;
+    }
     const hit = this.pickAt(q.x, q.y);
     const cur = this.store.snap.hover;
     const changed = !(hit.sel === null && cur === null) && !(hit.sel && cur && selKey(hit.sel) === selKey(cur));
@@ -555,6 +664,7 @@ export class Viewport3D {
     const t0 = performance.now();
     this.syncCamera();
     this.renderer.render(this.scene, this.activeCamera());
+    this.sketchOv?.place((p) => this.toScreen(p));
     for (const m of this.marks) {
       const s = this.toScreen(m.p);
       m.el.style.transform = `translate(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px)`;
@@ -569,6 +679,8 @@ export class Viewport3D {
     cancelAnimationFrame(this.raf);
     this.ro.disconnect();
     this.unsub();
+    this.setSketch(null);
+    this.setPreview(null, null);
     for (const id of [...this.bodies.keys()]) this.removeBody(id);
     for (const o of this.highlights) disposeOverlay(o);
     this.grid.dispose();

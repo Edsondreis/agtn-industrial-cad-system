@@ -58,6 +58,11 @@ export function parseModel3D(raw: unknown): ParseReport {
         const errs = validatePrimitive(src.spec as PrimitiveSpec);
         if (!errs.length) source = { type: "primitive", spec: src.spec as PrimitiveSpec };
         else warnings.push(`"${n.name}": ${errs[0]}`);
+      } else if (src?.type === "part" && Array.isArray(src.features)) {
+        const feats = (src.features as unknown[]).filter((f): f is Record<string, unknown> => !!f && typeof f === "object" && typeof (f as { id?: unknown }).id === "string" && typeof (f as { t?: unknown }).t === "string" && typeof (f as { name?: unknown }).name === "string");
+        if (feats.length !== src.features.length) warnings.push(`"${n.name}": ${src.features.length - feats.length} operação(ões) ilegível(is) ignorada(s).`);
+        const rb = typeof src.rollback === "number" && src.rollback >= 0 ? Math.min(src.rollback, feats.length) : null;
+        source = { type: "part", features: feats as unknown as BodyNode["source"] extends { features: infer F } ? F : never, rollback: rb };
       } else if (src?.type === "brep" && typeof src.data === "string" && src.data.length > 0) {
         source = { type: "brep", data: src.data, origin: typeof src.origin === "string" ? src.origin : "importado" };
       }

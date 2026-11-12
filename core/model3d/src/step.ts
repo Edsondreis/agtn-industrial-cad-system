@@ -31,7 +31,7 @@ export function insertStepTree(m: Model3D, nodes: readonly StepNode[], fileName:
 }
 
 /** Monta a árvore STEP (nomes e posições relativas) dos nós escolhidos (padrão: tudo visível na raiz). */
-export function modelToStepTree(k: SolidKernel, m: Model3D, ids: readonly NodeId[] = childrenOf(m, null)): StepNode[] {
+export function modelToStepTree(k: SolidKernel, m: Model3D, ids: readonly NodeId[] = childrenOf(m, null), partBrep?: (id: NodeId) => Uint8Array | null): StepNode[] {
   const conv = (id: NodeId): StepNode | null => {
     const n = m.nodes[id];
     if (!n || !n.visible) return null;
@@ -42,7 +42,11 @@ export function modelToStepTree(k: SolidKernel, m: Model3D, ids: readonly NodeId
     }
     let brep: Uint8Array;
     if (n.source.type === "brep") brep = base64ToBytes(n.source.data);
-    else {
+    else if (n.source.type === "part") {
+      const b = partBrep?.(n.id);
+      if (!b) return null;
+      brep = b;
+    } else {
       const s = k.primitive(n.source.spec);
       try {
         brep = k.toBrep(s);

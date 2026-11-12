@@ -17,10 +17,12 @@ const ICON: Record<string, string> = {
 
 function nodeIcon(n: Node3D) {
   if (n.kind === "group") return "group3d";
+  if (n.source.type === "part") return "part3d";
   return n.source.type === "primitive" ? ICON[n.source.spec.kind] : "cube3d";
 }
 function nodeKind(n: Node3D) {
   if (n.kind === "group") return `Conjunto · ${n.children.length} item(ns)`;
+  if (n.source.type === "part") return `Peça paramétrica · ${n.source.features.length} operação(ões)`;
   return n.source.type === "primitive" ? PRIMITIVE_LABEL[n.source.spec.kind] : `Sólido importado (${n.source.origin})`;
 }
 

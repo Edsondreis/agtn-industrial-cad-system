@@ -1,3 +1,4 @@
+import type { Feature } from "@agtn/solid";
 import {
   IDENTITY,
   MATRIX_IDENTITY,
@@ -27,7 +28,9 @@ export type BodySource =
   /** primitiva paramétrica (regenerável a partir dos parâmetros) */
   | { readonly type: "primitive"; readonly spec: PrimitiveSpec }
   /** sólido exato importado (BREP binário do OCCT em base64) */
-  | { readonly type: "brep"; readonly data: string; readonly origin: string };
+  | { readonly type: "brep"; readonly data: string; readonly origin: string }
+  /** peça paramétrica: árvore de operações; `rollback` = índice a partir do qual as operações ficam recuadas */
+  | { readonly type: "part"; readonly features: readonly Feature[]; readonly rollback: number | null };
 
 interface NodeBase {
   readonly id: NodeId;
@@ -187,6 +190,7 @@ export interface NewBody {
 }
 
 export function sourceLabel(s: BodySource): string {
+  if (s.type === "part") return `Peça paramétrica · ${s.features.length} operação(ões)`;
   return s.type === "primitive" ? describePrimitive(s.spec) : `Sólido importado (${s.origin})`;
 }
 
@@ -199,7 +203,7 @@ export function addBody(m: Model3D, b: NewBody): { model: Model3D; id: NodeId } 
   if (parent !== null && m.nodes[parent]?.kind !== "group") throw new Error("Conjunto de destino não existe.");
   const id = b.id ?? newNodeId();
   const count = bodies(m).length;
-  const base = b.source.type === "primitive" ? describePrimitive(b.source.spec).split(" ")[0] : "Corpo";
+  const base = b.source.type === "primitive" ? describePrimitive(b.source.spec).split(" ")[0] : b.source.type === "part" ? "Peça" : "Corpo";
   const node: BodyNode = {
     kind: "body",
     id,

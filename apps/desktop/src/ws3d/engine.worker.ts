@@ -3,14 +3,18 @@
  * Worker do motor 3D: todo cálculo B-Rep (OCCT/WASM) acontece aqui, fora da thread da interface,
  * para a navegação do viewport nunca travar durante uma regeneração.
  */
-import { BodyCache, modelToStepTree } from "@agtn/model3d";
-import { OcctSolidKernel, SolidError, type SolidRef } from "@agtn/solid";
+import { BodyCache, type Model3D, modelToStepTree, partOf, worldMatrix } from "@agtn/model3d";
+import { OcctSolidKernel, PartEvaluator, SolidError, type SolidRef, invertRigid } from "@agtn/solid";
 import type { BodyGeom, EngineApi, EngineRequest, EngineResponse, TopoRefMsg } from "./protocol";
 
 declare const self: DedicatedWorkerGlobalScope;
 
 let kernel: OcctSolidKernel | null = null;
 let cache: BodyCache | null = null;
+let parts: PartEvaluator | null = null;
+/** avaliador separado para prévias (não mexe no cache do que está exibido) */
+let previewParts: PartEvaluator | null = null;
+let lastModel: Model3D | null = null;
 
 const K = () => {
   if (!kernel || !cache) throw new SolidError("NOT_READY", "Motor 3D ainda não iniciado.");
@@ -57,9 +61,44 @@ const api: Omit<EngineApi, "init"> = {
     const { c } = K();
     if (full) c.clear();
     const t0 = performance.now();
+    lastModel = model;
     const r = c.sync(model);
     const built = r.built.map((id) => geomOf(id, c.get(id)!));
-    return { built, removed: r.removed, errors: r.errors, ms: performance.now() - t0 };
+    return { built, removed: r.removed, errors: r.errors, ms: performance.now() - t0, features: r.features, frames: r.frames, empty: r.empty };
+  },
+  identify({ body, kind, index }) {
+    if (!lastModel || !parts) throw new SolidError("NOT_READY", "Modelo ainda não sincronizado.");
+    const { part } = partOf(lastModel, body);
+    const at = (part.rollback ?? part.features.length) - 1;
+    return kind === "face" ? parts.identifyFace(body, part.features, at, index) : parts.identifyEdge(body, part.features, at, index);
+  },
+  preview({ model, body, features, rollback }) {
+    const { k, c } = K();
+    const t0 = performance.now();
+    const world = worldMatrix(model, body);
+    const inv = invertRigid(world);
+    const tmp: SolidRef[] = [];
+    try {
+      const res = previewParts!.evaluate(body, features, {
+        rollback,
+        external: (id) => {
+          const t = c.get(id);
+          if (t === undefined) return null;
+          const local = k.transform(t, inv);
+          tmp.push(local);
+          return { sig: String(t), shape: local as unknown as never };
+        },
+      });
+      let geom = null;
+      if (res.shape !== null) {
+        const w = k.transform(res.shape as unknown as SolidRef, world);
+        tmp.push(w);
+        geom = geomOf(body, w);
+      }
+      return { geom, status: res.status, frames: res.frames, ms: performance.now() - t0 };
+    } finally {
+      for (const t of tmp) k.release(t);
+    }
   },
   info(t) {
     if (t.kind === "solid") throw new SolidError("INVALID_PARAMS", "Use as propriedades do corpo.");
@@ -73,7 +112,17 @@ const api: Omit<EngineApi, "init"> = {
   },
   exportStep({ model, ids }) {
     const { k } = K();
-    const tree = modelToStepTree(k, model, ids);
+    const { c } = K();
+    const tree = modelToStepTree(k, model, ids, (id) => {
+      const w = c.get(id);
+      if (w === undefined) return null;
+      const local = k.transform(w, invertRigid(worldMatrix(model, id)));
+      try {
+        return k.toBrep(local);
+      } finally {
+        k.release(local);
+      }
+    });
     if (!tree.length) throw new SolidError("INVALID_PARAMS", "Nada visível para exportar.");
     return k.exportStepTree(tree);
   },
@@ -120,7 +169,9 @@ self.onmessage = async (ev: MessageEvent<EngineRequest>) => {
       const t0 = performance.now();
       kernel?.dispose();
       kernel = await OcctSolidKernel.create({ wasm: (args as { wasm: ArrayBuffer }).wasm });
-      cache = new BodyCache(kernel);
+      parts = new PartEvaluator(kernel);
+      previewParts = new PartEvaluator(kernel);
+      cache = new BodyCache(kernel, parts);
       result = { kernel: kernel.name, ms: performance.now() - t0 };
     } else {
       result = (api[op as Exclude<typeof op, "init">] as (a: unknown) => unknown)(args);

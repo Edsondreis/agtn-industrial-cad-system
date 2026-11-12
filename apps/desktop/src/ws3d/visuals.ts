@@ -127,6 +127,15 @@ export class BodyVisual {
     this.edgeMat.color.copy(this.bodySelected ? ACCENT : this.bodyHover && this.mode === "arame" ? HOVER : edgeBase);
   }
 
+  /** Translúcido (corpos ao fundo durante o esboço; prévia "fantasma"). */
+  setGhost(on: boolean, opacity = 0.32) {
+    this.meshMat.transparent = on;
+    this.meshMat.opacity = on ? opacity : 1;
+    this.meshMat.depthWrite = !on;
+    this.mesh.renderOrder = on ? 2 : 0;
+    this.edgeMat.opacity = on ? Math.min(0.6, opacity + 0.25) : this.mode === "arame" ? 1 : 0.85;
+  }
+
   setMode(mode: DisplayMode) {
     this.mode = mode;
     this.mesh.visible = mode !== "arame";

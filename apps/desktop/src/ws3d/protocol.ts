@@ -1,5 +1,5 @@
 import type { Model3D, NodeId } from "@agtn/model3d";
-import type { MassProps, Measurement, StepNode, TopoInfo, TopoKind } from "@agtn/solid";
+import type { EdgeRef, FaceRef, Feature, FeatureStatus, Frame, MassProps, Measurement, StepNode, TopoInfo, TopoKind } from "@agtn/solid";
 
 /** Geometria de um corpo pronta para o viewport (arrays transferíveis, sem cópia). */
 export interface BodyGeom {
@@ -24,6 +24,18 @@ export interface SyncResult {
   readonly removed: NodeId[];
   readonly errors: Record<NodeId, string>;
   readonly ms: number;
+  /** estado de cada operação das peças regeneradas */
+  readonly features: Record<NodeId, readonly FeatureStatus[]>;
+  /** planos dos esboços (coordenadas locais da peça) */
+  readonly frames: Record<NodeId, Readonly<Record<string, Frame>>>;
+  readonly empty: NodeId[];
+}
+
+export interface PreviewResult {
+  readonly geom: BodyGeom | null;
+  readonly status: readonly FeatureStatus[];
+  readonly frames: Readonly<Record<string, Frame>>;
+  readonly ms: number;
 }
 
 export interface EngineStats {
@@ -45,6 +57,10 @@ export interface EngineApi {
   sync(a: { model: Model3D; full?: boolean }): SyncResult;
   info(a: TopoRefMsg): TopoInfo;
   measure(a: { a: TopoRefMsg; b: TopoRefMsg }): Measurement;
+  /** referência estável para a face/aresta nº `index` do corpo exibido */
+  identify(a: { body: NodeId; kind: "face" | "edge"; index: number }): FaceRef | EdgeRef;
+  /** prévia de uma peça com as operações em edição (não altera o documento) */
+  preview(a: { model: Model3D; body: NodeId; features: readonly Feature[]; rollback: number | null }): PreviewResult;
   importStep(a: { text: string }): StepNode[];
   exportStep(a: { model: Model3D; ids?: NodeId[] }): string;
   exportStl(a: { ids: NodeId[] }): Uint8Array;
