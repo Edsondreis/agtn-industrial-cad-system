@@ -196,3 +196,16 @@ describe("intercâmbio", () => {
     expect(() => k.fromStep("isto não é STEP")).toThrow(SolidError);
   });
 });
+
+describe("matrizes de posicionamento", () => {
+  it("decompor ∘ compor = identidade para vários ângulos", async () => {
+    const { matrixToPlacement, composeMatrix, invertRigid, MATRIX_IDENTITY } = await import("@agtn/solid");
+    for (const rot of [{ x: 0, y: 0, z: 0 }, { x: 30, y: -45, z: 120 }, { x: 90, y: 0, z: 90 }, { x: 10, y: 90, z: 0 }, { x: -170, y: 20, z: 5 }]) {
+      const pl = { origin: { x: 12.5, y: -3, z: 1000 }, rot };
+      const m = placementMatrix(pl);
+      const back = placementMatrix(matrixToPlacement(m));
+      back.forEach((v, i) => expect(v).toBeCloseTo(m[i], 9));
+      composeMatrix(m, invertRigid(m)).forEach((v, i) => expect(v).toBeCloseTo(MATRIX_IDENTITY[i], 12));
+    }
+  });
+});

@@ -88,3 +88,79 @@ export class SolidError extends Error {
     this.name = "SolidError";
   }
 }
+
+export type TopoKind = "face" | "edge" | "vertex";
+
+/** Elemento topológico: corpo + tipo + índice na ordem de exploração do OCCT (mesma ordem da malha). */
+export interface TopoSel {
+  readonly ref: SolidRef;
+  /** "solid" = o corpo inteiro */
+  readonly kind: TopoKind | "solid";
+  readonly index: number;
+}
+
+/** Informação exata de uma face (superfície do B-Rep, com o posicionamento aplicado). */
+export interface FaceInfo {
+  readonly kind: "face";
+  /** plane | cylinder | cone | sphere | torus | bspline | … */
+  readonly surface: string;
+  /** mm² */
+  readonly area: number;
+  /** centroide da superfície */
+  readonly center: Vec3;
+  /** plano: normal; cilindro/cone/toro: eixo */
+  readonly normal?: Vec3;
+  readonly axis?: Vec3;
+  readonly axisPoint?: Vec3;
+  /** cilindro/esfera: raio; cone: raio de referência; toro: raio maior */
+  readonly radius?: number;
+  readonly minorRadius?: number;
+  /** cone: semiângulo (graus) */
+  readonly semiAngle?: number;
+}
+
+export interface EdgeInfo {
+  readonly kind: "edge";
+  /** line | circle | ellipse | bspline | … */
+  readonly curve: string;
+  /** mm (comprimento exato da curva) */
+  readonly length: number;
+  readonly start: Vec3;
+  readonly end: Vec3;
+  readonly closed: boolean;
+  readonly direction?: Vec3;
+  readonly center?: Vec3;
+  readonly radius?: number;
+  readonly axis?: Vec3;
+}
+
+export interface VertexInfo {
+  readonly kind: "vertex";
+  readonly point: Vec3;
+}
+
+export type TopoInfo = FaceInfo | EdgeInfo | VertexInfo;
+
+/** Resultado de medição entre dois elementos (distância mínima exata pelo kernel). */
+export interface Measurement {
+  /** distância mínima (mm); 0 = se tocam */
+  readonly distance: number;
+  /** pontos mais próximos, quando determináveis exatamente */
+  readonly pa?: Vec3;
+  readonly pb?: Vec3;
+  /** componentes ΔX ΔY ΔZ entre pa e pb */
+  readonly delta?: Vec3;
+  /** ângulo entre faces planas / arestas retas (graus, 0–90 para retas, 0–180 para normais) */
+  readonly angle?: number;
+  /** faces planas paralelas: distância entre os planos */
+  readonly planeGap?: number;
+}
+
+/** Árvore de montagem lida/gravada em STEP. Corpos em BREP binário, posições relativas ao pai (matriz 3×4). */
+export interface StepNode {
+  readonly name: string;
+  readonly matrix: readonly number[];
+  readonly children?: readonly StepNode[];
+  readonly brep?: Uint8Array;
+  readonly color?: readonly [number, number, number];
+}

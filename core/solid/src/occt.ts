@@ -4,7 +4,15 @@ import { isIdentity, placementMatrix } from "./placement";
 import { type PrimitiveSpec, type Pt2, profileSection, validatePrimitive } from "./primitives";
 import {
   type EdgeBuffers,
+  type EdgeInfo,
+  type FaceInfo,
   type MassProps,
+  type Measurement,
+  type StepNode,
+  type TopoInfo,
+  type TopoKind,
+  type TopoSel,
+  type Vec3,
   type MeshBuffers,
   type Placement,
   QUALITY_VIEW,
@@ -35,7 +43,32 @@ function wrap(op: string, e: unknown): SolidError {
  */
 export class OcctSolidKernel implements SolidKernel {
   readonly name = "OCCT 8 (WebAssembly)";
+  /** sub-shapes por corpo, na ordem de exploração do OCCT (mesma ordem da malha/arestas) */
+  private readonly subs = new Map<number, Partial<Record<TopoKind, ShapeHandle[]>>>();
   private constructor(private readonly k: OcctKernel) {}
+
+  /** Acesso ao módulo WASM (diagnóstico de memória). */
+  get wasmMemoryBytes(): number {
+    const mod = this.k.getRawModule() as unknown as { HEAP8?: Int8Array; wasmMemory?: WebAssembly.Memory };
+    return mod.wasmMemory?.buffer.byteLength ?? mod.HEAP8?.buffer.byteLength ?? 0;
+  }
+  get liveShapes(): number {
+    return this.k.shapeCount;
+  }
+
+  private sub(ref: SolidRef, kind: TopoKind): ShapeHandle[] {
+    let c = this.subs.get(ref);
+    if (!c) this.subs.set(ref, (c = {}));
+    let list = c[kind];
+    if (!list) list = c[kind] = this.k.getSubShapes(H(ref), kind);
+    return list;
+  }
+  private subAt(ref: SolidRef, kind: TopoKind, index: number): ShapeHandle {
+    const list = this.sub(ref, kind);
+    if (!Number.isInteger(index) || index < 0 || index >= list.length)
+      throw new SolidError("INVALID_PARAMS", `Elemento ${kind} nº ${index} não existe neste corpo (há ${list.length}).`);
+    return list[index];
+  }
 
   static async create(opts?: InitOptions): Promise<OcctSolidKernel> {
     try {
@@ -232,7 +265,214 @@ export class OcctSolidKernel implements SolidKernel {
     return this.run("ler BREP", () => R(this.k.fromBREPBinary(data)));
   }
 
+  transform(ref: SolidRef, matrix: readonly number[]): SolidRef {
+    if (matrix.length !== 12 || !matrix.every(Number.isFinite)) throw new SolidError("INVALID_PARAMS", "Matriz de posicionamento inválida.");
+    return this.run("posicionar", () => R(this.k.transform(H(ref), [...matrix])));
+  }
+
+  count(ref: SolidRef, kind: TopoKind): number {
+    return this.run("contar", () => this.sub(ref, kind).length);
+  }
+
+  info(ref: SolidRef, kind: TopoKind, index: number): TopoInfo {
+    return this.run("consultar geometria", () => {
+      const h = this.subAt(ref, kind, index);
+      if (kind === "vertex") return { kind: "vertex", point: vec(this.k.vertexPosition(h)) };
+      if (kind === "face") return this.faceInfo(h);
+      return this.edgeInfo(h);
+    });
+  }
+
+  private faceInfo(f: ShapeHandle): FaceInfo {
+    const k = this.k;
+    const base = { kind: "face" as const, surface: String(k.surfaceType(f)), area: k.getSurfaceArea(f), center: vec(k.getSurfaceCenterOfMass(f)) };
+    const d = k.surfaceData(f) as unknown as Record<string, unknown>;
+    switch (d.kind) {
+      case "plane":
+        return { ...base, normal: vec(d.normal as Vec3) };
+      case "cylinder":
+        return { ...base, axis: vec(d.axis as Vec3), axisPoint: vec(d.location as Vec3), radius: d.radius as number };
+      case "cone":
+        return { ...base, axis: vec(d.axis as Vec3), axisPoint: vec(d.location as Vec3), radius: d.refRadius as number, semiAngle: ((d.semiAngle as number) * 180) / Math.PI };
+      case "sphere":
+        return { ...base, axisPoint: vec(d.location as Vec3), radius: d.radius as number };
+      case "torus":
+        return { ...base, axis: vec(d.axis as Vec3), axisPoint: vec(d.location as Vec3), radius: d.majorRadius as number, minorRadius: d.minorRadius as number };
+      default:
+        return base;
+    }
+  }
+
+  private edgeInfo(e: ShapeHandle): EdgeInfo {
+    const k = this.k;
+    const vs = k.getSubShapes(e, "vertex");
+    const pts = vs.map((v) => vec(k.vertexPosition(v)));
+    for (const v of vs) k.release(v);
+    const d = k.curveData(e) as unknown as Record<string, unknown>;
+    const start = pts[0] ?? { x: NaN, y: NaN, z: NaN };
+    const end = pts[pts.length - 1] ?? start;
+    const base = { kind: "edge" as const, curve: String(d.kind ?? k.curveType(e)), length: k.curveLength(e), start, end, closed: k.curveIsClosed(e) };
+    if (d.kind === "line") return { ...base, direction: vec(d.direction as Vec3) };
+    if (d.kind === "circle") return { ...base, center: vec(d.center as Vec3), radius: d.radius as number, axis: vec(d.axis as Vec3) };
+    return base;
+  }
+
+  vertexPoints(ref: SolidRef): Float64Array {
+    return this.run("vértices", () => {
+      const list = this.sub(ref, "vertex");
+      const out = new Float64Array(list.length * 3);
+      list.forEach((v, i) => {
+        const p = this.k.vertexPosition(v);
+        out[i * 3] = p.x;
+        out[i * 3 + 1] = p.y;
+        out[i * 3 + 2] = p.z;
+      });
+      return out;
+    });
+  }
+
+  measure(a: TopoSel, b: TopoSel): Measurement {
+    return this.run("medir", () => {
+      const ha = a.kind === "solid" ? H(a.ref) : this.subAt(a.ref, a.kind, a.index);
+      const hb = b.kind === "solid" ? H(b.ref) : this.subAt(b.ref, b.kind, b.index);
+      const distance = this.k.distanceBetween(ha, hb);
+      const ia = a.kind === "solid" ? null : this.info(a.ref, a.kind, a.index);
+      const ib = b.kind === "solid" ? null : this.info(b.ref, b.kind, b.index);
+      let pa: Vec3 | undefined;
+      let pb: Vec3 | undefined;
+      // pontos exatos: vértice × (vértice | aresta | face), conferidos contra a distância do kernel
+      const proj = (pv: Vec3, sel: TopoSel, h: ShapeHandle): Vec3 | undefined => {
+        if (sel.kind === "vertex") return this.k.vertexPosition(h);
+        if (sel.kind === "edge") return this.k.projectPointOnEdge(h, pv).point;
+        if (sel.kind === "face") return this.k.projectPointOnFace(h, pv);
+        return undefined;
+      };
+      if (ia?.kind === "vertex") {
+        pa = ia.point;
+        pb = proj(pa, b, hb);
+      } else if (ib?.kind === "vertex") {
+        pb = ib.point;
+        pa = proj(pb, a, ha);
+      }
+      if (pa && pb && Math.abs(dist3(pa, pb) - distance) > 1e-6 * Math.max(1, distance)) {
+        pa = undefined; // projeção caiu fora do limite do elemento: só a distância é exata
+        pb = undefined;
+      }
+      const m: { -readonly [K in keyof Measurement]: Measurement[K] } = { distance };
+      if (pa && pb) {
+        m.pa = vec(pa);
+        m.pb = vec(pb);
+        m.delta = { x: pb.x - pa.x, y: pb.y - pa.y, z: pb.z - pa.z };
+      }
+      const dirOf = (i: TopoInfo | null): { v: Vec3; line: boolean } | null =>
+        i?.kind === "face" && i.normal ? { v: i.normal, line: false } : i?.kind === "edge" && i.direction ? { v: i.direction, line: true } : null;
+      const da = dirOf(ia);
+      const db = dirOf(ib);
+      if (da && db) {
+        const c = Math.min(1, Math.abs(dot(unit(da.v), unit(db.v))));
+        let ang = (Math.acos(c) * 180) / Math.PI; // 0..90 entre direções
+        if (da.line !== db.line) ang = 90 - ang; // reta × plano: ângulo com o plano
+        m.angle = ang;
+        if (!da.line && !db.line && ia?.kind === "face" && ib?.kind === "face" && c > 1 - 1e-12)
+          m.planeGap = Math.abs(dot(unit(da.v), { x: ib.center.x - ia.center.x, y: ib.center.y - ia.center.y, z: ib.center.z - ia.center.z }));
+      }
+      return m;
+    });
+  }
+
+  importStepTree(data: string): StepNode[] {
+    return this.run("importar STEP", () => {
+      const doc = this.k.importXCAFFromSTEP(data);
+      try {
+        const walk = (label: number, depth: number): StepNode | null => {
+          if (depth > 64) return null;
+          const info = doc.getLabelInfo(label as never);
+          let proto = label;
+          let matrix: number[] = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0];
+          const real = (nm: string) => (/^=>\[[\d:]+\]$/.test(nm) ? "" : nm); // nome automático do OCCT
+          let name = real(info.name);
+          let pinfo = info;
+          if (info.isComponent) {
+            const r = doc.getReferredLabel(label as never);
+            if (r !== null) {
+              proto = r as unknown as number;
+              matrix = doc.getLocation(label as never);
+              if (info.shapeHandle !== null) this.k.release(info.shapeHandle);
+              pinfo = doc.getLabelInfo(r);
+              name = name || real(pinfo.name);
+            }
+          }
+          const color = pinfo.hasColor ? ([pinfo.color[0], pinfo.color[1], pinfo.color[2]] as const) : undefined;
+          if (pinfo.isAssembly) {
+            if (pinfo.shapeHandle !== null) this.k.release(pinfo.shapeHandle);
+            const children = doc.getChildren(proto as never).map((c) => walk(c as unknown as number, depth + 1)).filter((c): c is StepNode => !!c);
+            return { name: name || "Conjunto", matrix, children };
+          }
+          if (pinfo.shapeHandle === null) return null;
+          const brep = this.k.toBREPBinary(pinfo.shapeHandle);
+          this.k.release(pinfo.shapeHandle);
+          return { name: name || "Corpo", matrix, brep, color };
+        };
+        const roots = doc.getRoots().map((r) => walk(r as unknown as number, 0)).filter((n): n is StepNode => !!n);
+        if (!roots.length) throw new SolidError("IO", "O arquivo STEP não contém geometria.");
+        return roots;
+      } finally {
+        doc.close();
+      }
+    });
+  }
+
+  exportStepTree(nodes: readonly StepNode[]): string {
+    return this.run("exportar STEP", (tmp) => {
+      const build = (n: StepNode): ShapeHandle => {
+        let local: ShapeHandle;
+        if (n.brep) local = this.k.fromBREPBinary(n.brep);
+        else local = this.k.makeCompound((n.children ?? []).map(build));
+        tmp.push(local);
+        const placed = this.k.transform(local, [...n.matrix]);
+        tmp.push(placed);
+        return placed;
+      };
+      const doc = this.k.createXCAFDocument();
+      try {
+        if (nodes.length === 1 && nodes[0].brep) {
+          doc.addShape(build(nodes[0]), { name: nodes[0].name });
+        } else {
+          const shapes = nodes.map(build);
+          const root = this.k.makeCompound(shapes);
+          tmp.push(root);
+          const tag = doc.addShape(root, { assembly: true, name: "AGTN" });
+          // nomeia componentes e protótipos em todos os níveis (compostos aninhados viram subconjuntos)
+          const nameAll = (labels: ReturnType<typeof doc.getChildren>, list: readonly StepNode[]) => {
+            labels.forEach((c, i) => {
+              const n = list[i];
+              if (!n) return;
+              doc.setName(c, n.name);
+              const r = doc.getReferredLabel(c);
+              if (r === null) return;
+              doc.setName(r, n.name);
+              if (n.children?.length) nameAll(doc.getChildren(r), n.children);
+            });
+          };
+          nameAll(doc.getChildren(tag), nodes);
+        }
+        return doc.exportSTEP({ unit: "mm" });
+      } finally {
+        doc.close();
+      }
+    });
+  }
+
+  toStl(ref: SolidRef, deflection = 0.05): Uint8Array {
+    return this.run("exportar STL", () => this.k.exportStl(H(ref), deflection, false));
+  }
+
   release(ref: SolidRef): void {
+    const c = this.subs.get(ref);
+    if (c) {
+      for (const list of Object.values(c)) for (const h of list ?? []) this.release(h as unknown as SolidRef);
+      this.subs.delete(ref);
+    }
     try {
       this.k.release(H(ref));
     } catch {
@@ -240,6 +480,15 @@ export class OcctSolidKernel implements SolidKernel {
     }
   }
   dispose(): void {
+    this.subs.clear();
     this.k[Symbol.dispose]();
   }
+}
+
+const vec = (p: Vec3): Vec3 => ({ x: p.x, y: p.y, z: p.z });
+const dot = (a: Vec3, b: Vec3) => a.x * b.x + a.y * b.y + a.z * b.z;
+const dist3 = (a: Vec3, b: Vec3) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+function unit(v: Vec3): Vec3 {
+  const l = Math.hypot(v.x, v.y, v.z) || 1;
+  return { x: v.x / l, y: v.y / l, z: v.z / l };
 }

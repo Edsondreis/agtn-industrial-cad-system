@@ -1,0 +1,12 @@
+{
+  "name": "@agtn/model3d",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@agtn/document": "*",
+    "@agtn/solid": "*"
+  }
+}

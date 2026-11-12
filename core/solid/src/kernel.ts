@@ -1,5 +1,18 @@
 import type { PrimitiveSpec } from "./primitives";
-import type { EdgeBuffers, MassProps, MeshBuffers, Placement, ShapeKind, SolidRef, TessellationQuality } from "./types";
+import type {
+  EdgeBuffers,
+  MassProps,
+  Measurement,
+  MeshBuffers,
+  Placement,
+  ShapeKind,
+  SolidRef,
+  StepNode,
+  TessellationQuality,
+  TopoInfo,
+  TopoKind,
+  TopoSel,
+} from "./types";
 
 /**
  * Contrato do motor de sólidos B-Rep. A UI, o documento 3D e a IA só conhecem esta interface;
@@ -40,6 +53,24 @@ export interface SolidKernel {
   /** BREP binário do OCCT (persistência exata de corpos importados). */
   toBrep(ref: SolidRef): Uint8Array;
   fromBrep(data: Uint8Array): SolidRef;
+
+  /** Aplica matriz afim 3×4 row-major (composição de conjuntos). */
+  transform(ref: SolidRef, matrix: readonly number[]): SolidRef;
+
+  /** Quantidade de faces/arestas/vértices (índices válidos 0..n-1, mesma ordem da malha). */
+  count(ref: SolidRef, kind: TopoKind): number;
+  /** Geometria exata de uma face/aresta/vértice. */
+  info(ref: SolidRef, kind: TopoKind, index: number): TopoInfo;
+  /** Posições exatas de todos os vértices (x,y,z…). */
+  vertexPoints(ref: SolidRef): Float64Array;
+  /** Distância mínima exata entre dois elementos, com pontos e ângulo quando aplicável. */
+  measure(a: TopoSel, b: TopoSel): Measurement;
+
+  /** STEP com estrutura de montagem e nomes (XCAF). */
+  importStepTree(data: string): StepNode[];
+  exportStepTree(nodes: readonly StepNode[]): string;
+  /** STL binário (malha — só para impressão 3D/visualização, não é sólido CAD). */
+  toStl(ref: SolidRef, deflection?: number): Uint8Array;
 
   release(ref: SolidRef): void;
   /** Libera tudo e o próprio kernel. */
