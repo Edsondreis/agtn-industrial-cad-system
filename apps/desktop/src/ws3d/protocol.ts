@@ -58,7 +58,7 @@ export interface EngineApi {
   info(a: TopoRefMsg): TopoInfo;
   measure(a: { a: TopoRefMsg; b: TopoRefMsg }): Measurement;
   /** referência estável para a face/aresta nº `index` do corpo exibido */
-  identify(a: { body: NodeId; kind: "face" | "edge"; index: number }): FaceRef | EdgeRef;
+  identify(a: { body: NodeId; kind: "face" | "edge"; index: number; model?: Model3D }): FaceRef | EdgeRef;
   /** prévia de uma peça com as operações em edição (não altera o documento) */
   preview(a: { model: Model3D; body: NodeId; features: readonly Feature[]; rollback: number | null }): PreviewResult;
   importStep(a: { text: string }): StepNode[];

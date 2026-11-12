@@ -82,6 +82,7 @@ export class Viewport3D {
   private sceneSphere = new Sphere(new Vector3(), 200);
   private sketchOv: SketchOverlay | null = null;
   private sketchDrag: string | null = null;
+  private preSketch: CamState | null = null;
   private preview: { body: NodeId; visual: BodyVisual; mode: "replace" | "ghost" } | null = null;
   frameMs = 0;
 
@@ -342,11 +343,18 @@ export class Viewport3D {
 
   /** Ativa o modo esboço: plano em coordenadas do MUNDO, editor com a lógica das ferramentas. */
   setSketch(frame: Frame | null, editor?: SketchEditor) {
+    const was = !!this.sketchOv;
     this.sketchOv?.dispose();
     this.sketchOv = null;
     this.sketchDrag = null;
     for (const b of this.bodies.values()) b.setGhost(!!frame);
+    // ao sair do esboço volta à vista anterior (orientação de trabalho do usuário)
+    if (!frame && was && this.preSketch) {
+      this.animateTo(this.preSketch);
+      this.preSketch = null;
+    }
     if (frame && editor) {
+      if (!was) this.preSketch = { ...this.cam, target: this.cam.target.clone(), dir: this.cam.dir.clone(), up: this.cam.up.clone() };
       this.sketchOv = new SketchOverlay(frame, editor, this.overlay, () => (this.dirty = true), () => worldPerPixel(this.cam, this.h));
       this.scene.add(this.sketchOv.root);
       const ext = this.sketchOv.extent();
@@ -365,6 +373,14 @@ export class Viewport3D {
     const f = ov.frame;
     const ext = ov.extent();
     this.animateTo(fitSphere({ ...this.cam, dir: new Vector3(f.n.x, f.n.y, f.n.z), up: new Vector3(f.y.x, f.y.y, f.y.z) }, ext.c, ext.r, this.w / this.h));
+  }
+  /** Ponto do esboço (mm) → pixel no viewport (campo de cota junto ao cursor). */
+  sketchScreen(p: { x: number; y: number }): { x: number; y: number } | null {
+    const ov = this.sketchOv;
+    if (!ov) return null;
+    this.syncCamera();
+    const s = this.toScreen(ov.toWorld(p));
+    return { x: s.x, y: s.y };
   }
   private sketchHit(px: number, py: number) {
     const ov = this.sketchOv!;
@@ -418,7 +434,8 @@ export class Viewport3D {
     const camera = this.activeCamera();
     this.ray.setFromCamera(this.ndc(px, py), camera);
     const wpp = worldPerPixel(this.cam, this.h);
-    const visible = [...this.bodies.values()].filter((b) => b.root.visible);
+    // o corpo substituído pela prévia continua selecionável (escolha de arestas/faces durante a operação)
+    const visible = [...this.bodies.values()].filter((b) => b.root.visible || (this.preview?.mode === "replace" && this.preview.body === b.id));
     const shaded = this.store.snap.mode !== "arame";
 
     // 1) face mais próxima

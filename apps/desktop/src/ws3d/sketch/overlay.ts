@@ -146,48 +146,59 @@ export class SketchOverlay {
     this.redraw();
   }
 
+  /** Rótulos HTML das cotas e restrições. Os elementos são reaproveitados por id (o duplo clique sobrevive às atualizações). */
   private rebuildLabels(st: EditorState) {
-    for (const l of this.labels) l.remove();
-    this.labels = [];
     const s = st.sketch;
     const sel = new Set(st.sel);
     const conflicts = new Set([...st.solve.conflicts, ...st.solve.redundant]);
     const count = new Map<string, number>();
+    const keep = new Map<string, HTMLElement>();
+    const old = new Map(this.labels.map((el) => [el.dataset.constraint!, el]));
     for (const c of s.constraints) {
       const at = anchorOf(s, c);
       if (!at) continue;
-      const el = document.createElement("div");
-      el.dataset.constraint = c.id;
-      if (isDimension(c)) {
+      const dimension = isDimension(c);
+      const g = dimension ? null : GLYPH[c.t];
+      if (!dimension && (!g || c.t === "coincident")) continue;
+      let el = old.get(c.id);
+      if (!el) {
+        el = document.createElement("div");
+        el.dataset.constraint = c.id;
+        const id = c.id;
+        el.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+        el.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          const a = (el as unknown as { _at: Pt })._at;
+          this.editor.click({ p: a, constraint: id }, ev.ctrlKey || ev.shiftKey);
+        });
+        if (dimension)
+          el.addEventListener("dblclick", (ev) => {
+            ev.stopPropagation();
+            this.editor.editDimension(id);
+          });
+        this.overlay.appendChild(el);
+      }
+      if (dimension) {
         el.className = `sk-dim${sel.has(c.id) ? " sel" : ""}${conflicts.has(c.id) ? " bad" : ""}`;
         const v = c.v;
-        const txt = c.t === "angle" ? `${fmt(v)}°` : c.t === "diameter" ? `Ø${fmt(v)}` : c.t === "radius" ? `R${fmt(v)}` : fmt(Math.abs(v));
-        el.textContent = txt;
+        el.textContent = c.t === "angle" ? `${fmt(v)}°` : c.t === "diameter" ? `Ø${fmt(v)}` : c.t === "radius" ? `R${fmt(v)}` : fmt(Math.abs(v));
         el.title = `${CONSTRAINT_LABEL[c.t]} — duplo clique para editar`;
-        el.addEventListener("dblclick", (ev) => {
-          ev.stopPropagation();
-          this.editor.editDimension(c.id);
-        });
       } else {
-        const g = GLYPH[c.t];
-        if (!g || c.t === "coincident") continue;
         const key = `${Math.round(at.x / (this.wpp() * 14))},${Math.round(at.y / (this.wpp() * 14))}`;
         const k = count.get(key) ?? 0;
         count.set(key, k + 1);
         el.className = `sk-glyph${sel.has(c.id) ? " sel" : ""}${conflicts.has(c.id) ? " bad" : ""}`;
-        el.textContent = g;
+        el.textContent = g!;
         el.title = `${CONSTRAINT_LABEL[c.t]} (${c.id}) — clique para selecionar, Delete apaga`;
-        el.style.marginLeft = `${k * 16}px`;
+        // deslocado da geometria para não cobrir a linha (clique na entidade continua livre)
+        el.style.marginLeft = `${14 + k * 16}px`;
+        el.style.marginTop = "-13px";
       }
-      el.addEventListener("pointerdown", (ev) => ev.stopPropagation());
-      el.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        this.editor.click({ p: at, constraint: c.id }, ev.ctrlKey || ev.shiftKey);
-      });
-      this.overlay.appendChild(el);
       (el as unknown as { _at: Pt })._at = at;
-      this.labels.push(el);
+      keep.set(c.id, el);
     }
+    for (const [id, el] of old) if (!keep.has(id)) el.remove();
+    this.labels = [...keep.values()];
   }
 
   /** Reposiciona rótulos HTML (a cada quadro em que a câmera muda). */

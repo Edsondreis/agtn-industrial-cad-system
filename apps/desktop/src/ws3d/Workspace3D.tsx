@@ -18,8 +18,32 @@ import {
   setPlacement,
   setPrimitive,
   setVisible,
+  addFeature,
+  convertToPart,
+  newPart,
+  nextFeatureName,
+  removeFeature,
+  renameFeature,
+  setRollback,
+  setSuppressed,
+  updateFeature,
 } from "@agtn/model3d";
-import { type PrimitiveKind, type PrimitiveSpec, PRIMITIVE_LABEL } from "@agtn/solid";
+import { emptySketch } from "@agtn/sketch";
+import {
+  type FaceRef,
+  type FeatId,
+  type Feature,
+  type FeatureDraft,
+  type FeatureKind,
+  type FeatureStatus,
+  type Frame,
+  type PlaneRef,
+  type PrimitiveKind,
+  type PrimitiveSpec,
+  type StdPlane,
+  FEATURE_LABEL,
+  PRIMITIVE_LABEL,
+} from "@agtn/solid";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { CadController } from "../cad/controller";
 import { baseName, pickAndRead, pickSavePath, writeBytes, writeText } from "../platform/platform";
@@ -33,6 +57,12 @@ import type { EngineStats, TopoRefMsg } from "./protocol";
 import { type DisplayMode, FILTER_LABEL, type PickFilter, type Sel, Ws3dStore } from "./store";
 import { Tree3D } from "./Tree3D";
 import { ViewCube } from "./ViewCube";
+import { type FeatAction } from "./Tree3D";
+import { FeatureDialog, type PickSlot } from "./part/FeatureDialog";
+import { FeatureProps } from "./part/FeatureProps";
+import { DRAFT_ID, type PartSource, PLANE_LABEL, defaultDraft, isPart, partSrc, sketchesBefore, stdFrame, withDraft, worldFrame } from "./part/partUi";
+import { SketchEditor } from "./sketch/editor";
+import { DimInput, SketchBar } from "./sketch/SketchBar";
 import { Viewport3D, fmt } from "./viewport";
 
 const PRIMS: [PrimitiveKind, string, string][] = [
@@ -60,6 +90,42 @@ const FILTERS: [PickFilter, string][] = [
 
 type EngineState = { s: "off" } | { s: "loading" } | { s: "ready"; kernel: string; ms: number } | { s: "error"; msg: string };
 
+/** Esboço em edição: plano, editor e a peça de destino (null = nova peça ao concluir). */
+interface SketchSess {
+  body: NodeId | null;
+  feat: FeatId | null;
+  plane: PlaneRef;
+  editor: SketchEditor;
+  name: string;
+  /** primitiva convertida em peça só ao concluir (mesmos ids de referência) */
+  base: PartSource | null;
+}
+/** Operação em edição no painel. */
+interface FeatSess {
+  body: NodeId;
+  editing: FeatId | null;
+  at: number;
+  initial: FeatureDraft;
+  name: string;
+  key: number;
+}
+type Tab = "modelar" | "corpos";
+
+const withSource = (m: Model3D, id: NodeId, source: PartSource): Model3D => ({ ...m, nodes: { ...m.nodes, [id]: { ...(m.nodes[id] as Extract<Model3D["nodes"][string], { kind: "body" }>), source } } });
+
+const SOLID_OPS: [FeatureKind, string, string, string][] = [
+  ["extrude", "extrude3d", "Extrusão", "Extrusão de esboço (unir, cortar, interseção)"],
+  ["revolve", "revolve3d", "Revolução", "Revolução de esboço em torno de uma linha"],
+  ["sweep", "sweep3d", "Varredura", "Perfil ao longo de uma trajetória (sweep)"],
+  ["loft", "loft3d", "Loft", "Transição entre seções de esboços"],
+  ["hole", "hole3d", "Furo", "Furos nos pontos/círculos de um esboço (passante, rebaixo, escareado)"],
+];
+const MOD_OPS: [FeatureKind, string, string, string][] = [
+  ["fillet", "fillet3d", "Arredondar", "Arredondamento (fillet) de arestas"],
+  ["chamfer", "chamfer3d", "Chanfro", "Chanfro de arestas"],
+  ["shell", "shell3d", "Casca", "Casca: remove faces e deixa parede"],
+];
+
 const topoMsg = (s: Sel): TopoRefMsg | null => (s.t === "topo" ? { body: s.body, kind: s.kind, index: s.index } : null);
 
 /**
@@ -74,7 +140,13 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
   const [eng, setEng] = useState<EngineState>({ s: "off" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
-  const [dialog, setDialog] = useState<null | { kind: "create"; prim: PrimitiveKind }>(null);
+  const [dialog, setDialog] = useState<null | { kind: "create"; prim: PrimitiveKind } | { kind: "featPrim"; body: NodeId; feat: FeatId; spec: PrimitiveSpec }>(null);
+  const [fstat, setFstat] = useState<Record<NodeId, readonly FeatureStatus[]>>({});
+  const [fsel, setFsel] = useState<{ body: NodeId; id: FeatId } | null>(null);
+  const [sk, setSk] = useState<SketchSess | null>(null);
+  const [fd, setFd] = useState<FeatSess | null>(null);
+  const [planeAsk, setPlaneAsk] = useState<{ body: NodeId | null; offset: number } | null>(null);
+  const [tab, setTab] = useState<Tab>("modelar");
   const [cam, setCam] = useState<CamState>(initialCam);
   const [stats, setStats] = useState<EngineStats | null>(null);
   const [syncMs, setSyncMs] = useState(0);
@@ -84,6 +156,26 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
   const firstFit = useRef(true);
   /** o viewport desta montagem ainda não recebeu nenhuma geometria → o próximo sync é completo */
   const needFull = useRef(true);
+  const fdRef = useRef<FeatSess | null>(null);
+  fdRef.current = fd;
+  const skRef = useRef<SketchSess | null>(null);
+  skRef.current = sk;
+  const fstatRef = useRef(fstat);
+  fstatRef.current = fstat;
+  const prevFilter = useRef<PickFilter>("auto");
+  const featErrs = useRef(new Set<string>());
+
+  /** Modelo exibido: ao editar uma operação, a peça aparece recuada até ela (as referências vêm desse estado). */
+  const display = useMemo(() => {
+    let m = model;
+    if (sk?.base && sk.body && !isPart(m, sk.body)) m = withSource(m, sk.body, sk.base);
+    const edit = sk?.feat && sk.body ? { body: sk.body, id: sk.feat } : fd?.editing ? { body: fd.body, id: fd.editing } : null;
+    if (!edit || !isPart(m, edit.body)) return m;
+    const i = partSrc(m, edit.body)!.features.findIndex((f) => f.id === edit.id);
+    return i < 0 ? m : setRollback(m, edit.body, i);
+  }, [model, sk, fd]);
+  const displayRef = useRef(display);
+  displayRef.current = display;
 
   /* ------------------------------------------------ documento → modelo (inclusive Undo/Redo) */
   useEffect(() => doc.subscribe(() => setModel(getModel(doc))), [doc]);
@@ -95,7 +187,14 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
     vp.current = v;
     const off = v.onCamera((c) => setCam(c));
     // gancho para os testes de ponta a ponta (só em desenvolvimento ou com a flag de teste)
-    if (import.meta.env.DEV || localStorage.getItem("agtn.e2e") === "1") (window as unknown as { __agtn3d?: unknown }).__agtn3d = { vp: v, store, doc };
+    if (import.meta.env.DEV || localStorage.getItem("agtn.e2e") === "1") (window as unknown as { __agtn3d?: unknown }).__agtn3d = {
+        vp: v,
+        store,
+        doc,
+        model: () => getModel(doc),
+        sketch: () => skRef.current?.editor ?? null,
+        status: () => fstatRef.current,
+      };
     return () => {
       off();
       v.dispose();
@@ -123,18 +222,36 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
   // Resultados NUNCA são descartados: cada um traz geometria que o worker não reenviará.
   useEffect(() => {
     if (eng.s !== "ready") return;
-    vp.current?.applyModel(model);
+    vp.current?.applyModel(display);
     const full = needFull.current;
     void engine()
-      .sync(model, full)
+      .sync(display, full)
       .then((r) => {
         const v = vp.current;
         if (!r || !v) return;
         needFull.current = false;
-        const latest = getModel(doc);
+        const latest = displayRef.current;
         v.applySync(r);
         v.applyModel(latest);
         setErrors(r.errors);
+        setFstat((prev) => {
+          const next = { ...prev, ...r.features };
+          for (const id of r.removed) delete next[id];
+          return next;
+        });
+        // avisa uma vez cada operação que passou a falhar (nunca troca de face/aresta em silêncio)
+        for (const [bid, list] of Object.entries(r.features)) {
+          const feats = partSrc(latest, bid)?.features ?? [];
+          const now = new Set(list.filter((x) => x.state === "error").map((x) => `${bid}:${x.id}:${x.error ?? ""}`));
+          for (const k of [...featErrs.current]) if (k.startsWith(`${bid}:`) && !now.has(k)) featErrs.current.delete(k);
+          for (const st of list) {
+            const key = `${bid}:${st.id}:${st.error ?? ""}`;
+            if (st.state === "error" && !featErrs.current.has(key)) {
+              featErrs.current.add(key);
+              toast(`${latest.nodes[bid]?.name ?? "Peça"} › ${feats.find((f) => f.id === st.id)?.name ?? st.id}: ${st.error}`, "error");
+            }
+          }
+        }
         setSyncMs(r.ms);
         setGeomRev((x) => x + 1);
         const errs = Object.entries(r.errors);
@@ -146,7 +263,7 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
         void engine().call("stats", {}).then(setStats).catch(() => undefined);
       })
       .catch((e: Error) => toast(`Motor 3D: ${e.message}`, "error"));
-  }, [model, eng.s, doc]);
+  }, [display, eng.s, doc]);
 
   // seleção → informação exata / medição (sempre pelo kernel)
   useEffect(() => {
@@ -255,6 +372,234 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
     if (hidden.length) commit("Exibir tudo", (m) => setVisible(m, hidden, true));
   };
 
+  /* ------------------------------------------------ peça paramétrica: esboços e operações */
+
+  /** Peça ativa: corpo selecionado (peça ou primitiva) ou a única peça do modelo. */
+  const activeBody = (): NodeId | null => {
+    if (fsel && model.nodes[fsel.body]) return fsel.body;
+    for (const x of snap.sel) {
+      const id = x.t === "node" ? x.id : x.body;
+      const n = model.nodes[id];
+      if (n?.kind === "body" && (n.source.type === "part" || n.source.type === "primitive")) return id;
+    }
+    const parts = bodies(model).filter((b) => b.source.type === "part");
+    return parts.length === 1 ? parts[0].id : null;
+  };
+  /** Prepara a fonte "peça" de um corpo (primitiva → peça com Base_1), sem gravar. */
+  const prepared = (m: Model3D, id: NodeId | null): { m: Model3D; base: PartSource | null } => {
+    if (!id || isPart(m, id)) return { m, base: null };
+    const conv = convertToPart(m, id);
+    const base = partSrc(conv, id)!;
+    return { m: conv, base };
+  };
+
+  /** Plano do esboço em coordenadas do mundo (faces: resolvido pelo kernel com a referência estável). */
+  const frameFor = async (m: Model3D, body: NodeId | null, plane: PlaneRef, featId: FeatId | null): Promise<Frame> => {
+    if (plane.t === "std") return worldFrame(m, body, stdFrame(plane.plane, plane.offset));
+    if (!body) throw new Error("Face sem corpo.");
+    const part = partSrc(m, body)!;
+    const at = featId ? part.features.findIndex((f) => f.id === featId) : (part.rollback ?? part.features.length);
+    const feats = withDraft(part.features, at, featId, { t: "sketch", plane, sketch: emptySketch() }, "tmp");
+    const r = await engine().call("preview", { model: m, body, features: feats, rollback: at + 1 });
+    const id = featId ?? DRAFT_ID;
+    const local = r.frames[id];
+    if (!local) throw new Error(r.status.find((x) => x.id === id)?.error ?? "Não foi possível obter o plano da face.");
+    return worldFrame(m, body, local);
+  };
+
+  const openSketch = async (body: NodeId | null, plane: PlaneRef, featId: FeatId | null, sketch = emptySketch(), name?: string, prep?: { m: Model3D; base: PartSource | null }) => {
+    const v = vp.current;
+    if (!v) return;
+    const { m, base } = prep ?? prepared(featId ? displayRef.current : getModel(doc), body);
+    try {
+      const frame = await frameFor(m, body, plane, featId);
+      const editor = new SketchEditor(sketch);
+      const part = body ? partSrc(m, body) : null;
+      const nm = name ?? nextFeatureName(part?.features ?? [], "sketch");
+      setFd(null);
+      setPlaneAsk(null);
+      store.set({ sel: [], hover: null, info: null, measure: null, measuring: false });
+      setSk({ body, feat: featId, plane, editor, name: nm, base });
+      v.setSketch(frame, editor);
+    } catch (e) {
+      toast(`Esboço: ${(e as Error).message}`, "error");
+    }
+  };
+
+  const startSketch = async () => {
+    if (sk) return;
+    const face = snap.sel.find((x): x is Extract<Sel, { t: "topo" }> => x.t === "topo" && x.kind === "face");
+    if (face) {
+      const n = model.nodes[face.body];
+      if (n?.kind !== "body" || n.source.type === "brep") return toast("Esboço em face: use uma peça paramétrica ou primitiva (sólido importado não tem histórico).", "warn");
+      const prep = prepared(model, face.body);
+      try {
+        const ref = (await engine().call("identify", { body: face.body, kind: "face", index: face.index, model: prep.m })) as FaceRef;
+        await openSketch(face.body, { t: "face", face: ref, offset: 0 }, null, emptySketch(), undefined, prep);
+      } catch (e) {
+        toast(`Esboço na face: ${(e as Error).message}`, "error");
+      }
+      return;
+    }
+    setPlaneAsk({ body: activeBody(), offset: 0 });
+  };
+
+  const closeSketch = () => {
+    vp.current?.setSketch(null);
+    setSk(null);
+  };
+  const finishSketch = () => {
+    const s = sk;
+    if (!s) return;
+    const sketch = s.editor.sketch;
+    let body = s.body;
+    let id: FeatId | null = s.feat;
+    const err = commit(s.feat ? `Editar ${s.name}` : `Novo esboço ${s.name}`, (m) => {
+      let mm = m;
+      if (!body) {
+        const r = newPart(mm, { parent: null });
+        mm = r.model;
+        body = r.id;
+      } else if (!isPart(mm, body)) {
+        if (!s.base) throw new Error("O corpo não é uma peça paramétrica.");
+        mm = withSource(mm, body, s.base);
+      }
+      if (s.feat) return updateFeature(mm, body, s.feat, { t: "sketch", plane: s.plane, sketch });
+      const r = addFeature(mm, body, { t: "sketch", plane: s.plane, sketch }, s.name);
+      id = r.id;
+      return r.model;
+    });
+    if (err) return;
+    closeSketch();
+    if (body && id) {
+      store.pick({ t: "node", id: body }, false);
+      setFsel({ body, id });
+    }
+    if (bodies(getModel(doc)).length === 1) firstFit.current = true;
+    toast(s.feat ? `${s.name} atualizado — a peça foi regenerada.` : `${s.name} concluído. Use Extrusão, Revolução ou Furo.`, "ok");
+  };
+
+  const closeFeature = () => {
+    vp.current?.setPreview(null, null);
+    store.set({ multi: false, filter: prevFilter.current, sel: [] });
+    setFd(null);
+  };
+  const openFeature = (kind: FeatureKind, opts: { op?: "join" | "cut" | "intersect"; circular?: boolean } = {}) => {
+    if (sk) return;
+    let body = activeBody();
+    if (!body) {
+      if (kind === "combine") return toast("Selecione o corpo que recebe a operação.", "warn");
+      return toast("Crie um esboço primeiro — a peça nasce do esboço (ou selecione uma primitiva).", "warn");
+    }
+    if (!isPart(model, body)) {
+      const n = model.nodes[body];
+      if (n?.kind !== "body" || n.source.type !== "primitive") return toast("Esta operação exige uma peça paramétrica.", "warn");
+      if (commit(`Converter ${n.name} em peça`, (m) => convertToPart(m, body!))) return;
+    }
+    const m = getModel(doc);
+    const part = partSrc(m, body)!;
+    const at = part.rollback ?? part.features.length;
+    const selSketch = fsel && fsel.body === body ? part.features.find((f) => f.id === fsel.id && f.t === "sketch")?.id : undefined;
+    let initial = defaultDraft(kind, part.features, at, { sketch: selSketch, op: opts.op });
+    if (!initial) return;
+    if (initial.t === "pattern" && opts.circular) initial = { ...initial, kind: "circular", dir: { t: "axis", a: "Z" } };
+    if ((kind === "extrude" || kind === "revolve" || kind === "hole") && !sketchesBefore(part.features, at).length) return toast(`${FEATURE_LABEL[kind]}: crie um esboço antes.`, "warn");
+    if ((kind === "sweep" || kind === "loft") && sketchesBefore(part.features, at).length < 2) return toast(`${FEATURE_LABEL[kind]} precisa de dois esboços.`, "warn");
+    prevFilter.current = store.snap.filter === "aresta" || store.snap.filter === "face" ? "auto" : store.snap.filter;
+    setFsel(null);
+    // pré-seleção: só arestas/faces da própria peça seguem para a operação
+    const b0 = body;
+    store.set({ sel: store.snap.sel.filter((x) => x.t === "topo" && x.body === b0), info: null, measure: null });
+    setFd({ body, editing: null, at, initial, name: nextFeatureName(part.features, kind), key: Date.now() });
+  };
+  const editFeature = (body: NodeId, id: FeatId) => {
+    const part = partSrc(model, body);
+    const i = part?.features.findIndex((f) => f.id === id) ?? -1;
+    if (!part || i < 0) return;
+    const f = part.features[i];
+    if (f.t === "sketch") return void openSketch(body, f.plane, f.id, f.sketch, f.name);
+    if (f.t === "primitive") return setDialog({ kind: "featPrim", body, feat: f.id, spec: f.spec });
+    const { id: _i, name: _n, suppressed: _s, ...draft } = f;
+    void _i;
+    void _n;
+    void _s;
+    prevFilter.current = store.snap.filter === "aresta" || store.snap.filter === "face" ? "auto" : store.snap.filter;
+    store.set({ sel: [] });
+    setFd({ body, editing: id, at: i, initial: draft as FeatureDraft, name: f.name, key: Date.now() });
+  };
+  const featureAct = (body: NodeId, id: FeatId, a: FeatAction) => {
+    const part = partSrc(model, body);
+    const i = part?.features.findIndex((f) => f.id === id) ?? -1;
+    if (!part || i < 0) return;
+    const f = part.features[i];
+    if (a === "edit") return editFeature(body, id);
+    if (a === "suppress") return void commit(f.suppressed ? `Reativar ${f.name}` : `Suprimir ${f.name}`, (m) => setSuppressed(m, body, id, !f.suppressed));
+    if (a === "rollback") return void commit(part.rollback === i ? "Avançar ao fim" : `Recuar até ${f.name}`, (m) => setRollback(m, body, part.rollback === i ? null : i));
+    if (a === "delete") return deleteFeature(body, id, false);
+  };
+  const deleteFeature = (body: NodeId, id: FeatId, cascade: boolean) => {
+    const f = partSrc(model, body)?.features.find((x) => x.id === id);
+    if (!f) return;
+    if (!commit(cascade ? `Excluir ${f.name} e dependentes` : `Excluir ${f.name}`, (m) => removeFeature(m, body, id, cascade))) {
+      setFsel(null);
+      toast(`Excluído: ${f.name} (Ctrl+Z desfaz)`, "ok");
+    }
+  };
+
+  /** Prévia real da operação em edição (o documento não muda). */
+  const runPreview = async (features: Feature[]) => {
+    const s = fdRef.current;
+    const v = vp.current;
+    if (!s || !v) return null;
+    if (!features.length) {
+      v.setPreview(null, null);
+      return null;
+    }
+    const part = partSrc(getModel(doc), s.body);
+    if (!part) return null;
+    const rb = s.editing ? part.rollback : part.rollback === null ? null : part.rollback + 1;
+    const r = await engine().call("preview", { model: getModel(doc), body: s.body, features, rollback: rb });
+    if (fdRef.current?.key !== s.key) return null;
+    v.setPreview(s.body, r.geom, "replace");
+    return r;
+  };
+  const featureOk = (draft: FeatureDraft, name: string): string | null => {
+    const s = fd;
+    if (!s) return null;
+    let id: FeatId | null = s.editing;
+    const old = s.editing ? partSrc(model, s.body)?.features.find((f) => f.id === s.editing) : undefined;
+    const err = commit(s.editing ? `Editar ${old?.name ?? name}` : `${FEATURE_LABEL[draft.t]} ${name}`, (m) => {
+      let mm: Model3D;
+      if (s.editing) {
+        mm = updateFeature(m, s.body, s.editing, draft);
+        if (old && name.trim() && name !== old.name) mm = renameFeature(mm, s.body, s.editing, name);
+      } else {
+        const r = addFeature(m, s.body, draft, name);
+        id = r.id;
+        mm = r.model;
+      }
+      if (draft.t === "combine") mm = setVisible(mm, draft.tools, false);
+      return mm;
+    });
+    if (err) return err;
+    const body = s.body;
+    closeFeature();
+    store.pick({ t: "node", id: body }, false);
+    if (id) setFsel({ body, id });
+    return null;
+  };
+  const onPick = (slot: PickSlot) => {
+    if (!fdRef.current) return;
+    const filter: PickFilter = slot === "edges" ? "aresta" : slot === "faces" || slot === "plane" ? "face" : slot === "dir" ? "auto" : prevFilter.current;
+    store.set({ filter, multi: slot === "edges" || slot === "faces" });
+  };
+
+  // a seleção saiu da peça → a operação deixa de estar selecionada
+  useEffect(() => {
+    if (fsel && !snap.sel.some((x) => (x.t === "node" ? x.id : x.body) === fsel.body)) setFsel(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snap.sel]);
+
   const importStep = async () => {
     const f = await pickAndRead("step");
     if (!f) return;
@@ -325,6 +670,12 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
       const t = e.target as HTMLElement;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT")) return;
       if (dialog || document.querySelector(".modal-bg")) return;
+      if (sk || fd) return; // o esboço e o painel da operação tratam o próprio teclado
+      if (planeAsk) {
+        if (e.key === "Escape") setPlaneAsk(null);
+        return;
+      }
+      if (fsel && e.key === "Delete") return deleteFeature(fsel.body, fsel.id, false);
       const v = vp.current;
       if (!v) return;
       const k = e.key;
@@ -380,7 +731,88 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
   return (
     <div className="ws3d">
       {/* ------------------------------ faixa de ferramentas ------------------------------ */}
+      {sk ? (
+        <SketchBar editor={sk.editor} name={sk.name} onFinish={finishSketch} onCancel={closeSketch} onNormal={() => vp.current?.sketchNormal()} />
+      ) : (
       <div className="rb" role="toolbar" aria-label="Ferramentas 3D">
+        <div className="rb-tabs" role="tablist">
+          <button role="tab" className={tab === "modelar" ? "on" : ""} aria-selected={tab === "modelar"} onClick={() => setTab("modelar")} data-tab="modelar">
+            Modelar
+          </button>
+          <button role="tab" className={tab === "corpos" ? "on" : ""} aria-selected={tab === "corpos"} onClick={() => setTab("corpos")} data-tab="corpos">
+            Corpos
+          </button>
+        </div>
+        {tab === "modelar" ? (
+          <>
+            <div className="rb-grp">
+              <div className="rb-btns">
+                <button className="rb-btn" title="Novo esboço 2D — num plano XY/XZ/YZ ou na face plana selecionada" onClick={() => void startSketch()} disabled={eng.s !== "ready"} data-op="sketch">
+                  <Icon name="sketch3d" />
+                  <span>Esboço</span>
+                </button>
+              </div>
+              <div className="rb-cap">ESBOÇO</div>
+            </div>
+            <div className="rb-grp">
+              <div className="rb-btns">
+                {SOLID_OPS.map(([k, ic, lb, tip]) => (
+                  <button key={k} className="rb-btn" title={tip} onClick={() => openFeature(k)} disabled={eng.s !== "ready"} data-op={k}>
+                    <Icon name={ic} />
+                    <span>{lb}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="rb-cap">CRIAR SÓLIDO</div>
+            </div>
+            <div className="rb-grp">
+              <div className="rb-btns">
+                {MOD_OPS.map(([k, ic, lb, tip]) => (
+                  <button key={k} className="rb-btn" title={tip} onClick={() => openFeature(k)} disabled={eng.s !== "ready"} data-op={k}>
+                    <Icon name={ic} />
+                    <span>{lb}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="rb-cap">MODIFICAR</div>
+            </div>
+            <div className="rb-grp">
+              <div className="rb-btns">
+                <button className="rb-btn" title="Espelhar operações ou o corpo inteiro" onClick={() => openFeature("mirror")} disabled={eng.s !== "ready"} data-op="mirror">
+                  <Icon name="mirror3d" />
+                  <span>Espelhar</span>
+                </button>
+                <button className="rb-btn" title="Padrão linear de operações" onClick={() => openFeature("pattern")} disabled={eng.s !== "ready"} data-op="pattern">
+                  <Icon name="patlin3d" />
+                  <span>Linear</span>
+                </button>
+                <button className="rb-btn" title="Padrão circular de operações" onClick={() => openFeature("pattern", { circular: true })} disabled={eng.s !== "ready"} data-op="patternc">
+                  <Icon name="patcir3d" />
+                  <span>Circular</span>
+                </button>
+              </div>
+              <div className="rb-cap">PADRÕES</div>
+            </div>
+            <div className="rb-grp">
+              <div className="rb-btns">
+                {(
+                  [
+                    ["join", "union3d", "União"],
+                    ["cut", "cut3d", "Corte"],
+                    ["intersect", "intersect3d", "Interseção"],
+                  ] as const
+                ).map(([op, ic, lb]) => (
+                  <button key={op} className="rb-btn" title={`${lb} com outros corpos (booleana editável)`} onClick={() => openFeature("combine", { op })} disabled={eng.s !== "ready"} data-op={`combine-${op}`}>
+                    <Icon name={ic} />
+                    <span>{lb}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="rb-cap">COMBINAR CORPOS</div>
+            </div>
+          </>
+        ) : (
+          <>
         <div className="rb-grp">
           <div className="rb-btns">
             {PRIMS.map(([k, ic, lb]) => (
@@ -430,6 +862,8 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
           </div>
           <div className="rb-cap">ARQUIVO 3D</div>
         </div>
+          </>
+        )}
         <div className="rb-grp">
           <div className="rb-btns">
             <button className={`rb-btn${snap.measuring ? " on" : ""}`} title="Medir distância, ângulo, comprimento (M)" onClick={toggleMeasure} aria-pressed={snap.measuring}>
@@ -467,6 +901,7 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
           </div>
           <div className="rb-cap">EXIBIR</div>
         </div>
+        {tab === "corpos" && (
         <div className="rb-grp views">
           <div className="rb-btns">
             {(Object.entries(STD_VIEWS) as [StdView, (typeof STD_VIEWS)[StdView]][]).map(([k, s]) => (
@@ -477,7 +912,9 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
           </div>
           <div className="rb-cap">VISTAS</div>
         </div>
+        )}
       </div>
+      )}
 
       {/* ------------------------------ corpo ------------------------------ */}
       <div className="w3">
@@ -493,7 +930,7 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
             </button>
           </div>
           <Tree3D
-            model={model}
+            model={display}
             sel={snap.sel}
             hover={snap.hover}
             errors={errors}
@@ -505,6 +942,15 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
               store.pick({ t: "node", id }, false);
               requestAnimationFrame(() => vp.current?.fit(true));
             }}
+            status={fstat}
+            fsel={fsel}
+            onFeature={(body, id) => {
+              if (sk || fd) return;
+              store.pick({ t: "node", id: body }, false);
+              setFsel({ body, id });
+            }}
+            onFeatureAct={(body, id, a) => !sk && !fd && featureAct(body, id, a)}
+            onRollbackEnd={(body) => commit("Avançar ao fim", (m) => setRollback(m, body, null))}
           />
         </aside>
 
@@ -512,6 +958,77 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
           <div className="v3-host" ref={host} />
           <ViewCube cam={cam} onDir={(d) => v?.viewDir(d)} onHome={() => v?.view("iso")} onRoll={(d) => v?.roll(d)} />
           {snap.measuring && <div className="v3-banner">MEDIR · clique em dois elementos · Esc sai</div>}
+          {sk && <DimInput editor={sk.editor} place={(p) => vp.current?.sketchScreen(p) ?? null} />}
+          {fd && partSrc(model, fd.body) && (
+            <FeatureDialog
+              key={fd.key}
+              model={model}
+              body={fd.body}
+              features={partSrc(model, fd.body)!.features}
+              at={fd.at}
+              editing={fd.editing}
+              initial={fd.initial}
+              name={fd.name}
+              sel={snap.sel}
+              onPick={onPick}
+              identify={(kind, index) => engine().call("identify", { body: fd.body, kind, index, model: isPart(displayRef.current, fd.body) ? displayRef.current : getModel(doc) })}
+              preview={runPreview}
+              onOk={featureOk}
+              onCancel={closeFeature}
+            />
+          )}
+          {planeAsk && (
+            <div className="plane-ask" role="dialog" aria-label="Plano do esboço" onPointerDown={(e) => e.stopPropagation()}>
+              <div className="fd-h">
+                <Icon name="sketch3d" />
+                <b>Novo esboço</b>
+                <div className="spacer" />
+                <button className="ibtn" title="Cancelar (Esc)" onClick={() => setPlaneAsk(null)}>
+                  <Icon name="close" />
+                </button>
+              </div>
+              <div className="fd-b">
+                <div className="pa-planes">
+                  {(["XY", "XZ", "YZ"] as StdPlane[]).map((pl) => (
+                    <button key={pl} className="pa-btn" onClick={() => void openSketch(planeAsk.body, { t: "std", plane: pl, offset: planeAsk.offset }, null)} data-plane={pl}>
+                      <b>{pl}</b>
+                      <span>{PLANE_LABEL[pl].replace(/^Plano \w+ /, "")}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="p3-row edit">
+                  <span className="k">Deslocamento</span>
+                  <span className="v unit-in">
+                    <input
+                      defaultValue="0"
+                      onChange={(e) => {
+                        const v = Number(e.target.value.replace(",", "."));
+                        if (Number.isFinite(v)) setPlaneAsk({ ...planeAsk, offset: v });
+                      }}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    />
+                    <i>mm</i>
+                  </span>
+                </div>
+                <div className="p3-row edit">
+                  <span className="k">Destino</span>
+                  <span className="v">
+                    <select value={planeAsk.body ?? ""} onChange={(e) => setPlaneAsk({ ...planeAsk, body: e.target.value || null })} data-field="destino">
+                      <option value="">Nova peça</option>
+                      {bodies(model)
+                        .filter((b) => b.source.type === "part" || b.source.type === "primitive")
+                        .map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.name}
+                          </option>
+                        ))}
+                    </select>
+                  </span>
+                </div>
+                <div className="fd-note">Para desenhar numa face plana: feche, selecione a face e clique em Esboço.</div>
+              </div>
+            </div>
+          )}
           {eng.s === "loading" && (
             <div className="v3-center">
               <span className="spinner" /> Iniciando o motor geométrico 3D (OCCT)…
@@ -524,7 +1041,7 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
               <span className="note">O desenho 2D continua funcionando normalmente.</span>
             </div>
           )}
-          {eng.s === "ready" && !bodies(model).length && (
+          {eng.s === "ready" && !bodies(model).length && !sk && !planeAsk && !fd && (
             <div className="v3-empty">
               <Icon name="cube3d" />
               <b>AGTN 3D</b>
@@ -550,12 +1067,36 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
               </div>
             </div>
           )}
-          <div className="v3-help">Esq.: girar/selecionar · Meio/Dir.: arrastar · Roda: zoom · Duplo clique: corpo/enquadrar</div>
+          <div className="v3-help">
+            {sk
+              ? "Esq.: desenhar/selecionar · arrastar ponto: mover · Meio/Dir.: arrastar vista · Roda: zoom · Esc: selecionar · duplo clique na cota: editar"
+              : fd
+                ? "Clique no modelo para escolher · Enter: OK · Esc: cancelar"
+                : "Esq.: girar/selecionar · Meio/Dir.: arrastar · Roda: zoom · Duplo clique: corpo/enquadrar"}
+          </div>
         </section>
 
         <aside className="w3-right">
-          <div className="panel-h">Propriedades</div>
+          <div className="panel-h">{fsel ? "Operação" : "Propriedades"}</div>
           <div className="w3-props">
+            {fsel && partSrc(model, fsel.body)?.features.some((f) => f.id === fsel.id) ? (
+              (() => {
+                const part = partSrc(model, fsel.body)!;
+                const i = part.features.findIndex((f) => f.id === fsel.id);
+                return (
+                  <FeatureProps
+                    features={part.features}
+                    feature={part.features[i]}
+                    index={i}
+                    rollback={part.rollback}
+                    status={fstat[fsel.body]?.find((x) => x.id === fsel.id)}
+                    onRename={(nm) => commit("Renomear operação", (m) => renameFeature(m, fsel.body, fsel.id, nm))}
+                    onAct={(a) => featureAct(fsel.body, fsel.id, a)}
+                    onDelete={(c) => deleteFeature(fsel.body, fsel.id, c)}
+                  />
+                );
+              })()
+            ) : (
             <Props3D
               model={model}
               snap={snap}
@@ -568,6 +1109,7 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
                 spec: (id, sp) => commit("Editar parâmetros", (m) => setPrimitive(m, id, sp)),
               }}
             />
+            )}
           </div>
         </aside>
       </div>
@@ -593,6 +1135,21 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
         <span>mm</span>
       </div>
 
+      {dialog?.kind === "featPrim" && (
+        <PrimitiveDialog
+          title="Editar primitiva base"
+          submitLabel="Aplicar"
+          initial={dialog.spec}
+          onClose={() => setDialog(null)}
+          onSubmit={(r) => {
+            const d = dialog;
+            const err = commit("Editar primitiva base", (m) => updateFeature(m, d.body, d.feat, { t: "primitive", spec: r.spec, placement: { origin: r.origin, rot: r.rot } }));
+            if (err) return err;
+            setDialog(null);
+            return null;
+          }}
+        />
+      )}
       {dialog?.kind === "create" && (
         <PrimitiveDialog
           title={`Novo ${PRIMITIVE_LABEL[dialog.prim].toLowerCase()}`}

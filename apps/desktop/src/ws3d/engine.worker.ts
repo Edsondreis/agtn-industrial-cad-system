@@ -66,9 +66,10 @@ const api: Omit<EngineApi, "init"> = {
     const built = r.built.map((id) => geomOf(id, c.get(id)!));
     return { built, removed: r.removed, errors: r.errors, ms: performance.now() - t0, features: r.features, frames: r.frames, empty: r.empty };
   },
-  identify({ body, kind, index }) {
-    if (!lastModel || !parts) throw new SolidError("NOT_READY", "Modelo ainda não sincronizado.");
-    const { part } = partOf(lastModel, body);
+  identify({ body, kind, index, model }) {
+    const m = model ?? lastModel;
+    if (!m || !parts) throw new SolidError("NOT_READY", "Modelo ainda não sincronizado.");
+    const { part } = partOf(m, body);
     const at = (part.rollback ?? part.features.length) - 1;
     return kind === "face" ? parts.identifyFace(body, part.features, at, index) : parts.identifyEdge(body, part.features, at, index);
   },

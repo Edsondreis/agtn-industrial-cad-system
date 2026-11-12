@@ -33,6 +33,8 @@ export interface Ws3dSnapshot {
   /** informação exata do último elemento topológico selecionado */
   readonly info: { readonly sel: Sel; readonly info: TopoInfo } | null;
   readonly view: string | null;
+  /** escolha de várias arestas/faces para uma operação: cada clique soma/remove */
+  readonly multi: boolean;
 }
 
 /** Estado observável da área 3D (React lê via useSyncExternalStore; o viewport assina mudanças). */
@@ -49,6 +51,7 @@ export class Ws3dStore {
     measure: null,
     info: null,
     view: null,
+    multi: false,
   };
   private subs = new Set<() => void>();
 
@@ -78,7 +81,7 @@ export class Ws3dStore {
     }
     const has = this.s.sel.some((x) => sameSel(x, s));
     // no modo medir cada clique acumula (1º e 2º elementos)
-    if (this.s.measuring) additive = true;
+    if (this.s.measuring || this.s.multi) additive = true;
     let sel: Sel[];
     if (additive) sel = has ? this.s.sel.filter((x) => !sameSel(x, s)) : [...this.s.sel, s];
     else sel = [s];
