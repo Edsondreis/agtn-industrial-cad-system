@@ -47,6 +47,11 @@ export class OcctSolidKernel implements SolidKernel {
   private readonly subs = new Map<number, Partial<Record<TopoKind, ShapeHandle[]>>>();
   private constructor(private readonly k: OcctKernel) {}
 
+  /** Kernel OCCT bruto — só para módulos do próprio motor (avaliador de peças). */
+  get raw(): OcctKernel {
+    return this.k;
+  }
+
   /** Acesso ao módulo WASM (diagnóstico de memória). */
   get wasmMemoryBytes(): number {
     const mod = this.k.getRawModule() as unknown as { HEAP32?: Int32Array; HEAPU8?: Uint8Array };

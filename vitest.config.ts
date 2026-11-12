@@ -15,6 +15,7 @@ export default defineConfig({
       "@agtn/plot": r("./modules/plot/src/index.ts"),
       "@agtn/solid": r("./core/solid/src/index.ts"),
       "@agtn/model3d": r("./core/model3d/src/index.ts"),
+      "@agtn/sketch": r("./core/sketch/src/index.ts"),
     },
   },
   test: {
