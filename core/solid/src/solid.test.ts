@@ -209,3 +209,10 @@ describe("matrizes de posicionamento", () => {
     }
   });
 });
+
+describe("diagnóstico", () => {
+  it("informa a memória do WebAssembly e as formas vivas", () => {
+    expect(k.wasmMemoryBytes).toBeGreaterThan(16 * 1024 * 1024);
+    expect(k.liveShapes).toBeGreaterThanOrEqual(0);
+  });
+});

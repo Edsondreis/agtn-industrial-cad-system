@@ -23,7 +23,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ipc: http://ipc.localhost"
+      "csp": "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost"
     }
   },
   "bundle": {
@@ -36,7 +36,7 @@
     "copyright": "© AGTN. Todos os direitos reservados.",
     "category": "DeveloperTool",
     "shortDescription": "AGTN Industrial CAD",
-    "longDescription": "Software CAD 2D da AGTN para desenho técnico, chapas e planificação, com compatibilidade DXF e DWG.",
+    "longDescription": "Software CAD da AGTN para desenho técnico 2D, modelagem 3D (AGTN 3D), chapas e planificação, com compatibilidade DXF, DWG e STEP.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -81,6 +81,9 @@
       "wix": {
         "language": "pt-BR"
       }
+    },
+    "resources": {
+      "../../../node_modules/occt-wasm/dist/occt-wasm.wasm": "occt/occt-wasm.wasm"
     }
   }
 }

@@ -49,8 +49,8 @@ export class OcctSolidKernel implements SolidKernel {
 
   /** Acesso ao módulo WASM (diagnóstico de memória). */
   get wasmMemoryBytes(): number {
-    const mod = this.k.getRawModule() as unknown as { HEAP8?: Int8Array; wasmMemory?: WebAssembly.Memory };
-    return mod.wasmMemory?.buffer.byteLength ?? mod.HEAP8?.buffer.byteLength ?? 0;
+    const mod = this.k.getRawModule() as unknown as { HEAP32?: Int32Array; HEAPU8?: Uint8Array };
+    return mod.HEAP32?.buffer.byteLength ?? mod.HEAPU8?.buffer.byteLength ?? 0;
   }
   get liveShapes(): number {
     return this.k.shapeCount;

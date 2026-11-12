@@ -24,8 +24,9 @@ export function insertStepTree(m: Model3D, nodes: readonly StepNode[], fileName:
     for (const c of n.children ?? []) put(c, g.id);
     return g.id;
   };
-  // STEP de peça única dentro de um conjunto raiz anônimo: não cria nível extra
-  for (const n of nodes) ids.push(put(n, parent));
+  // conjunto raiz sem nome próprio (ou o "AGTN" gravado por nós) recebe o nome do arquivo
+  const base = fileName.replace(/\.(step|stp)$/i, "");
+  for (const n of nodes) ids.push(put(n.children && (!n.name || n.name === "AGTN" || n.name === "Conjunto") ? { ...n, name: base } : n, parent));
   return { model: out, ids };
 }
 

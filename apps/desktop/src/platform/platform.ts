@@ -6,13 +6,15 @@ import { invoke } from "@tauri-apps/api/core";
 
 export const isTauri = (): boolean => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
-export type FileKind = "agtncad" | "dxf" | "dwg" | "cad" | "drawing" | "pdf";
+export type FileKind = "agtncad" | "dxf" | "dwg" | "cad" | "drawing" | "pdf" | "step" | "stl";
 
 const FILTERS: Record<FileKind, { name: string; extensions: string[] }[]> = {
   agtncad: [{ name: "Projeto AGTN CAD", extensions: ["agtncad"] }],
   dxf: [{ name: "DXF (Drawing Exchange Format)", extensions: ["dxf"] }],
   dwg: [{ name: "DWG (AutoCAD Drawing)", extensions: ["dwg"] }],
   pdf: [{ name: "PDF", extensions: ["pdf"] }],
+  step: [{ name: "STEP (AP203/AP214/AP242)", extensions: ["step", "stp"] }],
+  stl: [{ name: "STL (malha)", extensions: ["stl"] }],
   cad: [
     { name: "Desenhos CAD (DWG, DXF)", extensions: ["dwg", "dxf"] },
     { name: "DWG", extensions: ["dwg"] },
@@ -89,7 +91,8 @@ export async function writeText(path: string, text: string): Promise<void> {
 export async function writeBytes(path: string, bytes: Uint8Array): Promise<void> {
   if (isTauri()) return invoke("write_file", bytes, { headers: { "x-path": encodeURIComponent(path) } });
   const ext = path.toLowerCase().split(".").pop();
-  download(baseName(path), bytes, ext === "pdf" ? "application/pdf" : ext === "dwg" ? "application/acad" : "application/dxf");
+  const mime: Record<string, string> = { pdf: "application/pdf", dwg: "application/acad", stl: "model/stl", step: "model/step", stp: "model/step" };
+  download(baseName(path), bytes, mime[ext ?? ""] ?? "application/dxf");
 }
 
 /**

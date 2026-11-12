@@ -85,7 +85,8 @@ describe("árvore do modelo 3D", () => {
     expect(() => reparent(sub.model, s.g, sub.id)).toThrow(/dentro dele mesmo/);
     const moved = reparent(s.m, s.tube, s.g);
     expect(moved.roots).toEqual([s.g]);
-    expect(moved.nodes[s.g].kind === "group" && moved.nodes[s.g].children).toContain(s.tube);
+    const gn = moved.nodes[s.g];
+    expect(gn.kind === "group" ? gn.children : []).toContain(s.tube);
   });
   it("agrupar e duplicar", () => {
     const s = sample();
@@ -168,7 +169,8 @@ describe("documento: undo/redo e .agtncad", () => {
     raw.nodes[s.g].children.push("nao-existe");
     const rep = parseModel3D(raw);
     expect(rep.model.nodes[s.base]).toBeUndefined();
-    expect(rep.model.nodes[s.g].kind === "group" && rep.model.nodes[s.g].children).toEqual([s.c1, s.c2]);
+    const rg = rep.model.nodes[s.g];
+    expect(rg.kind === "group" ? rg.children : []).toEqual([s.c1, s.c2]);
     expect(rep.model.roots).toContain("fantasma");
     expect(rep.warnings.length).toBeGreaterThanOrEqual(2);
     expect(() => parseModel3D({ version: 99, nodes: {}, roots: [] })).toThrow(/versão mais nova/);

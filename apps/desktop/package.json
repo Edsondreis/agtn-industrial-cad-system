@@ -21,11 +21,15 @@
     "react-dom": "^19.3.1",
     "@agtn/lasertext": "*",
     "@agtn/parts": "*",
-    "@agtn/plot": "*"
+    "@agtn/plot": "*",
+    "@agtn/solid": "*",
+    "@agtn/model3d": "*",
+    "three": "0.187.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.12.0",
     "@types/react": "^19.2.0",
+    "@types/three": "^0.187.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.2.1",
     "vite": "^8.3.6"

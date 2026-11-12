@@ -11,6 +11,7 @@ import { toast } from "../ui/toast";
 import { ConvertDialog, DefaultAppButtons } from "../ui/CadConvert";
 // módulos pesados (cálculo de chapas, fontes, booleanas) carregados sob demanda: abertura mais rápida
 const SheetMetalWorkspace = lazy(() => import("../sheetmetal/SheetMetalWorkspace").then((m) => ({ default: m.SheetMetalWorkspace })));
+const Workspace3D = lazy(() => import("../ws3d/Workspace3D").then((m) => ({ default: m.Workspace3D })));
 const PartsWorkspace = lazy(() => import("../parts/PartsWorkspace").then((m) => ({ default: m.PartsWorkspace })));
 const LaserTextDialog = lazy(() => import("../lasertext/LaserTextDialog").then((m) => ({ default: m.LaserTextDialog })));
 import { SM_LAYERS } from "@agtn/sheetmetal";
@@ -119,6 +120,7 @@ export function App() {
     a.set("CONFIG", () => setDialog("settings"));
     for (const k of ["T", "TEXTO", "TEXTOLASER", "TL", "__LASERTEXT__"]) a.set(k, () => setDialog("lasertext"));
     for (const k of ["PECAS", "PEÇAS", "BIBLIOTECA", "BIB"]) a.set(k, () => setWs("pecas"));
+    for (const k of ["3D", "AGTN3D", "MODELO3D", "SOLIDO"]) a.set(k, () => setWs("modelo3d"));
   }, [ctl, files, openPlot]);
 
   /* --------------------- título da janela, recuperação, fechar --------------------- */
@@ -426,6 +428,7 @@ export function App() {
       items: [
         { label: "Planificação de chapas e calandra (AGTN SHEET METAL)", key: "SM", run: () => setWs("planificacao") },
         { label: "Biblioteca de chapas (flanges, bolachas, suportes…)", key: "PECAS", run: () => setWs("pecas") },
+        { label: "AGTN 3D — modelagem de sólidos e montagens", key: "3D", run: () => setWs("modelo3d") },
         { label: "Texto para laser…", key: "T", run: () => setDialog("lasertext") },
         { label: "Medir distância", key: "DI", run: run("DIST") },
         { label: "Converter DWG ↔ DXF…", key: "CONVERTER", run: () => {
@@ -447,7 +450,7 @@ export function App() {
   ];
 
   return (
-    <div className="app">
+    <div className={`app${ws === "modelo3d" ? " app-3d" : ""}`}>
       <TopBar ctl={ctl} files={files} ws={ws} setWs={setWs} onHome={goHome} />
       <MenuBar menus={menus} />
       {ws === "desenho" ? (
@@ -478,13 +481,17 @@ export function App() {
         <Suspense fallback={<Loading label="Carregando planificação…" />}>
           <SheetMetalWorkspace ctl={ctl} onInsert={insertGenerated} onExportDxf={exportGenerated} />
         </Suspense>
+      ) : ws === "modelo3d" ? (
+        <Suspense fallback={<Loading label="Carregando AGTN 3D…" />}>
+          <Workspace3D ctl={ctl} />
+        </Suspense>
       ) : (
         <Suspense fallback={<Loading label="Carregando biblioteca de chapas…" />}>
           <PartsWorkspace ctl={ctl} onInsert={insertGenerated} onExportDxf={exportGenerated} />
         </Suspense>
       )}
-      {ws === "desenho" ? <CommandLine ref={cmd} ctl={ctl} showHistory={panels.history} /> : <div />}
-      <StatusBar ctl={ctl} />
+      {ws === "modelo3d" ? null : ws === "desenho" ? <CommandLine ref={cmd} ctl={ctl} showHistory={panels.history} /> : <div />}
+      {ws === "modelo3d" ? null : <StatusBar ctl={ctl} />}
 
       {dialog === "about" && <AboutDialog onClose={() => setDialog(null)} />}
       {dialog === "lasertext" && (

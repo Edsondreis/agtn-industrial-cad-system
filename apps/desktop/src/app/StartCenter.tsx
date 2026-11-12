@@ -142,6 +142,10 @@ export function StartCenter({
               <Icon name="parts" />
               Peça da biblioteca
             </button>
+            <button onClick={() => void startNew("modelo3d")} title="Novo projeto no AGTN 3D (sólidos, montagens, STEP)">
+              <Icon name="cube3d" />
+              Modelo 3D
+            </button>
             <button onClick={() => void startNew("lasertext")} title="Novo projeto com o texto para laser aberto">
               <Icon name="text" />
               Texto para laser

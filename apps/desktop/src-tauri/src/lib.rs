@@ -47,6 +47,25 @@ fn read_file(path: String) -> Result<Response, String> {
         .map_err(|e| format!("Não foi possível abrir \"{path}\": {e}"))
 }
 
+/// Binários do motor 3D permitidos (lista fechada: nada de caminho vindo do front-end).
+const ENGINE_FILES: &[&str] = &["occt-wasm.wasm"];
+
+/// Lê o motor geométrico 3D (OCCT em WebAssembly) dos recursos do instalador (`occt/`).
+/// Fica fora do executável de propósito: é LGPL e o usuário pode substituí-lo por outra compilação.
+#[tauri::command]
+fn read_engine(app: tauri::AppHandle, name: String) -> Result<Response, String> {
+    if !ENGINE_FILES.contains(&name.as_str()) {
+        return Err(format!("Arquivo de motor desconhecido: {name}"));
+    }
+    let path = app
+        .path()
+        .resolve(format!("occt/{name}"), tauri::path::BaseDirectory::Resource)
+        .map_err(|e| format!("Pasta de recursos não encontrada: {e}"))?;
+    fs::read(&path)
+        .map(Response::new)
+        .map_err(|e| format!("Motor 3D ausente ou ilegível em \"{}\": {e}. Reinstale o AGTN Industrial CAD.", path.display()))
+}
+
 /// Grava bytes crus recebidos no corpo da requisição; o caminho vem no cabeçalho `x-path` (URI-encoded).
 #[tauri::command]
 fn write_file(request: Request<'_>) -> Result<(), String> {
@@ -624,6 +643,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             read_file,
+            read_engine,
             write_file,
             write_text,
             file_exists,

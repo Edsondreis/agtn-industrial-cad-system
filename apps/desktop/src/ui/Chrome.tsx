@@ -4,7 +4,7 @@ import type { FileActions } from "../app/files";
 import { Icon } from "./Icons";
 import { useCtl } from "./hooks";
 
-export type Workspace = "desenho" | "planificacao" | "pecas";
+export type Workspace = "desenho" | "planificacao" | "pecas" | "modelo3d";
 
 export interface MenuItem {
   label?: string;
@@ -89,6 +89,9 @@ export function TopBar({
         </button>
         <button className={`ws-tab${ws === "pecas" ? " on" : ""}`} onClick={() => setWs("pecas")} title="Biblioteca de chapas pré-definidas">
           PEÇAS
+        </button>
+        <button className={`ws-tab${ws === "modelo3d" ? " on" : ""}`} onClick={() => setWs("modelo3d")} title="AGTN 3D — modelagem de sólidos, montagens e STEP">
+          3D
         </button>
       </div>
     </div>
