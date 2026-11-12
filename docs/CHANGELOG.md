@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.1.1 — Tela na vertical (retrato)
+- Layout automático para monitor girado (`@media (orientation: portrait)` em `styles.css`): troca sozinho quando
+  a janela fica mais alta que larga e volta ao girar de novo; paisagem fica idêntica (conferido pixel a pixel).
+- Barra de cima em duas linhas (ferramentas em cima; DESENHO / PLANIFICAÇÃO / PEÇAS em abas largas embaixo);
+  rótulos de botão ocultos, só ícones.
+- DESENHO: prancheta em cima, Propriedades e Camadas lado a lado embaixo.
+- PLANIFICAÇÃO e PEÇAS: vistas em cima, os dois painéis lado a lado embaixo (antes a 3ª coluna saía da tela).
+- Barra de status rola de lado em vez de cortar; Start Center em uma coluna; impressão e atalhos em uma coluna.
+- Largura mínima da janela 1024 → 640 px (para 1080×1920 com escala de 125%/150% do Windows).
+- Conferido em 1080×1920, 864×1536 e 720×1280.
+
 ## 3.1.0 — Bandejas e bandejas enrijecidas na planificação
 - **Bandeja** (`solveTray`, `modules/sheetmetal/src/tray.ts`): abas nas 4 bordas (comprimento por aba, 0 = sem
   aba), medidas externas ou internas, **ângulo das abas** qualquer (evasê para fora ou para dentro).
