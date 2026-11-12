@@ -13,6 +13,7 @@ export default defineConfig({
       "@agtn/lasertext": r("./modules/lasertext/src/index.ts"),
       "@agtn/parts": r("./modules/parts/src/index.ts"),
       "@agtn/plot": r("./modules/plot/src/index.ts"),
+      "@agtn/solid": r("./core/solid/src/index.ts"),
     },
   },
   test: {

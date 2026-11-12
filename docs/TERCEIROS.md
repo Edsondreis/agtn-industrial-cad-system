@@ -10,6 +10,14 @@ https://mozilla.org/MPL/2.0/. A MPL é copyleft por arquivo: só os arquivos do 
 o código do AGTN Industrial CAD não é afetado. Se algum dia algum arquivo do acadrust for alterado, essa
 alteração deve ser publicada sob a MPL.
 
+## occt-wasm 5.17.1 — MIT OR Apache-2.0 (código TypeScript) · Open CASCADE Technology 8 — LGPL-2.1 com exceção
+Motor geométrico 3D (B-Rep) do AGTN 3D. Código-fonte: https://github.com/andymai/occt-wasm (npm `occt-wasm`).
+O arquivo compilado `occt-wasm.wasm` contém o **Open CASCADE Technology** (https://dev.opencascade.org,
+código-fonte https://github.com/Open-Cascade-SAS/OCCT), licenciado sob a GNU LGPL 2.1 com a "Open CASCADE
+Exception 1.0". Este software faz uso de recursos fornecidos pelo Open CASCADE Technology.
+O `.wasm` é distribuído como arquivo separado, carregado em tempo de execução, e pode ser substituído pelo usuário
+por outra compilação compatível, conforme a LGPL.
+
 ## ACadSharp — MIT
 O leitor/gravador DWG do acadrust inclui código adaptado do ACadSharp.
 

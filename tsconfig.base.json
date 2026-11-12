@@ -24,7 +24,8 @@
       "@agtn/sheetmetal": ["modules/sheetmetal/src/index.ts"],
       "@agtn/lasertext": ["modules/lasertext/src/index.ts"],
       "@agtn/parts": ["modules/parts/src/index.ts"],
-      "@agtn/plot": ["modules/plot/src/index.ts"]
+      "@agtn/plot": ["modules/plot/src/index.ts"],
+      "@agtn/solid": ["core/solid/src/index.ts"]
     }
   }
 }
