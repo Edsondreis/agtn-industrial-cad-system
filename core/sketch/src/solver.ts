@@ -1,4 +1,4 @@
-import { type Constraint, type Id, type Sketch, type SEntity, BUILTIN_POINTS, entityOf } from "./types";
+import { type Constraint, type Id, type Sketch, type SEntity, BUILTIN_POINTS, CONSTRAINT_LABEL, entityOf } from "./types";
 
 /**
  * Solver de restrições do esboço.
@@ -533,6 +533,14 @@ export interface SolveOptions {
 }
 
 /** Resolve o esboço. Se for inconsistente, a geometria original é mantida (nunca aplica solução parcial). */
+/** Nome legível de uma restrição para mensagens: "Comprimento 50 (D16)". */
+export function describeConstraint(s: Sketch, id: Id): string {
+  const c = s.constraints.find((k) => k.id === id);
+  if (!c) return id;
+  const v = "v" in c ? ` ${String(Number(c.v.toFixed(4))).replace(".", ",")}${c.t === "angle" ? "°" : ""}` : "";
+  return `${CONSTRAINT_LABEL[c.t]}${v} (${id})`;
+}
+
 export function solve(s: Sketch, opts: SolveOptions = {}): SolveResult {
   const sys = build(s, opts.extra);
   if (sys.errors.length) return fail(s, sys, sys.errors[0], []);
@@ -541,7 +549,7 @@ export function solve(s: Sketch, opts: SolveOptions = {}): SolveResult {
   const r = newton(sys, x);
   if (!r.converged) {
     const conflicts = opts.skipConflictSearch ? [] : findConflicts(s, opts.extra);
-    const names = conflicts.length ? ` Restrições em conflito: ${conflicts.join(", ")}.` : "";
+    const names = conflicts.length ? ` Em conflito: ${conflicts.map((c) => describeConstraint(s, c)).join(", ")}.` : "";
     return result(s, "inconsistent", 0, new Set(), [], conflicts, r.iterations, r.residual, `Restrições inconsistentes — não existe geometria que satisfaça todas.${names}`);
   }
   const a = analyze(sys, x);
@@ -553,7 +561,7 @@ export function solve(s: Sketch, opts: SolveOptions = {}): SolveResult {
   const status: SketchStatus = red.length ? "over" : dof === 0 ? "full" : "under";
   const msg =
     status === "over"
-      ? `Restrição redundante: ${red.join(", ")} (já determinada pelas outras).`
+      ? `Restrição redundante: ${red.map((c) => describeConstraint(s, c)).join(", ")} (já determinada pelas outras).`
       : status === "full"
         ? "Totalmente definido."
         : `Subdefinido: ${dof} grau(s) de liberdade.`;

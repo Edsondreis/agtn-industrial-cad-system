@@ -56,6 +56,7 @@ async def main():
         await pg.wait_for_timeout(1200)
         await pg.get_by_text("Modelo 3D", exact=True).first.click()
         await pg.wait_for_selector(".st3-dot.ready", timeout=30000)
+        await pg.click('[data-tab="corpos"]')  # primitivas, montagem e vistas
         check("motor OCCT inicia no worker", True, (await pg.inner_text(".st3")).split("\n")[0])
 
         # ---------------- criação de sólidos e montagem
@@ -233,6 +234,7 @@ async def main():
         await pg.wait_for_timeout(800)
         await pg.get_by_role("button", name="3D", exact=True).click()
         await pg.wait_for_selector(".st3-dot.ready", timeout=30000)
+        await pg.click('[data-tab="corpos"]')  # primitivas, montagem e vistas
         await pg.wait_for_function("() => /3 corpo/.test(document.querySelector('.st3').innerText) && !/ 0 triângulos/.test(document.querySelector('.st3').innerText)", timeout=20000)
         await pg.wait_for_timeout(600)
         vols_after = await pg.evaluate("() => { const v = window.__agtn3d.vp; const m = window.__agtn3d.doc.extras.agtn3d; return Object.values(m.nodes).filter(n=>n.kind==='body').map(n => [n.name, v.geom(n.id).props.volume]).sort() }")
@@ -273,6 +275,7 @@ async def main():
         await pg.screenshot(path=f"{OUT}/13_desenho_2d.png")
         await pg.click(".ws-tab:has-text('3D')")
         await pg.wait_for_selector(".st3-dot.ready")
+        await pg.click('[data-tab="corpos"]')  # primitivas, montagem e vistas
         await pg.wait_for_function("() => /6 corpo/.test(document.querySelector('.st3').innerText) && !/ 0 triângulos/.test(document.querySelector('.st3').innerText)", timeout=15000)
         check("voltar ao 3D: viewport novo recebe toda a geometria", True, re.sub(r"\s+", " ", await pg.inner_text(".st3"))[:120])
         # criar e renomear em seguida (dois syncs encadeados) não pode perder geometria

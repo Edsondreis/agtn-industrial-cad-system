@@ -338,6 +338,9 @@ function pointAtOrNew(s: Sketch, p: Pt, onto: readonly Entity[], keepIds: readon
 
 /** Restrições dimensionais que deixam de fazer sentido quando a entidade muda de extensão. */
 const lengthLike = new Set(["length", "midpoint"]);
+/** Restrição que perde o sentido quando a entidade `id` muda de extensão (igual entre linhas = mesmo comprimento). */
+const dropsOnResize = (s: Sketch, c: Sketch["constraints"][number], id: Id) =>
+  constraintRefs(c).includes(id) && (lengthLike.has(c.t) || (c.t === "equal" && s.entities[id]?.t === "line"));
 
 /** Apara a entidade no trecho clicado, entre as interseções mais próximas. */
 export function trim(s: Sketch, id: Id, pick: Pt): Sketch {
@@ -349,7 +352,7 @@ export function trim(s: Sketch, id: Id, pick: Pt): Sketch {
   if (!r.ok) throw new Error(r.reason);
   const pieces = r.value;
   // remove a original e as restrições de comprimento; mantém as geométricas (horizontal, paralela…)
-  const keepC = s.constraints.filter((c) => !(constraintRefs(c).includes(id) && lengthLike.has(c.t)));
+  const keepC = s.constraints.filter((c) => !dropsOnResize(s, c, id));
   let out: Sketch = { ...s, constraints: keepC };
   const entities = { ...out.entities };
   delete entities[id];
@@ -418,7 +421,7 @@ export function extend(s: Sketch, id: Id, pick: Pt): Sketch {
     movePt(e.p1, { x: n.c.x + n.r * Math.cos(n.a0), y: n.c.y + n.r * Math.sin(n.a0) });
     movePt(e.p2, { x: n.c.x + n.r * Math.cos(n.a1), y: n.c.y + n.r * Math.sin(n.a1) });
   }
-  return { ...out, constraints: out.constraints.filter((c) => !(constraintRefs(c).includes(id) && lengthLike.has(c.t))) };
+  return { ...out, constraints: out.constraints.filter((c) => !dropsOnResize(s, c, id)) };
 }
 
 /**

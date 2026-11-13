@@ -368,10 +368,17 @@ export class SketchEditor {
       return;
     }
     const chain = this.chainOf(this.clicks[0].entity!);
-    const d = this.distanceToEntity(this.clicks[0].entity!, h.p);
+    const d = this.offsetDist > 0 ? this.offsetDist : this.distanceToEntity(this.clicks[0].entity!, h.p);
     this.clicks = [];
     if (!(d > 1e-6)) throw new Error("Escolha um ponto fora da curva.");
     this.commit(offset(this.s, chain, Math.round(d * 1000) / 1000, h.p).s, `Offset de ${chain.length} curva(s).`);
+  }
+
+  /** Distância fixa do offset (0 = pela posição do clique). */
+  offsetDist = 0;
+  setOffsetDist(v: number) {
+    this.offsetDist = Number.isFinite(v) && v > 0 ? v : 0;
+    this.emit();
   }
 
   /** Offset com distância exata digitada. */
@@ -452,8 +459,7 @@ export class SketchEditor {
     if (!id) return;
     const picks = [...this.sel.filter((x) => !this.s.constraints.some((c) => c.id === x)), id];
     const kinds = picks.map((x) => (pointOf(this.s, x) && !entityOf(this.s, x) ? "p" : entityOf(this.s, x)!.t));
-    const at = h.p;
-    const ask = (kind: DimKind, refs: Id[], options: DimKind[] = [kind]) => {
+    const ask = (kind: DimKind, refs: Id[], options: DimKind[] = [kind], at: Pt = h.p) => {
       this.prompt = { kind, refs, value: Math.round(this.measure(kind, refs) * 1e6) / 1e6, at, options };
       this.sel = [];
       this.emit();
@@ -468,7 +474,12 @@ export class SketchEditor {
     }
     const [a, b] = picks.slice(-2);
     const [ka, kb] = kinds.slice(-2);
-    if (ka === "p" && kb === "p") return ask("distance", [a, b], ["distance", "distanceX", "distanceY"]);
+    if (ka === "p" && kb === "p") {
+      // rótulo no meio dos dois pontos (não cobre os pontos para os próximos cliques)
+      const pa = pointOf(this.s, a)!;
+      const pb = pointOf(this.s, b)!;
+      return ask("distance", [a, b], ["distance", "distanceX", "distanceY"], { x: (pa.x + pb.x) / 2, y: (pa.y + pb.y) / 2 });
+    }
     if (ka === "line" && kb === "line") return ask("angle", [a, b]);
     if (ka === "p" && kb === "line") return ask("pointLineDistance", [a, b]);
     if (ka === "line" && kb === "p") return ask("pointLineDistance", [b, a]);
@@ -504,16 +515,22 @@ export class SketchEditor {
     if (p.edit) next = setDimension(this.s, p.edit, value);
     else {
       const r = p.refs;
+      let at = p.at;
+      if (p.kind === "distanceX" || p.kind === "distanceY") {
+        const pa = pointOf(this.s, r[0])!;
+        const pb = pointOf(this.s, r[1])!;
+        at = p.kind === "distanceX" ? { x: (pa.x + pb.x) / 2, y: pa.y } : { x: pa.x, y: (pa.y + pb.y) / 2 };
+      }
       const c =
         p.kind === "length"
-          ? { t: "length" as const, l: r[0], v: value, at: p.at }
+          ? { t: "length" as const, l: r[0], v: value, at }
           : p.kind === "radius" || p.kind === "diameter"
-            ? { t: p.kind, c: r[0], v: value, at: p.at }
+            ? { t: p.kind, c: r[0], v: value, at }
             : p.kind === "angle"
-              ? { t: "angle" as const, a: r[0], b: r[1], v: value, at: p.at }
+              ? { t: "angle" as const, a: r[0], b: r[1], v: value, at }
               : p.kind === "pointLineDistance"
-                ? { t: "pointLineDistance" as const, p: r[0], l: r[1], v: value, at: p.at }
-                : { t: p.kind, a: r[0], b: r[1], v: value, at: p.at };
+                ? { t: "pointLineDistance" as const, p: r[0], l: r[1], v: value, at }
+                : { t: p.kind, a: r[0], b: r[1], v: value, at };
       try {
         next = addConstraint(this.s, c).s;
       } catch (e) {

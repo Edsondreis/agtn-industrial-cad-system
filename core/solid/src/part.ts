@@ -559,7 +559,7 @@ export class PartEvaluator {
       const F = a.frame;
       if (ref.role === "start" || ref.role === "end") return { kind: "plane", p: add(F.o, mul(F.n, ref.role === "start" ? a.z0 : a.z1)), n: F.n };
       const ent = entityOf(a.sketch, ref.key);
-      if (!ent || ent.t === "point") throw new SolidError("INVALID_PARAMS", `A curva ${ref.key} do esboço de ${src.name} foi apagada — a face lateral deixou de existir.`);
+      if (!ent || ent.t === "point") throw new SolidError("INVALID_PARAMS", `Referência perdida: a curva ${ref.key} do esboço de ${src.name} foi apagada — a face lateral deixou de existir.`);
       const zm = (a.z0 + a.z1) / 2;
       if (ent.t === "line") {
         const p1 = to3d(F, pointOf(a.sketch, ent.p1)!);

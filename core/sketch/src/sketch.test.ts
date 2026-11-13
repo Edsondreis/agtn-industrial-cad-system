@@ -7,6 +7,7 @@ import {
   addPolyline,
   addRectangle,
   defaultRegions,
+  describeConstraint,
   emptySketch,
   extend,
   offset,
@@ -245,6 +246,26 @@ describe("aparar, estender e offset", () => {
     // pontos novos ficam presos às linhas de corte
     expect(t.constraints.filter((c) => c.t === "pointOnLine").length).toBe(2);
     expect(solve(t).status).not.toBe("inconsistent");
+  });
+  it("aparar linha com 'igual' remove a igualdade (o comprimento mudou de propósito) e nada se desloca", () => {
+    let s = emptySketch();
+    const a = addLine(s, { x: 0, y: 0 }, { x: 60, y: 0 });
+    const b = addLine(a.s, { x: 0, y: 20 }, { x: 60, y: 20 });
+    s = addConstraint(b.s, { t: "equal", a: a.id, b: b.id }).s;
+    s = addLine(s, { x: 20, y: -10 }, { x: 20, y: 10 }).s;
+    const t = trim(s, a.id, { x: 8, y: 0 });
+    expect(t.constraints.some((c) => c.t === "equal")).toBe(false);
+    const r = solve(t);
+    const top = r.sketch.entities[b.id] as Extract<Sketch["entities"][string], { t: "line" }>;
+    near(pointOf(r.sketch, top.p2)!.x, 60, 1e-9);
+  });
+  it("mensagens de conflito citam a restrição pelo nome e valor", () => {
+    const { s, w } = definedRect();
+    expect(describeConstraint(s, w)).toBe(`Comprimento 200 (${w})`);
+    const bad = addConstraint(s, { t: "distanceX", a: "O", b: definedRect().r.points[1], v: 50 }).s;
+    const r = solve(bad);
+    expect(r.status).toBe("inconsistent");
+    expect(r.message).toMatch(/Em conflito: .*Comprimento 200/);
   });
   it("estender uma linha até a vizinha", () => {
     let s = emptySketch();

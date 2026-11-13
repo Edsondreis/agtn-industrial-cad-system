@@ -1,7 +1,7 @@
 import { CONSTRAINT_LABEL, type ConstraintKind, STATUS_LABEL } from "@agtn/sketch";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Icon } from "../../ui/Icons";
-import { parseNum } from "../../ui/fields";
+import { NumField, parseNum } from "../../ui/fields";
 import { type DimKind, type SketchEditor, type SketchTool, TOOL_LABEL } from "./editor";
 
 const TOOLS: [SketchTool, string, string, string][] = [
@@ -91,6 +91,20 @@ export function SketchBar({ editor, name, onFinish, onCancel, onNormal }: { edit
         </div>
         <div className="rb-cap">ESBOÇO · {name.toUpperCase()}</div>
       </div>
+      {st.tool === "offset" && (
+        <div className="rb-grp">
+          <div className="rb-btns sk-opt">
+            <label>
+              Distância
+              <span className="unit-in">
+                <NumField value={editor.offsetDist} min={0} onCommit={(v) => editor.setOffsetDist(v)} title="0 = pela posição do clique" />
+                <i>mm</i>
+              </span>
+            </label>
+          </div>
+          <div className="rb-cap">OFFSET</div>
+        </div>
+      )}
       <div className="rb-grp">
         <div className="rb-btns sk-cons">
           {CONS.map(([k, g]) => (

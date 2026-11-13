@@ -166,6 +166,8 @@
 .sk-cbtn:hover:not(:disabled) { border-color: var(--accent-line); background: var(--accent-soft); }
 .sk-cbtn:disabled { opacity: 0.28; cursor: default; }
 .sk-end { margin-left: auto; }
+.sk-opt label { display: flex; flex-direction: column; gap: 3px; font-size: 10.5px; color: var(--text-dim); }
+.sk-opt input { width: 96px; height: 26px; background: var(--field); border: 1px solid var(--line-2); border-radius: var(--r); padding: 0 6px; outline: none; font-family: var(--mono); color: var(--text-hi); }
 .sk-end .rb-btns { gap: 8px; }
 .sk-end .rb-cap { max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: 0.3px; font-weight: 500; }
 .sk-err { color: #f2b7b7; }
