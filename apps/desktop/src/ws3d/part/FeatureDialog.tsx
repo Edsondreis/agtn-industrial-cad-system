@@ -1,5 +1,7 @@
 import type { Model3D, NodeId } from "@agtn/model3d";
-import { type AxisRef, type EdgeRef, type FaceRef, type FeatId, type Feature, type FeatureDraft, type FeatureStatus, type Frame, FEATURE_LABEL, type PlaneRef, type StdPlane, to3d, validateFeature } from "@agtn/solid";
+import { type AxisRef, type EdgeRef, type FaceRef, type FeatId, type Feature, type FeatureDraft, type FeatureStatus, type Frame, FEATURE_LABEL, type PlaneRef, type SheetEdgeRef, type StdPlane, to3d, validateFeature } from "@agtn/solid";
+import type { SheetInfo } from "../protocol";
+import { BaseFields, BendLineFields, ContourFields, FlangeFields, FlangeSelect } from "./SheetFields";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NumField } from "../../ui/fields";
 import { Icon } from "../../ui/Icons";
@@ -30,6 +32,10 @@ export interface FeatureDialogProps {
   /** plano do esboço no mundo (para o manipulador de profundidade) */
   frameOf?: (sketch: FeatId) => Frame | null;
   handle?: (h: DragHandle | null) => void;
+  /** chapa: aresta exibida → aresta do grafo (aba + chave) */
+  sheetEdge?: (index: number) => Promise<SheetEdgeRef & { label: string; bent: string | null }>;
+  /** chapa: estado atual da peça (lista de abas) */
+  sheet?: SheetInfo | null;
 }
 
 const Row = ({ k, children, title }: { k: string; children: React.ReactNode; title?: string }) => (
@@ -59,7 +65,8 @@ export function FeatureDialog(p: FeatureDialogProps) {
   const [name, setName] = useState(p.name);
   const [slot, setSlot] = useState<PickSlot>(null);
   const [state, setState] = useState<{ busy: boolean; error: string | null; warn: string | null; ms: number }>({ busy: false, error: null, warn: null, ms: 0 });
-  const picked = useRef(new Map<string, FaceRef | EdgeRef>());
+  const picked = useRef(new Map<string, FaceRef | EdgeRef | SheetEdgeRef>());
+  const sheetLabels = useRef(new Map<string, string>());
   const [pickRev, setPickRev] = useState(0);
   const set = <K extends Draft["t"]>(patch: Partial<Of<K>>) => setD((x) => ({ ...x, ...patch }) as Draft);
   const kind = d.t;
@@ -69,6 +76,7 @@ export function FeatureDialog(p: FeatureDialogProps) {
   // escolha inicial: arestas/faces exigem escolha; o painel já abre escolhendo
   useEffect(() => {
     if (kind === "fillet" || kind === "chamfer") setSlot("edges");
+    else if ((p.initial.t === "sheetFlange" && !p.initial.edges.length) || (p.initial.t === "sheetContour" && !p.initial.edge.flange)) setSlot("edges");
     else if (kind === "shell") setSlot("faces");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -90,8 +98,21 @@ export function FeatureDialog(p: FeatureDialogProps) {
         const keys = new Set(idx.map((i) => `${k}${i}`));
         const had = picked.current.size > 0;
         for (const key of [...picked.current.keys()]) if (!keys.has(key)) picked.current.delete(key);
+        const isSheet = kind === "sheetFlange" || kind === "sheetContour";
         try {
-          for (const i of idx) if (!picked.current.has(`${k}${i}`)) picked.current.set(`${k}${i}`, await p.identify(k, i));
+          for (const i of idx)
+            if (!picked.current.has(`${k}${i}`)) {
+              if (isSheet) {
+                if (k !== "edge" || !p.sheetEdge) continue;
+                const r = await p.sheetEdge(i);
+                if (r.bent) throw new Error(`A aresta ${r.label} já tem a dobra ${r.bent}.`);
+                const { label, bent: _b, ...ref } = r;
+                void _b;
+                if (kind === "sheetContour") picked.current.clear();
+                picked.current.set(`${k}${i}`, ref);
+                sheetLabels.current.set(`${k}${i}`, label);
+              } else picked.current.set(`${k}${i}`, await p.identify(k, i));
+            }
         } catch (e) {
           if (!dead) setState((s) => ({ ...s, error: (e as Error).message }));
           return;
@@ -101,6 +122,8 @@ export function FeatureDialog(p: FeatureDialogProps) {
         if (idx.length || had) {
           if (kind === "fillet" || kind === "chamfer") set({ edges: refs as EdgeRef[] });
           if (kind === "shell") set({ faces: refs as FaceRef[] });
+          if (kind === "sheetFlange") set<"sheetFlange">({ edges: refs as SheetEdgeRef[] });
+          if (kind === "sheetContour" && refs.length) set<"sheetContour">({ edge: refs.at(-1) as SheetEdgeRef });
         }
         setPickRev((r) => r + 1);
       } else {
@@ -322,8 +345,63 @@ export function FeatureDialog(p: FeatureDialogProps) {
     </div>
   );
 
+  const flangesList = p.sheet?.flanges ?? [];
+  const sheetPickBox = (count: number, hint: string) => (
+    <>
+      {pickBox("edges", count, hint)}
+      {count > 0 && (
+        <div className="fd-note" data-testid="sheet-edges">
+          {(d.t === "sheetFlange" ? d.edges : d.t === "sheetContour" ? [d.edge] : [])
+            .map((e) => `${flangesList.find((f) => f.id === e.flange)?.label ?? e.flange} · ${e.edge}`)
+            .join("; ")}
+        </div>
+      )}
+    </>
+  );
   const form = (() => {
     switch (d.t) {
+      case "sheetBase":
+        return (
+          <>
+            {sketchSelect(d.sketch, (v) => set<"sheetBase">({ sketch: v }))}
+            <BaseFields d={d} set={(x) => set<"sheetBase">(x)} />
+          </>
+        );
+      case "sheetFlange":
+        return (
+          <>
+            {sheetPickBox(d.edges.length, "Clique nas arestas de borda das abas (Shift soma). Uma aba por aresta, de canto a canto (canto aberto).")}
+            <FlangeFields d={d} set={(x) => set<"sheetFlange">(x)} />
+          </>
+        );
+      case "sheetContour":
+        return (
+          <>
+            {sheetPickBox(d.edge.flange ? 1 : 0, "Clique UMA aresta reta de borda.")}
+            <ContourFields d={d} set={(x) => set<"sheetContour">(x)} />
+          </>
+        );
+      case "sheetBendLine": {
+        const s = sketchById(d.sketch);
+        const lines = s ? Object.values(s.entities).filter((e) => e.t === "line" && !e.cons).map((e) => e.id) : [];
+        return (
+          <>
+            {sketchSelect(d.sketch, (v) => {
+              const s2 = sketchById(v);
+              set<"sheetBendLine">({ sketch: v, line: s2 ? (Object.values(s2.entities).find((e) => e.t === "line" && !e.cons)?.id ?? "") : "" });
+            })}
+            <BendLineFields d={d} set={(x) => set<"sheetBendLine">(x)} lines={lines} flanges={flangesList} />
+          </>
+        );
+      }
+      case "sheetCut":
+        return (
+          <>
+            {sketchSelect(d.sketch, (v) => set<"sheetCut">({ sketch: v }))}
+            <FlangeSelect v={d.flange} flanges={flangesList} set={(v) => set<"sheetCut">({ flange: v })} />
+            <div className="fd-note">Contornos fechados do esboço (sobre a face da aba) viram recortes passantes. ETAPA 1: dentro da região plana, sem tocar a borda nem a dobra.</div>
+          </>
+        );
       case "extrude":
         return (
           <>

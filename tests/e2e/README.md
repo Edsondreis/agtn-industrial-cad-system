@@ -13,6 +13,8 @@ python3 tests/e2e/e2e_param2.py          # FASE 3: ferramentas do esboço, refer
                                          # circular+espelho, casca+união, varredura, loft (22)
 python3 tests/e2e/e2e_audit.py           # auditoria FASE 3: falha intermediária, dependentes, aviso de
                                          # último sólido válido, prévia/cancelar sem resíduo, 2D↔3D (15)
+python3 tests/e2e/e2e_sheet.py           # FASE 4 · ETAPA 1: base de chapa, aba clicando a aresta, θ/α, flange
+                                         # de contorno, Undo/Redo, Dobrado|Planificado, salvar/reabrir, DESENHO (18)
 python3 tests/e2e/load3d.py              # carga: estrutura com 38 perfis, paisagem e tela vertical
 ```
 

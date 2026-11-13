@@ -278,6 +278,7 @@ export function validateFeature(f: FeatureDraft): string[] {
       if (!f.edges.length) e.push("Escolha pelo menos uma aresta.");
       break;
     case "sheetContour":
+      if (!f.edge.flange || !f.edge.edge) e.push("Escolha a aresta da aba onde nasce o flange.");
       if (!f.segments.length) e.push("O perfil precisa de pelo menos um segmento.");
       f.segments.forEach((sg, i) => {
         if (!(sg.length > 0)) e.push(`Segmento ${i + 1}: comprimento deve ser maior que zero.`);
@@ -285,7 +286,12 @@ export function validateFeature(f: FeatureDraft): string[] {
       });
       break;
     case "sheetBendLine":
+      if (!f.flange) e.push("Escolha a aba a dobrar.");
+      if (!f.line) e.push("Escolha a linha de dobra do esboço.");
       bendOk(f.deflectionDeg, f.R, f.K);
+      break;
+    case "sheetCut":
+      if (!f.flange) e.push("Escolha a aba do recorte.");
       break;
   }
   return e;

@@ -53,14 +53,18 @@ import { type CamState, STD_VIEWS, type StdView, initialCam } from "./camera";
 import { engine } from "./engine";
 import { DEFAULT_SPECS, PrimitiveDialog } from "./PrimitiveDialog";
 import { Props3D } from "./Props3D";
-import type { EngineStats, SyncResult, TopoRefMsg } from "./protocol";
+import type { EngineStats, SheetInfo, SyncResult, TopoRefMsg } from "./protocol";
+import { flatEntities } from "@agtn/sheetgraph";
+import type { Change } from "@agtn/document";
+import type { Entity } from "@agtn/geometry";
+import { sheetLayerChanges } from "./part/sheetUi";
 import { type DisplayMode, FILTER_LABEL, type PickFilter, type Sel, Ws3dStore } from "./store";
 import { Tree3D } from "./Tree3D";
 import { ViewCube } from "./ViewCube";
 import { type FeatAction } from "./Tree3D";
 import { FeatureDialog, type PickSlot } from "./part/FeatureDialog";
 import { FeatureProps } from "./part/FeatureProps";
-import { DRAFT_ID, type PartSource, PLANE_LABEL, defaultDraft, isPart, partSrc, sketchesBefore, stdFrame, withDraft, worldFrame } from "./part/partUi";
+import { DRAFT_ID, type PartSource, PLANE_LABEL, defaultDraft, isPart, partSrc, sheetBaseBefore, sketchesBefore, stdFrame, withDraft, worldFrame } from "./part/partUi";
 import { SketchEditor } from "./sketch/editor";
 import { DimInput, SketchBar } from "./sketch/SketchBar";
 import { Viewport3D, fmt } from "./viewport";
@@ -109,7 +113,14 @@ interface FeatSess {
   name: string;
   key: number;
 }
-type Tab = "modelar" | "corpos";
+type Tab = "modelar" | "chapa" | "corpos";
+const SHEET_OPS: [FeatureKind, string, string, string][] = [
+  ["sheetBase", "sheetBase3d", "Base", "Base de chapa: contorno fechado do esboço, espessura, material, raio e K"],
+  ["sheetFlange", "sheetFlange3d", "Aba lateral", "Aba ao longo da aresta inteira (uma por aresta; canto aberto automático)"],
+  ["sheetContour", "sheetContour3d", "Flange", "Flange de contorno: perfil aberto de seção constante ao longo de uma aresta reta"],
+  ["sheetBendLine", "sheetBend3d", "Dobra", "Dobra por linha de esboço numa aba plana"],
+  ["sheetCut", "sheetCut3d", "Recorte", "Recorte / furo passante numa aba plana (esboço na face)"],
+];
 
 const withSource = (m: Model3D, id: NodeId, source: PartSource): Model3D => ({ ...m, nodes: { ...m.nodes, [id]: { ...(m.nodes[id] as Extract<Model3D["nodes"][string], { kind: "body" }>), source } } });
 
@@ -132,7 +143,7 @@ const topoMsg = (s: Sel): TopoRefMsg | null => (s.t === "topo" ? { body: s.body,
  * Área de trabalho AGTN 3D: faixa de ferramentas, árvore de componentes, viewport, propriedades e status.
  * O modelo vive no CadDocument (Undo/Redo e .agtncad); o motor OCCT roda num worker.
  */
-export function Workspace3D({ ctl }: { ctl: CadController }) {
+export function Workspace3D({ ctl, onInsert }: { ctl: CadController; onInsert?: (ents: Entity[], layerChanges: () => Change[], label: string) => void }) {
   const doc = ctl.doc;
   const store = useMemo(() => new Ws3dStore(), []);
   const snap = useSyncExternalStore(store.subscribe, store.getSnapshot);
@@ -145,6 +156,10 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
   /** peças cuja árvore tem falha: o viewport mostra o último sólido válido — a interface diz isso */
   const [partial, setPartial] = useState<SyncResult["partial"]>({});
   const [frames, setFrames] = useState<Record<NodeId, Readonly<Record<string, Frame>>>>({});
+  const [sheets, setSheets] = useState<Record<NodeId, SheetInfo>>({});
+  const [flatView, setFlatView] = useState<NodeId | null>(null);
+  const sheetsRef = useRef(sheets);
+  sheetsRef.current = sheets;
   const [fsel, setFsel] = useState<{ body: NodeId; id: FeatId } | null>(null);
   const [sk, setSk] = useState<SketchSess | null>(null);
   const [fd, setFd] = useState<FeatSess | null>(null);
@@ -197,6 +212,7 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
         model: () => getModel(doc),
         sketch: () => skRef.current?.editor ?? null,
         status: () => fstatRef.current,
+        sheets: () => sheetsRef.current,
       };
     return () => {
       off();
@@ -243,6 +259,16 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
           return next;
         });
         setPartial(r.partial);
+        setSheets((prev) => {
+          const next = { ...prev };
+          for (const id of Object.keys(r.features)) {
+            if (r.sheets[id]) next[id] = r.sheets[id];
+            else delete next[id];
+          }
+          for (const id of r.removed) delete next[id];
+          for (const id of Object.keys(r.errors)) delete next[id];
+          return next;
+        });
         setFrames((prev) => {
           const next = { ...prev, ...r.frames };
           for (const id of r.removed) delete next[id];
@@ -514,6 +540,8 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
     if (initial.t === "pattern" && opts.circular) initial = { ...initial, kind: "circular", dir: { t: "axis", a: "Z" } };
     if ((kind === "extrude" || kind === "revolve" || kind === "hole") && !sketchesBefore(part.features, at).length) return toast(`${FEATURE_LABEL[kind]}: crie um esboço antes.`, "warn");
     if ((kind === "sweep" || kind === "loft") && sketchesBefore(part.features, at).length < 2) return toast(`${FEATURE_LABEL[kind]} precisa de dois esboços.`, "warn");
+    if ((kind === "sheetBase" || kind === "sheetBendLine" || kind === "sheetCut") && !sketchesBefore(part.features, at).length) return toast(`${FEATURE_LABEL[kind]}: crie um esboço antes.`, "warn");
+    if (kind.startsWith("sheet") && kind !== "sheetBase" && !sheetBaseBefore(part.features, at)) return toast(`${FEATURE_LABEL[kind]}: crie a base de chapa antes.`, "warn");
     prevFilter.current = store.snap.filter === "aresta" || store.snap.filter === "face" ? "auto" : store.snap.filter;
     setFsel(null);
     // pré-seleção: só arestas/faces da própria peça seguem para a operação
@@ -553,6 +581,59 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
       setFsel(null);
       toast(`Excluído: ${f.name} (Ctrl+Z desfaz)`, "ok");
     }
+  };
+
+  /* ------------------------------------------------------------------ chapa: planificação */
+  const sheetBody = (): NodeId | null => {
+    const b = activeBody();
+    if (b && sheets[b]) return b;
+    const ids = Object.keys(sheets);
+    return ids.length === 1 ? ids[0] : null;
+  };
+  const exitFlat = () => {
+    vp.current?.setFlat(null, null);
+    setFlatView(null);
+  };
+  const showFlat = async (b: NodeId, quiet = false) => {
+    const info = sheets[b];
+    if (!info) return exitFlat();
+    if (info.flat.state !== "valida") {
+      exitFlat();
+      if (!quiet) toast(`Planificação inválida: ${info.flat.reasons.join(" ")}`, "error");
+      return;
+    }
+    try {
+      const r = await engine().call("sheetFlat", { body: b, model: displayRef.current });
+      vp.current?.setFlat(b, r);
+      setFlatView(b);
+    } catch (e) {
+      exitFlat();
+      toast(`Planificação: ${(e as Error).message}`, "error");
+    }
+  };
+  const toggleFlat = () => {
+    if (flatView) return exitFlat();
+    const b = sheetBody();
+    if (!b) return toast("Selecione uma peça de chapa.", "warn");
+    void showFlat(b);
+  };
+  // a peça mudou: a planificação exibida acompanha (mesmo grafo); operação/esboço em edição → volta ao dobrado
+  useEffect(() => {
+    if (!flatView) return;
+    if (fd || sk) return exitFlat();
+    void showFlat(flatView, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheets, fd, sk]);
+  const sendFlat = () => {
+    const b = sheetBody();
+    if (!b) return toast("Selecione uma peça de chapa.", "warn");
+    const info = sheets[b];
+    if (info.flat.state !== "valida") return toast(`Planificação inválida: ${info.flat.reasons.join(" ")}`, "error");
+    if (!onInsert) return toast("Envio ao DESENHO indisponível nesta janela.", "warn");
+    const name = model.nodes[b]?.name ?? "Chapa";
+    const T = String(Number(info.T.toFixed(3))).replace(".", ",");
+    const ents = flatEntities(info.flat, { title: `${name} · chapa ${T} mm` });
+    onInsert(ents, () => sheetLayerChanges((nm) => !!ctl.doc.layer(nm), ctl.doc.layers.length), `Planificação de ${name}`);
   };
 
   /** Prévia real da operação em edição (o documento não muda). */
@@ -748,6 +829,9 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
           <button role="tab" className={tab === "modelar" ? "on" : ""} aria-selected={tab === "modelar"} onClick={() => setTab("modelar")} data-tab="modelar">
             Modelar
           </button>
+          <button role="tab" className={tab === "chapa" ? "on" : ""} aria-selected={tab === "chapa"} onClick={() => setTab("chapa")} data-tab="chapa">
+            Chapa
+          </button>
           <button role="tab" className={tab === "corpos" ? "on" : ""} aria-selected={tab === "corpos"} onClick={() => setTab("corpos")} data-tab="corpos">
             Corpos
           </button>
@@ -818,6 +902,42 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
                 ))}
               </div>
               <div className="rb-cap">COMBINAR CORPOS</div>
+            </div>
+          </>
+        ) : tab === "chapa" ? (
+          <>
+            <div className="rb-grp">
+              <div className="rb-btns">
+                <button className="rb-btn" title="Novo esboço 2D — num plano XY/XZ/YZ ou na face plana selecionada" onClick={() => void startSketch()} disabled={eng.s !== "ready"} data-op="sketch">
+                  <Icon name="sketch3d" />
+                  <span>Esboço</span>
+                </button>
+              </div>
+              <div className="rb-cap">ESBOÇO</div>
+            </div>
+            <div className="rb-grp">
+              <div className="rb-btns">
+                {SHEET_OPS.map(([k, ic, lb, tip]) => (
+                  <button key={k} className="rb-btn" title={tip} onClick={() => openFeature(k)} disabled={eng.s !== "ready"} data-op={k}>
+                    <Icon name={ic} />
+                    <span>{lb}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="rb-cap">CHAPA</div>
+            </div>
+            <div className="rb-grp">
+              <div className="rb-btns">
+                <button className={`rb-btn wide${flatView ? " on" : ""}`} title="Alternar Dobrado | Planificado (mesmo grafo da peça)" onClick={toggleFlat} disabled={eng.s !== "ready"} data-op="sheetFlat" aria-pressed={!!flatView}>
+                  <Icon name="flat3d" />
+                  <span>{flatView ? "Planificado" : "Dobrado"}</span>
+                </button>
+                <button className="rb-btn wide" title="Enviar a planificação ao DESENHO (camadas de corte, dobra e marcação)" onClick={sendFlat} disabled={eng.s !== "ready"} data-op="sheetSend">
+                  <Icon name="send2d" />
+                  <span>Ao DESENHO</span>
+                </button>
+              </div>
+              <div className="rb-cap">PLANIFICAÇÃO</div>
             </div>
           </>
         ) : (
@@ -1002,6 +1122,8 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
               sel={snap.sel}
               onPick={onPick}
               identify={(kind, index) => engine().call("identify", { body: fd.body, kind, index, model: isPart(displayRef.current, fd.body) ? displayRef.current : getModel(doc) })}
+              sheetEdge={(index) => engine().call("sheetEdge", { body: fd.body, index })}
+              sheet={sheets[fd.body] ?? null}
               preview={runPreview}
               onOk={featureOk}
               onCancel={closeFeature}
@@ -1137,6 +1259,7 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
               snap={snap}
               geom={(id) => vp.current?.geom(id)}
               partial={(id) => partial[id]}
+              sheet={(id) => sheets[id]}
               act={{
                 rename: (id, nm) => commit("Renomear", (m) => rename(m, id, nm)),
                 placement: (id, p) => commit("Mover", (m) => setPlacement(m, id, p)),

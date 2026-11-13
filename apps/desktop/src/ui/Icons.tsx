@@ -120,6 +120,14 @@ const P: Record<string, string> = {
   suppress: "M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0-16 0 M6.5 6.5l11 11",
   edit3d: "M4 20h4L19 9l-4-4L4 16z M13 7l4 4",
   warn: "M12 3l10 18H2z M12 10v5 M12 17.5v.5",
+  /* chapa (FASE 4) */
+  sheetBase3d: "M3 15l6-4h12l-6 4z M3 15v2l6-4 M15 15v2H3 M15 17l6-4v-2",
+  sheetFlange3d: "M3 18l5-3h12l-5 3z M8 15V5 M20 15V5 M8 5h12 M8 15a3 3 0 0 1 0 0",
+  sheetContour3d: "M3 19h7a3 3 0 0 0 3-3V8a3 3 0 0 1 3-3h5 M3 21h7 M21 7h-5",
+  sheetBend3d: "M3 17h8a4 4 0 0 0 4-4V4 M3 20h8a7 7 0 0 0 7-7V4 M3 14h4 M11 4h3",
+  sheetCut3d: "M3 15l6-4h12l-6 4z M11 13m-2 0a2 1.2 0 1 0 4 0a2 1.2 0 1 0-4 0",
+  flat3d: "M3 9h18v8H3z M9 9v8 M15 9v8 M3 6h3 M18 6h3",
+  send2d: "M4 4h10v16H4z M14 12h7 M18 9l3 3-3 3 M7 8h4 M7 12h4 M7 16h4",
 };
 
 export function Icon({ name, title }: { name: keyof typeof P | string; title?: string }) {

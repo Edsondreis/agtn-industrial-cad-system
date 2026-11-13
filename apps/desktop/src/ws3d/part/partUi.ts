@@ -163,13 +163,38 @@ export function defaultDraft(kind: FeatureKind, features: readonly Feature[], at
       return { t: "pattern", kind: "linear", targets: solidFeaturesBefore(features, at).filter((f) => ["extrude", "revolve", "sweep", "loft", "hole"].includes(f.t)).slice(-1).map((f) => f.id), dir: { t: "axis", a: "X" }, count: 3, spacing: 20, angle: 360, reverse: false };
     case "combine":
       return { t: "combine", op: opts.op ?? "join", tools: [] };
+    /* chapa: padrões AGTN (medida até o vértice virtual externo; K da tabela material × processo) */
+    case "sheetBase":
+      return { t: "sheetBase", sketch: sk, T: 2, R: 2, K: null, material: "aco_carbono", process: "ar", ref: "externa", side: "cima" };
+    case "sheetFlange":
+      return { t: "sheetFlange", edges: [], length: 30, deflectionDeg: 90, R: null, K: null, side: "cima", ref: "externa" };
+    case "sheetContour":
+      return {
+        t: "sheetContour",
+        edge: { flange: "", edge: "" },
+        ref: "externa",
+        segments: [
+          { length: 30, deflectionDeg: 90, side: "cima", R: null, K: null },
+          { length: 15, deflectionDeg: 90, side: "cima", R: null, K: null },
+        ],
+      };
+    case "sheetBendLine": {
+      const s = sks.find((x) => x.id === sk);
+      const line = s ? (Object.values(s.sketch.entities).find((e) => e.t === "line" && !e.cons)?.id ?? "") : "";
+      return { t: "sheetBendLine", sketch: sk, line, flange: sheetBaseBefore(features, at) ?? "", deflectionDeg: 90, R: null, K: null, side: "cima", ref: "externa", fixed: "esq" };
+    }
+    case "sheetCut":
+      return { t: "sheetCut", sketch: sk, flange: sheetBaseBefore(features, at) ?? "" };
     default:
       return null;
   }
 }
 
 /** Operações que dependem de escolher arestas/faces no modelo. */
-export const PICKS: Partial<Record<FeatureKind, "edge" | "face">> = { fillet: "edge", chamfer: "edge", shell: "face" };
+export const PICKS: Partial<Record<FeatureKind, "edge" | "face">> = { fillet: "edge", chamfer: "edge", shell: "face", sheetFlange: "edge", sheetContour: "edge" };
+
+/** Base de chapa antes da posição (id da operação = id da aba-base). */
+export const sheetBaseBefore = (features: readonly Feature[], at: number): FeatId | null => features.slice(0, at).find((f) => f.t === "sheetBase" && !f.suppressed)?.id ?? null;
 
 export const DRAFT_ID = "__draft";
 /** Lista de operações com o rascunho inserido/substituído — para a prévia. */

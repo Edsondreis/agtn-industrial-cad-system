@@ -2,7 +2,8 @@ import { type BodyNode, MATERIALS, type MaterialId, type Model3D, type NodeId, b
 import type { MassProps, Placement, PrimitiveSpec, TopoInfo, Vec3 } from "@agtn/solid";
 import { NumField, TextField } from "../ui/fields";
 import { PRIM_FIELDS, PROFILE_FIELDS } from "./PrimitiveDialog";
-import type { BodyGeom } from "./protocol";
+import type { BodyGeom, SheetInfo } from "./protocol";
+import { kSourceLabel } from "./part/sheetUi";
 import { KIND_LABEL, type Sel, type Ws3dSnapshot } from "./store";
 import { fmt } from "./viewport";
 
@@ -46,7 +47,7 @@ export interface Props3DActions {
 /** Painel de propriedades: corpo/conjunto selecionado, elemento topológico (geometria exata) ou medição. */
 export type PartialOf = (id: NodeId) => { readonly name: string; readonly error: string } | undefined;
 
-export function Props3D({ model, snap, geom, act, partial }: { model: Model3D; snap: Ws3dSnapshot; geom: (id: NodeId) => BodyGeom | undefined; act: Props3DActions; partial?: PartialOf }) {
+export function Props3D({ model, snap, geom, act, partial, sheet }: { model: Model3D; snap: Ws3dSnapshot; geom: (id: NodeId) => BodyGeom | undefined; act: Props3DActions; partial?: PartialOf; sheet?: (id: NodeId) => SheetInfo | undefined }) {
   const sel = snap.sel;
   if (snap.measuring || (sel.length === 2 && snap.measure)) return <MeasurePanel snap={snap} model={model} />;
   if (!sel.length) return <Summary model={model} geom={geom} />;
@@ -89,8 +90,63 @@ export function Props3D({ model, snap, geom, act, partial }: { model: Model3D; s
         </section>
       )}
       <PartialNote ids={n.kind === "body" ? [n.id] : subtree(model, n.id)} model={model} partial={partial} />
+      {n.kind === "body" && sheet?.(n.id) && <SheetPanel info={sheet(n.id)!} body={n} />}
       <Physical ids={n.kind === "body" ? [n.id] : subtree(model, n.id)} model={model} geom={geom} />
     </div>
+  );
+}
+
+/** Peça de chapa: medidas da planificação e tabela de dobras — leitura do mesmo grafo do sólido. */
+function SheetPanel({ info, body }: { info: SheetInfo; body: BodyNode }) {
+  const fp = info.flat;
+  const ok = fp.state === "valida";
+  return (
+    <section className="p3-sheet" data-testid="sheet-panel">
+      <h4>Chapa</h4>
+      <Row k="Espessura" v={fmt(info.T, 3)} unit="mm" />
+      <Row k="Abas / dobras" v={`${info.flanges.length} / ${fp.bends.length}`} />
+      <Row k="Planificação" v={<b className={ok ? "ok" : "bad"} data-testid="flat-state">{ok ? "válida" : "inválida"}</b>} />
+      {!ok && fp.reasons.map((r, i) => <div key={i} className="fd-note bad">{r}</div>)}
+      {ok && (
+        <>
+          <Row k="Blank" v={<span data-testid="flat-blank">{`${fmt(fp.box.maxX - fp.box.minX, 3)} × ${fmt(fp.box.maxY - fp.box.minY, 3)}`}</span>} unit="mm" />
+          <Row k="Área plana" v={fmt(fp.area, 2)} unit="mm²" />
+          <Row k="Corte" v={fmt(fp.cutLength, 2)} unit="mm" />
+          <Row k="Massa" v={fmt(massKg(info.T * fp.area, body.material), 3)} unit="kg" title="T × área plana × densidade do material" />
+        </>
+      )}
+      <Row k="Regeneração" v={`${fmt(info.ms.solve + info.ms.build, 0)} ms`} title={`grafo ${fmt(info.ms.solve, 1)} ms · OCCT ${fmt(info.ms.build, 1)} ms`} />
+      {fp.bends.length > 0 && (
+        <table className="p3-bends" data-testid="bend-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th title="Ângulo de dobra (deflexão)">θ</th>
+              <th title="Ângulo interno = 180° − θ">α</th>
+              <th>R</th>
+              <th>K</th>
+              <th>BA</th>
+              <th>BD</th>
+              <th>L</th>
+            </tr>
+          </thead>
+          <tbody>
+            {fp.bends.map((b) => (
+              <tr key={b.id} title={`${b.label} · ${b.sense} · K ${kSourceLabel(b.kSource).toLowerCase()}`}>
+                <td>D{b.n}</td>
+                <td>{fmt(b.deflectionDeg, 2)}°</td>
+                <td>{fmt(b.includedDeg, 2)}°</td>
+                <td>{fmt(b.R, 2)}</td>
+                <td>{fmt(b.K, 3)}</td>
+                <td>{fmt(b.BA, 3)}</td>
+                <td>{fmt(b.BD, 3)}</td>
+                <td>{fmt(b.L, 2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
   );
 }
 

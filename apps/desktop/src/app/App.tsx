@@ -483,7 +483,7 @@ export function App() {
         </Suspense>
       ) : ws === "modelo3d" ? (
         <Suspense fallback={<Loading label="Carregando AGTN 3D…" />}>
-          <Workspace3D ctl={ctl} />
+          <Workspace3D ctl={ctl} onInsert={insertGenerated} />
         </Suspense>
       ) : (
         <Suspense fallback={<Loading label="Carregando biblioteca de chapas…" />}>

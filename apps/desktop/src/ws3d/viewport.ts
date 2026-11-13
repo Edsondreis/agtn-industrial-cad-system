@@ -6,6 +6,7 @@ import {
   Float32BufferAttribute,
   Line,
   LineBasicMaterial,
+  LineSegments,
   Color,
   DirectionalLight,
   HemisphereLight,
@@ -101,6 +102,8 @@ export class Viewport3D {
   private preSketch: CamState | null = null;
   private handle: { spec: DragHandle; line: Line; el: HTMLDivElement; dragging: boolean } | null = null;
   private preview: { body: NodeId; visual: BodyVisual; mode: "replace" | "ghost" } | null = null;
+  /** chapa exibida PLANIFICADA (sólido do mesmo grafo) no lugar do corpo dobrado */
+  private flat: { body: NodeId; visual: BodyVisual; lines: LineSegments[] } | null = null;
   frameMs = 0;
 
   constructor(
@@ -259,7 +262,7 @@ export class Viewport3D {
     for (const [id, v] of this.bodies) {
       const n = m.nodes[id];
       if (!n || n.kind !== "body") continue;
-      v.root.visible = isShown(m, id);
+      v.root.visible = isShown(m, id) && this.flat?.body !== id;
       v.setColor(n.color);
     }
     this.onStore();
@@ -526,6 +529,46 @@ export class Viewport3D {
       this.preview = { body, visual: v, mode };
     }
     this.dirty = true;
+  }
+
+  /** Chapa planificada no lugar da peça dobrada (linhas de dobra em vermelho, limites da região em cinza). */
+  setFlat(body: NodeId | null, data: { geom: BodyGeom; bendLines: Float32Array; regionLines: Float32Array } | null) {
+    if (this.flat) {
+      this.scene.remove(this.flat.visual.root);
+      this.flat.visual.dispose();
+      for (const l of this.flat.lines) {
+        this.scene.remove(l);
+        l.geometry.dispose();
+        (l.material as LineBasicMaterial).dispose();
+      }
+      const orig = this.bodies.get(this.flat.body);
+      if (orig && this.model) orig.root.visible = isShown(this.model, this.flat.body);
+      this.flat = null;
+    }
+    if (body && data) {
+      const v = new BodyVisual(data.geom);
+      v.setColor("#c9b27a");
+      v.setMode(this.store.snap.mode);
+      v.mesh.raycast = () => undefined;
+      v.edges.raycast = () => undefined;
+      const orig = this.bodies.get(body);
+      if (orig) orig.root.visible = false;
+      this.scene.add(v.root);
+      const mk = (pts: Float32Array, color: number) => {
+        const g = new BufferGeometry();
+        g.setAttribute("position", new Float32BufferAttribute(pts, 3));
+        const l = new LineSegments(g, new LineBasicMaterial({ color, depthTest: false, transparent: true }));
+        l.renderOrder = 10;
+        l.raycast = () => undefined;
+        this.scene.add(l);
+        return l;
+      };
+      this.flat = { body, visual: v, lines: [mk(data.bendLines, 0xe5484d), mk(data.regionLines, 0x9aa4b2)] };
+    }
+    this.dirty = true;
+  }
+  get flatBody(): NodeId | null {
+    return this.flat?.body ?? null;
   }
 
   /** Posição na janela (clientX/Y) de um ponto do mundo — usado pelos testes de ponta a ponta. */
@@ -810,6 +853,7 @@ export class Viewport3D {
     this.unsub();
     this.setSketch(null);
     this.setPreview(null, null);
+    this.setFlat(null, null);
     this.setHandle(null);
     for (const id of [...this.bodies.keys()]) this.removeBody(id);
     for (const o of this.highlights) disposeOverlay(o);
