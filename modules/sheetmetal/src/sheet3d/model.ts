@@ -161,6 +161,25 @@ export type SheetOp =
       readonly width?: number;
       readonly depth?: number;
     }
+  /**
+   * Fechamento de canto (ETAPA 2.3) entre duas abas de borda vizinhas da mesma pai (cantos detectados, id «a»+«b»).
+   * O lado de cada aba no canto passa a ser a interseção do plano da aba com um plano da outra (plano × plano:
+   * exato para quaisquer θ, R, T e ângulo do canto), na fibra mais restritiva; corte normal à chapa. A dobra
+   * continua do tamanho da faixa: o vazio que sobra entre as faixas é o alívio de canto retangular.
+   */
+  | {
+      readonly t: "canto";
+      readonly id: string;
+      readonly label: string;
+      readonly corners: readonly string[];
+      readonly kind: CornerKind;
+      /** folga g (mm) */
+      readonly gap: number;
+      /** aba que fecha (sobreposto/encosto): a (termina no vértice) ou b (começa nele); padrão a */
+      readonly closer?: "a" | "b";
+      /** alívio de canto: retangular (vazio entre as faixas, padrão) · redondo (bloqueado: cruza dobra) */
+      readonly relief?: CornerRelief;
+    }
   /** Recorte / furo passante numa aba plana (laços no sistema local da aba). */
   | { readonly t: "recorte"; readonly id: string; readonly label: string; readonly flange: string; readonly loops: readonly Loop2[] };
 
@@ -248,6 +267,10 @@ export interface SolvedBend {
   readonly flatEnd: readonly [V2, V2];
 }
 
+/** Tipo de canto (ETAPA 2.3), mesmas regras da bandeja 2D (`solveTray`) */
+export type CornerKind = "aberto" | "sobreposto" | "encosto" | "esquadria";
+export type CornerRelief = "retangular" | "redondo";
+
 /** Posição do material da aba de borda (ETAPA 2.2) */
 export type MaterialPosition = "dentro" | "fora" | "dobra_fora";
 
@@ -264,7 +287,15 @@ export interface SolvedCorner {
   readonly at: V2;
   /** ângulo interno do canto da pai (graus) */
   readonly angleDeg: number;
-  readonly kind: "aberto";
+  readonly kind: CornerKind;
+  /** operação Canto que trata este canto (ausente = aberto, sem operação) */
+  readonly op?: string;
+  readonly gap?: number;
+  readonly closer?: "a" | "b";
+  /** quanto o lado de cada aba avançou além da faixa de dobra, na linha de tangência (mm; 0 = aberto) */
+  readonly ext: { readonly a: number; readonly b: number };
+  /** alívio de canto retangular que sobra entre as faixas (BA_a × BA_b no plano) */
+  readonly relief: { readonly kind: "retangular"; readonly a: number; readonly b: number };
 }
 
 export interface SheetSolved {

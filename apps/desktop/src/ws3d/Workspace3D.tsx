@@ -120,6 +120,7 @@ const SHEET_OPS: [FeatureKind, string, string, string][] = [
   ["sheetContour", "sheetContour3d", "Flange", "Flange de contorno: perfil aberto de seção constante ao longo de uma aresta reta"],
   ["sheetBendLine", "sheetBend3d", "Dobra", "Dobra por linha de esboço numa aba plana"],
   ["sheetRelief", "sheetRelief3d", "Alívio", "Alívio de dobra nas pontas das faixas que terminam dentro da aresta (retangular, oblongo, lágrima)"],
+  ["sheetCorner", "sheetCorner3d", "Canto", "Fechamento de canto entre abas vizinhas: sobreposto, encosto ou esquadria, com folga"],
   ["sheetCut", "sheetCut3d", "Recorte", "Recorte / furo passante numa aba plana (esboço na face)"],
 ];
 

@@ -110,7 +110,9 @@ function SheetPanel({ info, body }: { info: SheetInfo; body: BodyNode }) {
           k="Cantos"
           v={
             <span data-testid="sheet-corners" title={info.corners.map((c) => `${c.label} · ${c.kind} · ${fmt(c.angleDeg, 1)}°`).join("\n")}>
-              {info.corners.length} {info.corners.every((c) => c.kind === "aberto") ? (info.corners.length > 1 ? "abertos" : "aberto") : ""}
+              {Object.entries(info.corners.reduce<Record<string, number>>((m, c) => ((m[c.kind] = (m[c.kind] ?? 0) + 1), m), {}))
+                .map(([k, n]) => `${n} ${k}${n > 1 ? "s" : ""}`)
+                .join(" · ")}
             </span>
           }
         />

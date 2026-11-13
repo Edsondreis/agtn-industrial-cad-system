@@ -319,3 +319,72 @@ export function ReliefFields({
     </>
   );
 }
+
+/** Fechamento de canto (ETAPA 2.3): cantos detectados entre abas vizinhas; mesmas regras da bandeja 2D. */
+export function CornerFields({
+  d,
+  set,
+  corners,
+}: {
+  d: Of<"sheetCorner">;
+  set: (p: Partial<Of<"sheetCorner">>) => void;
+  corners: readonly { id: string; label: string; angleDeg: number; kind: string }[];
+}) {
+  const on = new Set(d.corners);
+  const KINDS = [
+    ["sobreposto", "Sobreposto"],
+    ["encosto", "Encosto"],
+    ["esquadria", "Esquadria"],
+    ["aberto", "Aberto"],
+  ] as const;
+  return (
+    <>
+      <Row k="Tipo">
+        <div className="fd-seg" role="radiogroup">
+          {KINDS.map(([k, l]) => (
+            <button key={k} className={d.kind === k ? "on" : ""} onClick={() => set({ kind: k })} data-corner-kind={k}>
+              {l}
+            </button>
+          ))}
+        </div>
+      </Row>
+      <Row k="Folga g" title="Folga de solda no canto, medida ao longo da aba (esquadria: g/2 de cada lado). Encosto e esquadria pedem g > 0.">
+        <Unit v={d.gap} set={(v) => set({ gap: v })} min={0} field="gap" />
+      </Row>
+      {(d.kind === "sobreposto" || d.kind === "encosto") && (
+        <Row k="Aba que fecha" title="A aba que vai até a face externa da vizinha (cobre o topo da outra).">
+          <select value={d.closer} onChange={(e) => set({ closer: e.target.value as "a" | "b" })} data-field="closer">
+            <option value="a">1ª aba do canto</option>
+            <option value="b">2ª aba do canto</option>
+          </select>
+        </Row>
+      )}
+      <Row k="Alívio de canto" title="Retangular: o vazio que sobra entre as faixas de dobra. Redondo atravessaria as dobras (sem representação exata — bloqueado).">
+        <select value={d.relief} onChange={(e) => set({ relief: e.target.value as "retangular" | "redondo" })} data-field="cornerRelief">
+          <option value="retangular">Retangular (entre as faixas)</option>
+          <option value="redondo">Redondo (bloqueado no 3D)</option>
+        </select>
+      </Row>
+      <div className="fd-list">
+        <div className="fd-list-h">Cantos detectados (1ª × 2ª aba)</div>
+        {!corners.length && <div className="fd-note">Nenhum canto entre abas de borda vizinhas — crie abas em duas arestas que se encontram, sem recuo no canto.</div>}
+        {corners.map((c) => (
+          <label key={c.id} className="fd-check" data-corner={c.id}>
+            <input
+              type="checkbox"
+              checked={on.has(c.id)}
+              onChange={(e) => {
+                const x = new Set(on);
+                if (e.target.checked) x.add(c.id);
+                else x.delete(c.id);
+                set({ corners: corners.filter((q) => x.has(q.id)).map((q) => q.id) });
+              }}
+            />
+            {c.label} · {n2(c.angleDeg)}° · {c.kind}
+          </label>
+        ))}
+      </div>
+      <div className="fd-note">O lado de cada aba no canto vira a interseção com o plano da outra (exato para qualquer θ). A dobra fica do tamanho da faixa.</div>
+    </>
+  );
+}

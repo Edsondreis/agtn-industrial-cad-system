@@ -15,6 +15,10 @@ import {
   compose,
   cross2,
   dot2,
+  dot3,
+  len3,
+  mul3,
+  sub3,
   frameMat,
   len2,
   lineX,
@@ -46,7 +50,7 @@ import type {
 } from "./model";
 import { dimAbs, numAbs } from "./tolerance";
 import { edgeSeg, edgesArea, pointInEdges, sweepVia } from "./edges";
-import type { MaterialPosition, ReliefKind, SolvedCorner } from "./model";
+import type { CornerKind, MaterialPosition, ReliefKind, SolvedCorner } from "./model";
 
 /**
  * Resolve o grafo da chapa em duas fases:
@@ -132,6 +136,8 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
   const flanges = new Map<string, WFlange>();
   const bends = new Map<string, WBend>();
   const order: string[] = []; // ids de dobra em ordem de criação
+  /** pedidos de fechamento de canto (ETAPA 2.3), por id «a»+«b»; casados com os cantos detectados na fase 2 */
+  const cornerReq = new Map<string, { op: string; label: string; kind: CornerKind; gap: number; closer: "a" | "b"; a: string; b: string; used: boolean }>();
   flanges.set(base.id, {
     id: base.id,
     label: base.label,
@@ -299,6 +305,45 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
         for (const b of list) b.relief = { op: op.id, label: op.label, kind: op.kind, gap: op.gap, ...(op.width !== undefined ? { width: op.width } : {}), ...(op.depth !== undefined ? { depth: op.depth } : {}) };
         return;
       }
+      case "canto": {
+        if (!op.corners.length) return void err("NO_CORNER", `${op.label}: escolha pelo menos um canto.`, { op: op.id });
+        if (!(["aberto", "sobreposto", "encosto", "esquadria"] as const).includes(op.kind)) return void err("CORNER_KIND", `${op.label}: tipo de canto desconhecido (${String(op.kind)}).`, { op: op.id });
+        if (!(op.gap >= 0) || !Number.isFinite(op.gap)) return void err("CORNER_GAP", `${op.label}: folga deve ser ≥ 0.`, { op: op.id });
+        if ((op.kind === "encosto" || op.kind === "esquadria") && !(op.gap > 0))
+          return void err(
+            "CORNER_GAP",
+            `${op.label}: ${op.kind === "encosto" ? "encosto" : "esquadria"} precisa de folga > 0 — com 0 as abas se tocam e viram uma peça só (a solda não é modelada).`,
+            { op: op.id },
+          );
+        if ((op.relief ?? "retangular") === "redondo")
+          return void err(
+            "CORNER_ROUND",
+            `${op.label}: alívio de canto redondo atravessa as regiões de dobra — a parede do furo na região dobrada não tem representação exata no núcleo atual (bloqueado, sem aproximação). Use o retangular (o vazio entre as faixas).`,
+            { op: op.id },
+          );
+        const closer = op.closer ?? "a";
+        if (closer !== "a" && closer !== "b") return void err("CORNER_KIND", `${op.label}: aba que fecha deve ser a ou b.`, { op: op.id });
+        for (const id of op.corners) {
+          // id «a»+«b»: procura a divisão em duas dobras existentes (ids podem conter '+')
+          let pair: [WBend, WBend] | null = null;
+          for (let i = id.indexOf("+"); i > 0; i = id.indexOf("+", i + 1)) {
+            const a = bends.get(id.slice(0, i));
+            const b = bends.get(id.slice(i + 1));
+            if (a && b) pair = [a, b];
+          }
+          if (!pair) return void err("REF_LOST", `${op.label}: referência perdida — o canto ${id} não existe mais (uma das abas foi excluída).`, { op: op.id });
+          const [a, b] = pair;
+          if (a.parent !== b.parent) return void err("CORNER_PARENT", `${op.label}: ${a.label} e ${b.label} não saem da mesma aba-pai.`, { op: op.id, bends: [a.id, b.id] });
+          if (a.kind !== "aba" || b.kind !== "aba")
+            return void err("CORNER_ABA", `${op.label}: fechamento de canto só entre abas de borda (${a.kind !== "aba" ? a.label : b.label} não é).`, { op: op.id, bends: [a.id, b.id] });
+          if (a.side !== b.side) return void err("CORNER_SIDE", `${op.label}: ${a.label} e ${b.label} dobram para lados opostos — não formam canto.`, { op: op.id, bends: [a.id, b.id] });
+          const key = `${a.id}+${b.id}`;
+          const had = cornerReq.get(key);
+          if (had) return void err("CORNER_DUP", `${op.label}: o canto ${a.label} × ${b.label} já é tratado por ${had.label}.`, { op: op.id, bends: [a.id, b.id] });
+          cornerReq.set(key, { op: op.id, label: op.label, kind: op.kind, gap: op.gap, closer, a: a.id, b: b.id, used: false });
+        }
+        return;
+      }
       case "recorte": {
         const f = flanges.get(op.flange);
         if (!f) return void err("REF_LOST", `${op.label}: referência perdida — a aba ${op.flange} não existe mais.`, { op: op.id, flanges: [op.flange] });
@@ -416,6 +461,8 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
     return { kind: r.kind, w, d, bend: b.id };
   };
   const childrenOf = (fid: string) => order.map((id) => bends.get(id)!).filter((b) => b.parent === fid);
+  /** raiz de filha com lado de canto (2.3): faixa [t0, t1] na aresta de molde e trechos livres além dela */
+  const raizCfg = new Map<string, { t0: number; t1: number; e0: boolean; e1: boolean; SB: number }>();
   const pl = base.plane;
   const z0 = base.side === "baixo" ? -T : 0;
   const G0 = frameMat(v3(pl.o.x + pl.n.x * z0, pl.o.y + pl.n.y * z0, pl.o.z + pl.n.z * z0), pl.x, pl.y, pl.n);
@@ -431,6 +478,16 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
       const bs = bendsAt(fid, e.key);
       if (!bs.length) return [{ t0: 0, t1: L, off: 0, key: e.key }];
       // a raiz da filha é sempre a faixa inteira (a largura da filha já é a da faixa)
+      const rc = e.key === "raiz" && f.parentBend ? raizCfg.get(fid) : undefined;
+      if (rc) {
+        // lados de canto: a faixa fica do tamanho da dobra; o que passa dela é borda livre na linha de tangência
+        const L2 = len2(sub2(e.b, e.a));
+        return [
+          ...(rc.e0 ? [{ t0: 0, t1: rc.t0, off: rc.SB, key: "raiz:x0" }] : []),
+          { t0: rc.t0, t1: rc.t1, off: rc.SB, key: e.key, bend: f.parentBend! },
+          ...(rc.e1 ? [{ t0: rc.t1, t1: L2, off: rc.SB, key: "raiz:x1" }] : []),
+        ];
+      }
       const full = e.key === "raiz" && f.parentBend ? bends.get(f.parentBend)! : bs.find((b) => !isPartial(b));
       if (full) return [{ t0: 0, t1: L, off: sbOf(full, e.key === "raiz" && full.id === f.parentBend), key: e.key, bend: full.id }];
       const spans = bs.map((b) => ({ b, t0: b.o0!, t1: L - b.o1! })).sort((p, q) => p.t0 - q.t0);
@@ -515,11 +572,11 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
           err("CUT_OVERLAP", `${f.label}: os recortes ${f.holes[i].key} e ${f.holes[j].key} se tocam ou se sobrepõem.`, { op: f.holes[j].op, flanges: [f.id] });
           return false;
         }
-    for (const c of flat.corners) outC.push({ id: `${c.a}+${c.b}`, parent: fid, a: c.a, b: c.b, at: c.at, angleDeg: c.angleDeg, kind: "aberto" });
     const area = edgesArea(flat.edges) - f.holes.reduce((a, h) => a + Math.abs(loopArea(h.loop)), 0);
     outF.push({ id: f.id, label: f.label, op: f.op, outline, flat: flat.edges, holes: f.holes, G, H, parentBend: f.parentBend, area });
 
-    for (const b of childrenOf(fid)) {
+    // 1) posição de cada filha (precisa de todas antes dos cantos: o lado de uma depende do plano da outra)
+    const cfs = childrenOf(fid).map((b) => {
       const fe = flat.edges.find((e) => e.bend === b.id)!;
       const A = fe.a;
       const B = fe.b;
@@ -536,18 +593,120 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
       const C: V3 = v3(A.x, A.y, up ? T + b.R : -b.R);
       const ax: V3 = up ? v3(-dE.x, -dE.y, 0) : v3(dE.x, dE.y, 0);
       const fold = compose(rotation(C, ax, th), compose(translation(v3(-BA * n.x, -BA * n.y, 0)), P));
-      const Gc = compose(G, fold);
-      const Hc = compose(H, P);
+      return { b, A, B, Lb, n, th, BA, SB, C, ax, Gc: compose(G, fold), Hc: compose(H, P) };
+    });
+    // 2) cantos: o lado de cada aba no canto = interseção com o plano da outra (fibra mais restritiva)
+    type Line2 = { n: V2; c: number };
+    // só cantos entre filhas desta aba (a raiz, ligação com a pai, não forma canto de abas irmãs)
+    const sib = flat.corners.filter((c) => cfs.some((x) => x.b.id === c.a) && cfs.some((x) => x.b.id === c.b));
+    const sides = new Map<string, { l0?: Line2; l1?: Line2 }>();
+    const ext = new Map<string, { a: number; b: number }>();
+    for (const c of sib) {
+      const id = `${c.a}+${c.b}`;
+      const req = cornerReq.get(id);
+      if (req) req.used = true;
+      if (!req || req.kind === "aberto") continue;
+      const ca = cfs.find((x) => x.b.id === c.a)!;
+      const cb = cfs.find((x) => x.b.id === c.b)!;
+      /** faces da aba: normal para fora (da face interna para a externa) e as constantes dos dois planos */
+      const facesOf = (x: (typeof cfs)[number]) => {
+        const outerZ = x.b.side === "cima" ? 0 : T;
+        const nW = applyDir(x.Gc, v3(0, 0, outerZ === 0 ? -1 : 1));
+        const d = (z: number) => dot3(nW, apply(x.Gc, v3(0, 0, z)));
+        return { n: nW, outer: d(outerZ), inner: d(T - outerZ) };
+      };
+      const Fa = facesOf(ca);
+      const Fb = facesOf(cb);
+      /** semiespaço m·p ≤ d (mundo) → reta no plano da aba x (local), na fibra mais restritiva (z = 0 ou T) */
+      const toLocal = (x: (typeof cfs)[number], m: V3, d: number): Line2 | null => {
+        const nl = v3(dot3(m, applyDir(x.Gc, v3(1, 0, 0))), dot3(m, applyDir(x.Gc, v3(0, 1, 0))), dot3(m, applyDir(x.Gc, v3(0, 0, 1))));
+        const cl = d - dot3(m, apply(x.Gc, v3(0, 0, 0)));
+        const L = Math.hypot(nl.x, nl.y);
+        if (L < 1e-9) return null;
+        const cc = Math.min(cl, cl - nl.z * T);
+        return { n: v2(nl.x / L, nl.y / L), c: cc / L };
+      };
+      // folga medida ao longo da própria aba, perpendicular ao lado (como na bandeja 2D validada): recua o lado
+      // g (ou g/2 na esquadria) na direção x local da aba
+      const less = (l: Line2 | null, gg: number): Line2 | null => (l ? { n: l.n, c: l.c - gg * Math.abs(l.n.x) } : null);
+      const g = req.gap;
+      const [C0, N0, FC, FN] = req.closer === "a" ? [ca, cb, Fa, Fb] : [cb, ca, Fb, Fa];
+      let lc: Line2 | null = null; // aba que fecha
+      let ln: Line2 | null = null; // a outra
+      if (req.kind === "sobreposto") lc = less(toLocal(C0, FN.n, FN.outer), g);
+      else if (req.kind === "encosto") {
+        lc = toLocal(C0, FN.n, FN.outer);
+        ln = less(toLocal(N0, FC.n, FC.inner), g);
+      } else {
+        // esquadria: plano bissetor das faces externas (é também o das internas, mesma espessura); folga g/2 de cada lado
+        const u = sub3(FN.n, FC.n);
+        const U = len3(u);
+        if (U < 1e-9) {
+          err("CORNER_IMPOSSIBLE", `${req.label}: ${ca.b.label} e ${cb.b.label} são paralelas — não há plano bissetor.`, { op: req.op, bends: [c.a, c.b] });
+          return false;
+        }
+        const uu = mul3(u, 1 / U);
+        lc = less(toLocal(C0, uu, (FN.outer - FC.outer) / U), g / 2);
+        ln = less(toLocal(N0, mul3(uu, -1), (FC.outer - FN.outer) / U), g / 2);
+      }
+      if ((req.kind !== "sobreposto" && !ln) || !lc) {
+        err("CORNER_IMPOSSIBLE", `${req.label}: o plano de corte do canto ${ca.b.label} × ${cb.b.label} é paralelo à chapa — ângulos impossíveis para este canto.`, { op: req.op, bends: [c.a, c.b] });
+        return false;
+      }
+      const put = (x: (typeof cfs)[number], l: Line2 | null) => {
+        if (!l) return;
+        const cur = sides.get(x.b.id) ?? {};
+        if (x === ca) cur.l0 = l;
+        else cur.l1 = l;
+        sides.set(x.b.id, cur);
+      };
+      put(C0, lc);
+      put(N0, ln);
+      ext.set(id, { a: 0, b: 0 });
+    }
+    // 3) filhas: contorno (com os lados de canto) e visita
+    const outlines = new Map<string, OutlineEdge[]>();
+    for (const cf of cfs) {
+      const { b, A, B, Lb, n, th, BA, SB, C, ax } = cf;
       let childOutline: OutlineEdge[];
       const child = flanges.get(b.child)!;
       if (child.shape.kind === "aba") {
         const Lc = child.shape.length;
+        const sd = sides.get(b.id);
+        const xAt = (l: Line2, y: number) => (l.c - l.n.y * y) / l.n.x;
+        for (const [l, lado] of [[sd?.l0, 0], [sd?.l1, 1]] as const) {
+          if (!l) continue;
+          const corner = [...cornerReq.values()].find((r) => (lado === 0 ? r.a : r.b) === b.id && r.used && r.kind !== "aberto")!;
+          // lado 0 guarda x ≥ x0(y) (normal para −x); lado 1 guarda x ≤ x1(y)
+          const okDir = lado === 0 ? l.n.x < -1e-9 : l.n.x > 1e-9;
+          const e = !okDir ? NaN : lado === 0 ? -xAt(l, SB) : xAt(l, SB) - Lb;
+          if (!okDir || e < -dimAbs(Lb)) {
+            err(
+              okDir ? "CORNER_STRIP" : "CORNER_IMPOSSIBLE",
+              okDir
+                ? `${corner.label}: com ${corner.kind} o lado de ${b.label} entraria na faixa de dobra (${fmt(-e)} mm) — a dobra ficaria solta. Use outro tipo, mude a aba que fecha ou a folga.`
+                : `${corner.label}: o plano da aba vizinha não corta ${b.label} pelo lado do canto — ângulos impossíveis para ${corner.kind}.`,
+              { op: corner.op, bends: [corner.a, corner.b] },
+            );
+            return false;
+          }
+          const ex = ext.get(`${corner.a}+${corner.b}`)!;
+          ext.set(`${corner.a}+${corner.b}`, lado === 0 ? { ...ex, a: Math.max(0, e) } : { ...ex, b: Math.max(0, e) });
+        }
+        const x0 = (y: number) => (sd?.l0 ? xAt(sd.l0, y) : 0);
+        const x1 = (y: number) => (sd?.l1 ? xAt(sd.l1, y) : Lb);
+        if (sd && !(x1(Lc) - x0(Lc) > dimAbs(Lc))) {
+          const r = [...cornerReq.values()].find((q) => q.a === b.id || q.b === b.id)!;
+          err("CORNER_IMPOSSIBLE", `${r.label}: os lados de ${b.label} se cruzam antes da ponta — a aba some no canto.`, { op: r.op, bends: [r.a, r.b] });
+          return false;
+        }
         childOutline = [
-          { key: "raiz", a: v2(0, 0), b: v2(Lb, 0) },
-          { key: "lado1", a: v2(Lb, 0), b: v2(Lb, Lc) },
-          { key: "ponta", a: v2(Lb, Lc), b: v2(0, Lc) },
-          { key: "lado0", a: v2(0, Lc), b: v2(0, 0) },
+          { key: "raiz", a: v2(x0(0), 0), b: v2(x1(0), 0) },
+          { key: "lado1", a: v2(x1(0), 0), b: v2(x1(Lc), Lc) },
+          { key: "ponta", a: v2(x1(Lc), Lc), b: v2(x0(Lc), Lc) },
+          { key: "lado0", a: v2(x0(Lc), Lc), b: v2(x0(0), 0) },
         ];
+        if (sd) raizCfg.set(b.child, { t0: -x0(0), t1: Lb - x0(0), e0: -x0(SB) > dimAbs(Lb), e1: x1(SB) - Lb > dimAbs(Lb), SB });
       } else {
         childOutline = child.shape.outline;
         const lr = b.lineRaiz!;
@@ -596,13 +755,37 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
           ? { relief: { op: b.relief.op, kind: b.relief.kind, w: reliefDims(b).w, d: reliefDims(b).d, ends: relieved.get(b.id)! } }
           : {}),
       });
-      if (!visit(b.child, Gc, Hc, childOutline)) return false;
+      outlines.set(b.child, childOutline);
     }
+    // cantos detectados (aberto ou tratado), com o avanço de cada lado e o alívio retangular que sobra
+    for (const c of sib) {
+      const id = `${c.a}+${c.b}`;
+      const req = cornerReq.get(id);
+      const ba = cfs.find((x) => x.b.id === c.a)!.BA;
+      const bb = cfs.find((x) => x.b.id === c.b)!.BA;
+      outC.push({
+        id,
+        parent: fid,
+        a: c.a,
+        b: c.b,
+        at: c.at,
+        angleDeg: c.angleDeg,
+        kind: req?.kind ?? "aberto",
+        ...(req ? { op: req.op, gap: req.gap, closer: req.closer } : {}),
+        ext: ext.get(id) ?? { a: 0, b: 0 },
+        relief: { kind: "retangular", a: ba, b: bb },
+      });
+    }
+    for (const cf of cfs) if (!visit(cf.b.child, cf.Gc, cf.Hc, outlines.get(cf.b.child)!)) return false;
     return true;
   };
 
   const rootShape = flanges.get(base.id)!.shape;
   const ok = visit(base.id, G0, IDENTITY, rootShape.kind === "poly" ? rootShape.outline : []);
+  if (ok)
+    for (const r of cornerReq.values())
+      if (!r.used)
+        err("CORNER_LOST", `${r.label}: ${bends.get(r.a)!.label} e ${bends.get(r.b)!.label} não se encontram num canto (recuo no canto ou arestas não vizinhas).`, { op: r.op, bends: [r.a, r.b] });
   if (!ok || issues.some((i) => i.level === "error")) return fail();
   // ordem estável: abas e dobras na ordem de criação (base primeiro)
   const rank = new Map<string, number>([[base.id, -1], ...order.map((id, i) => [id, i] as [string, number])]);

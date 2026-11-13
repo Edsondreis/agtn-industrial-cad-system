@@ -157,6 +157,8 @@ function opOf(f: Exclude<SheetFeature, { t: "sheetBase" }>, st: SheetState, ctx:
         ...(f.width !== null ? { width: f.width } : {}),
         ...(f.depth !== null ? { depth: f.depth } : {}),
       };
+    case "sheetCorner":
+      return { t: "canto", id: f.id, label: f.name, corners: f.corners, kind: f.kind, gap: f.gap, closer: f.closer, relief: f.relief };
     case "sheetCut": {
       const { frame, sketch } = ctx.sketch(f.sketch);
       const m = onFlange(st, f.flange, frame, f.name);
