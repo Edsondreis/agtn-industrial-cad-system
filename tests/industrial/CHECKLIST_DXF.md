@@ -1,5 +1,7 @@
 # Checklist de abertura dos DXF — ZWCAD / AutoCAD / CAM (ETAPA 3, D3–D5)
 
+> ETAPA 4: substituído por `FICHA_CAD.md` (ZWCAD/AutoCAD) e `FICHA_CAM_LASER.md` (operador). Mantido como histórico.
+
 Abra cada arquivo e marque. Se algo falhar, anote a mensagem e mande captura.
 
 Esperado em TODOS: abre sem mensagem de erro; unidade mm; escala 1:1 (medir o blank com DIST); contornos fechados (comando LIST/PROPRIEDADES: Fechada = Sim); sem objetos sobrepostos (OVERKILL não acha nada); camadas CUT_OUTER, CUT_INNER, BEND_UP, BEND_DOWN, BEND_MARK, BEND_REGION, REFERENCE.

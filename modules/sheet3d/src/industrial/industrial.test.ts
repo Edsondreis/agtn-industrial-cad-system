@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dxfBytes } from "@agtn/dxf";
 import { FLAT_LAYER, flatDxfInput, flatPattern, flatToDxf, solveSheet, validateFlatDxf } from "@agtn/sheetgraph";
 import { OcctSolidKernel } from "@agtn/solid";
@@ -66,6 +66,9 @@ describe("10 peças de referência — caminho completo até o DXF", () => {
         const o = { version, regions: true, reference: true, title: p.id } as const;
         const txt = flatToDxf(fp, o);
         writeFileSync(`${OUT}/${p.id}_${version}.dxf`, dxfBytes(txt));
+        // ETAPA 4: o pacote entregue para ZWCAD/AutoCAD/CAM (tests/industrial/dxf_referencia) é EXATAMENTE o que o código gera
+        const ref = new URL(`../../../../tests/industrial/dxf_referencia/${p.id}_${version}.dxf`, import.meta.url);
+        if (existsSync(ref)) expect(Buffer.from(dxfBytes(txt)).equals(readFileSync(ref))).toBe(true);
         const rep = validateFlatDxf(txt, fp, o);
         expect(rep.checks.filter((c) => !c.ok)).toEqual([]);
         checks[version] = rep.ok;
