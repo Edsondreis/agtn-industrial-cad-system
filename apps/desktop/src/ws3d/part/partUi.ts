@@ -174,8 +174,8 @@ export function defaultDraft(kind: FeatureKind, features: readonly Feature[], at
         edge: { flange: "", edge: "" },
         ref: "externa",
         segments: [
-          { length: 30, deflectionDeg: 90, side: "cima", R: null, K: null },
-          { length: 15, deflectionDeg: 90, side: "cima", R: null, K: null },
+          { id: "s1", length: 30, deflectionDeg: 90, side: "cima", R: null, K: null },
+          { id: "s2", length: 15, deflectionDeg: 90, side: "cima", R: null, K: null },
         ],
       };
     case "sheetBendLine": {

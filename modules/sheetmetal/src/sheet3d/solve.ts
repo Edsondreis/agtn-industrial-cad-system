@@ -127,7 +127,7 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
     label: base.label,
     op: base.id,
     shape: { kind: "poly", outline: [...base.outline] },
-    holes: base.holes.map((loop, i) => ({ key: `${base.id}#${i + 1}`, op: base.id, loop })),
+    holes: loopKeys(base.holes).map((key, i) => ({ key: `${base.id}#${key}`, op: base.id, loop: base.holes[i] })),
     parentBend: null,
   });
 
@@ -217,6 +217,8 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
       }
       case "contorno": {
         if (!op.segments.length) return void err("CONTOUR_EMPTY", `${op.label}: o perfil precisa de pelo menos um segmento.`, { op: op.id });
+        const segIds = op.segments.map((s, i) => s.id ?? String(i + 1));
+        if (new Set(segIds).size !== segIds.length) return void err("CONTOUR_IDS", `${op.label}: dois segmentos com o mesmo id.`, { op: op.id });
         const parent = checkEdge(op.edge, op.id, op.label);
         if (!parent) return;
         const bps = op.segments.map((s, i) => bendParams(s.bend, `${op.label} (dobra ${i + 1})`, op.id));
@@ -241,7 +243,7 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
         let p = parent;
         let edge = op.edge.edge;
         op.segments.forEach((s, i) => {
-          const id = `${op.id}#${i + 1}`;
+          const id = `${op.id}#${segIds[i]}`;
           addChild(p, edge, id, `${op.label}.${i + 1}`, op.id, "contorno", s.length, bps[i]!, s.side, op.ref);
           p = flanges.get(id)!;
           edge = "ponta";
@@ -254,7 +256,7 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
         const f = flanges.get(op.flange);
         if (!f) return void err("REF_LOST", `${op.label}: referência perdida — a aba ${op.flange} não existe mais.`, { op: op.id, flanges: [op.flange] });
         if (!op.loops.length) return void err("CUT_EMPTY", `${op.label}: o esboço não tem contorno fechado.`, { op: op.id });
-        op.loops.forEach((loop, i) => f.holes.push({ key: `${op.id}#${i + 1}`, op: op.id, loop }));
+        loopKeys(op.loops).forEach((key, i) => f.holes.push({ key: `${op.id}#${key}`, op: op.id, loop: op.loops[i] }));
         return;
       }
     }
@@ -488,6 +490,17 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
 }
 
 /* ================================================================================================ */
+
+/** Chaves dos laços: a chave estável quando existe; repetida ou ausente → posição (ordem estável). */
+function loopKeys(loops: readonly Loop2[]): string[] {
+  const seen = new Map<string, number>();
+  return loops.map((l, i) => {
+    const k = l.key ?? String(i + 1);
+    const n = (seen.get(k) ?? 0) + 1;
+    seen.set(k, n);
+    return n > 1 ? `${k}~${n}` : k;
+  });
+}
 
 /** Contorno recuado: cada aresta desloca `off(key)` para dentro; vértices = interseção das retas deslocadas. */
 export function trimOutline(outline: readonly OutlineEdge[], off: (key: string) => number): { ok: true; edges: OutlineEdge[] } | { ok: false; edge: string } {

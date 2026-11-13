@@ -128,7 +128,8 @@ export type Feature = Base &
     | {
         readonly t: "sheetContour";
         readonly edge: SheetEdgeRef;
-        readonly segments: readonly { readonly length: number; readonly deflectionDeg: number; readonly side: SheetSide; readonly R: number | null; readonly K: number | null }[];
+        /** `id` estável por segmento (ETAPA 2.0): a aba-filha é «op»#«id»; sem id (arquivos da ETAPA 1) = posição 1, 2… */
+        readonly segments: readonly { readonly id?: string; readonly length: number; readonly deflectionDeg: number; readonly side: SheetSide; readonly R: number | null; readonly K: number | null }[];
         readonly ref: SheetRef;
       }
     /** dobra por linha do esboço (linha = centro da região de dobra na planificação) */

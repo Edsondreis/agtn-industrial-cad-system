@@ -142,18 +142,33 @@ export function FlangeFields({ d, set }: { d: Of<"sheetFlange">; set: (p: Partia
 
 export function ContourFields({ d, set }: { d: Of<"sheetContour">; set: (p: Partial<Of<"sheetContour">>) => void }) {
   const seg = (i: number, p: Partial<Of<"sheetContour">["segments"][number]>) => set({ segments: d.segments.map((s, k) => (k === i ? { ...s, ...p } : s)) });
+  // ids estáveis: antes de inserir/remover, cada segmento recebe o id que já tinha (sem id = posição, ETAPA 1)
+  const norm = () => d.segments.map((s, i) => ({ ...s, id: s.id ?? String(i + 1) }));
+  const nextId = (segs: readonly { id?: string }[]) => {
+    const ids = new Set(segs.map((s) => s.id));
+    let k = 1;
+    while (ids.has(`s${k}`)) k++;
+    return `s${k}`;
+  };
   return (
     <>
       <SideRef side="cima" refm={d.ref} set={(p) => p.ref && set({ ref: p.ref })} sideLabel="—" />
       <div className="fd-list sh-segs">
         <div className="fd-list-h">
           Perfil (seção constante) — segmento = dobra antes + comprimento
-          <button className="lnk" onClick={() => set({ segments: [...d.segments, { length: 20, deflectionDeg: 90, side: "cima", R: null, K: null }] })} data-testid="seg-add">
+          <button
+            className="lnk"
+            onClick={() => {
+              const n = norm();
+              set({ segments: [...n, { id: nextId(n), length: 20, deflectionDeg: 90, side: "cima", R: null, K: null }] });
+            }}
+            data-testid="seg-add"
+          >
             + segmento
           </button>
         </div>
         {d.segments.map((s, i) => (
-          <div key={i} className="sh-seg" data-seg={i}>
+          <div key={s.id ?? i} className="sh-seg" data-seg={i}>
             <b>{i + 1}</b>
             <Unit v={s.length} set={(v) => seg(i, { length: v })} min={0} field={`len${i}`} />
             <span className="unit-in">
@@ -166,7 +181,7 @@ export function ContourFields({ d, set }: { d: Of<"sheetContour">; set: (p: Part
               <option value="baixo">baixo</option>
             </select>
             {d.segments.length > 1 && (
-              <button className="lnk" onClick={() => set({ segments: d.segments.filter((_, k) => k !== i) })} title="Remover segmento">
+              <button className="lnk" onClick={() => set({ segments: norm().filter((_, k) => k !== i) })} title="Remover segmento (as abas ligadas aos outros segmentos continuam neles)">
                 ×
               </button>
             )}

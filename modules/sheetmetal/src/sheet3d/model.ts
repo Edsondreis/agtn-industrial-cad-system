@@ -50,6 +50,8 @@ export type LoopSeg =
   | { readonly t: "circle"; readonly c: V2; readonly r: number };
 export interface Loop2 {
   readonly segs: readonly LoopSeg[];
+  /** chave estável do laço (entidades do esboço que o formam, ETAPA 2.0); sem chave = posição */
+  readonly key?: string;
 }
 
 export interface OutlineEdge {
@@ -106,7 +108,7 @@ export type SheetOp =
       readonly label: string;
       readonly edge: EdgeRef;
       /** cada segmento: dobra antes dele (em relação ao segmento anterior/aba-pai) + comprimento */
-      readonly segments: readonly { readonly length: number; readonly bend: SheetBendParams; readonly side: BendSide }[];
+      readonly segments: readonly { readonly id?: string; readonly length: number; readonly bend: SheetBendParams; readonly side: BendSide }[];
       readonly ref: SheetRef;
     }
   /** Dobra por linha: divide uma aba plana pela linha de dobra (centro da região, na planificação). */

@@ -1,7 +1,7 @@
 import { type SheetSolved, type SolvedBend, type SolvedFlange, TOL, dimAbs, interfVol, sheetMath as M, type SheetV3 as V3 } from "@agtn/sheetgraph";
 import { SolidError } from "@agtn/solid";
 import { BooleanGlue, BooleanOp, type OcctKernel, type ShapeHandle } from "occt-wasm";
-import { type Surface, expectedSurface, isContactLabel, sameSurface, splitLabel } from "./provenance";
+import { type Surface, expectedSurface, isContactLabel, sameSurface } from "./provenance";
 
 /**
  * Sólido de chapa a partir do grafo resolvido. Cada aba vira um prisma (região plana × T) e cada dobra um setor
@@ -74,23 +74,63 @@ function buildWith(k: OcctKernel, s: SheetSolved, T: Reg, UB: number, tamper?: B
   };
 
   /* ---------------------------------------------------------------------------- peças com rótulos */
+  /*
+   * PROVENIÊNCIA POR CONSTRUÇÃO (ETAPA 2.0 · A1): cada aresta do contorno é criada com o seu rótulo; a face
+   * plana guarda as arestas na ordem dos fios (conferido ponta a ponta com as coordenadas exatas da
+   * construção); `extrudeWithHistory` / `revolveWithHistory` dizem qual face nasceu de qual aresta
+   * (`edgeGenerated`) e quais são o início e o fim (`firstShape` / `lastShape`). Nenhuma classificação por
+   * posição: a conferência contra a superfície do grafo vem depois, só como verificação.
+   */
   const pieces: Piece[] = [];
-  const classify = (shape: ShapeHandle, cands: string[], what: string): string[] => {
-    const fs = faces(shape);
-    const used = new Set<string>();
-    return fs.map((f) => {
-      const sf = surf(f);
-      let hits = sf ? cands.filter((c) => !used.has(c) && sameSurface(expectedSurface(s, c)!, sf, size)) : [];
-      if (hits.length > 1) {
-        // faces coplanares da MESMA peça (arestas alinhadas): o centro da face decide pelo trecho da aresta
-        const c = k.getSurfaceCenterOfMass(f);
-        hits = hits.filter((h) => insideSpan(s, h, c, size));
+  const near3 = (a: V3, b: V3) => M.len3(M.sub3(a, b)) <= dimAbs(size) + TOL.occt;
+  const vertsOf = (e: ShapeHandle): V3[] => k.getSubShapes(e, "vertex").map(T).map((v) => k.vertexPosition(v) as unknown as V3);
+  type Built = { label: string; ends: V3[] | null };
+  /** rótulo de cada aresta da face, na ordem dos fios, conferido pelas pontas */
+  const faceEdgeLabels = (face: ShapeHandle, built: Built[], what: string): ShapeHandle[] => {
+    const fe = k.getSubShapes(face, "edge").map(T);
+    if (fe.length !== built.length) throw new SolidError("KERNEL", `Proveniência: ${what} tem ${fe.length} arestas na face e ${built.length} na construção.`);
+    fe.forEach((e, i) => {
+      const want = built[i].ends;
+      const got = vertsOf(e);
+      if (want === null) {
+        if (got.length !== 1) throw new SolidError("KERNEL", `Proveniência: ${what}, aresta ${i + 1} deveria ser um círculo fechado.`);
+        return;
       }
-      if (hits.length !== 1) throw new SolidError("KERNEL", `Proveniência: face de ${what} sem correspondência única no grafo (${hits.length} candidatas).`);
-      used.add(hits[0]);
-      return hits[0];
+      const ok = got.length === 2 && ((near3(got[0], want[0]) && near3(got[1], want[1])) || (near3(got[0], want[1]) && near3(got[1], want[0])));
+      if (!ok) throw new SolidError("KERNEL", `Proveniência: ${what}, a aresta ${i + 1} da face não é a construída (${built[i].label}).`);
+    });
+    return fe;
+  };
+  /** rótulos das faces do sólido gerado, pelo histórico da extrusão/revolução */
+  const labelsFrom = (out: ShapeHandle, evo: { edgeGenerated: number[]; firstShape: number[]; lastShape: number[] }, edgeHashes: number[], built: Built[], first: string, last: string, what: string): string[] => {
+    const byHash = new Map<number, string>();
+    const put = (h: number, l: string) => {
+      if (byHash.has(h) && byHash.get(h) !== l) throw new HashCollision();
+      byHash.set(h, l);
+    };
+    evo.firstShape.forEach((h) => put(h, first));
+    evo.lastShape.forEach((h) => put(h, last));
+    const g = evo.edgeGenerated;
+    for (let i = 0; i < g.length; ) {
+      const src = g[i];
+      const n = g[i + 1];
+      const j = edgeHashes.indexOf(src);
+      for (let q = 0; q < n; q++) if (j >= 0) put(g[i + 2 + q], built[j].label);
+      i += 2 + n;
+    }
+    const fs = faces(out);
+    return fs.map((f, i) => {
+      const l = byHash.get(k.hashCode(f, UB));
+      if (!l) throw new SolidError("KERNEL", `Proveniência: a face ${i + 1} de ${what} não tem origem no histórico da construção.`);
+      return l;
     });
   };
+  const hashes = (hs: ShapeHandle[]) => {
+    const out = hs.map((h) => k.hashCode(h, UB));
+    if (new Set(out).size !== out.length) throw new HashCollision();
+    return out;
+  };
+
   const flangeById = new Map(s.flanges.map((f) => [f.id, f]));
   const childBends = (fid: string) => s.bends.filter((b) => b.parent === fid);
   const visit = (f: SolvedFlange) => {
@@ -102,24 +142,29 @@ function buildWith(k: OcctKernel, s: SheetSolved, T: Reg, UB: number, tamper?: B
   };
   function prism(f: SolvedFlange): Piece {
     const W = (p: { x: number; y: number }, z = 0) => M.apply(f.G, M.v3(p.x, p.y, z));
-    const wire = (pts: V3[]) => T(k.makeWire(pts.map((p, i) => T(k.makeLineEdge(p, pts[(i + 1) % pts.length])))));
-    let face = T(k.makeFace(wire(f.flat.map((e) => W(e.a)))));
-    const cands = ["A", "B", ...f.flat.map((e) => `e:${e.key}`)].map((r) => `${f.id}/${r}`);
+    const built: Built[] = [];
+    const line = (a: V3, b: V3, label: string) => {
+      built.push({ label, ends: [a, b] });
+      return T(k.makeLineEdge(a, b));
+    };
+    const outer = T(k.makeWire(f.flat.map((e) => line(W(e.a), W(e.b), `${f.id}/e:${e.key}`))));
+    let face = T(k.makeFace(outer));
     if (f.holes.length) {
       const hw = f.holes.map((h) => {
         const segs = h.loop.segs;
         if (segs.length === 1 && segs[0].t === "circle") {
-          cands.push(`${f.id}/h:${h.key}`);
+          built.push({ label: `${f.id}/h:${h.key}`, ends: null });
           return T(k.makeWire([T(k.makeCircleEdge(W(segs[0].c), M.applyDir(f.G, M.v3(0, 0, 1)), segs[0].r))]));
         }
-        segs.forEach((_, i) => cands.push(`${f.id}/h:${h.key}:${i}`));
         return T(
           k.makeWire(
-            segs.map((sg) => {
-              if (sg.t === "line") return T(k.makeLineEdge(W(sg.a), W(sg.b)));
+            segs.map((sg, i) => {
+              const label = `${f.id}/h:${h.key}:${i}`;
+              if (sg.t === "line") return line(W(sg.a), W(sg.b), label);
               if (sg.t === "circle") throw new SolidError("INVALID_PARAMS", "Círculo dentro de um contorno de recorte.");
               const a0 = Math.atan2(sg.a.y - sg.c.y, sg.a.x - sg.c.x) + sg.sweep / 2;
               const mid = { x: sg.c.x + sg.r * Math.cos(a0), y: sg.c.y + sg.r * Math.sin(a0) };
+              built.push({ label, ends: [W(sg.a), W(sg.b)] });
               return T(k.makeArcEdge(W(sg.a), W(mid), W(sg.b)));
             }),
           ),
@@ -127,23 +172,39 @@ function buildWith(k: OcctKernel, s: SheetSolved, T: Reg, UB: number, tamper?: B
       });
       face = T(k.addHolesInFace(face, hw));
     }
+    const fe = faceEdgeLabels(face, built, f.label);
+    const eh = hashes(fe);
     const z = M.applyDir(f.G, M.v3(0, 0, s.T));
-    const shape = T(k.extrude(face, z.x, z.y, z.z));
-    return finish(f.id, f.label, "aba", shape, cands);
+    const evo = k.extrudeWithHistory(face, z.x, z.y, z.z, [k.hashCode(face, UB), ...eh], UB);
+    const shape = T(evo.result);
+    return finish(f.id, f.label, "aba", shape, labelsFrom(shape, evo, eh, built, `${f.id}/A`, `${f.id}/B`, f.label));
   }
   function sector(b: SolvedBend): Piece {
     const pf = flangeById.get(b.parent)!;
     const [A, B] = b.tangent;
     const W = (p: { x: number; y: number }, z: number) => M.apply(pf.G, M.v3(p.x, p.y, z));
+    const up = b.side === "cima";
+    // retângulo na linha de tangência: face z = 0 e z = T da pai; por dentro da dobra = z = T (cima) ou z = 0 (baixo)
+    const z0 = `${b.id}/${up ? "ext" : "int"}`;
+    const zT = `${b.id}/${up ? "int" : "ext"}`;
     const pts = [W(A, 0), W(B, 0), W(B, s.T), W(A, s.T)];
+    const labels = [z0, `${b.id}/l1`, zT, `${b.id}/l0`];
+    const built: Built[] = pts.map((p, i) => ({ label: labels[i], ends: [p, pts[(i + 1) % 4]] }));
     const face = T(k.makeFace(T(k.makeWire(pts.map((p, i) => T(k.makeLineEdge(p, pts[(i + 1) % 4])))))));
-    const shape = T(k.revolve(face, { point: b.axis.p, direction: b.axis.dir }, (b.deflectionDeg * Math.PI) / 180));
-    const roles = ["ext", "c0", "c1", "l0", "l1", ...(b.R > 0 ? ["int"] : [])];
-    return finish(pid(b), b.label, "dobra", shape, roles.map((r) => `${b.id}/${r}`));
+    const fe = faceEdgeLabels(face, built, b.label);
+    const eh = hashes(fe);
+    const evo = k.revolveWithHistory(face, { point: b.axis.p, direction: b.axis.dir }, (b.deflectionDeg * Math.PI) / 180, [k.hashCode(face, UB), ...eh], UB);
+    const shape = T(evo.result);
+    return finish(pid(b), b.label, "dobra", shape, labelsFrom(shape, evo, eh, built, `${b.id}/c0`, `${b.id}/c1`, b.label));
   }
-  function finish(id: string, label: string, kind: Piece["kind"], shape: ShapeHandle, cands: string[]): Piece {
+  function finish(id: string, label: string, kind: Piece["kind"], shape: ShapeHandle, fl: string[]): Piece {
     if (!k.isValid(shape)) throw new SolidError("KERNEL", `${label}: a peça gerada não é um sólido válido.`);
-    const fl = classify(shape, cands, label);
+    // conferência (não fonte): cada face da peça está na superfície que o grafo diz ter gerado
+    faces(shape).forEach((f, i) => {
+      const sf = surf(f);
+      const ex = expectedSurface(s, fl[i]);
+      if (!sf || !ex || !sameSurface(ex, sf, size)) throw new SolidError("KERNEL", `Proveniência inconsistente na construção: ${fl[i]} fora da superfície do grafo.`);
+    });
     const bb = k.getBoundingBox(shape);
     return { id, label, kind, shape, faces: fl, vol: k.getVolume(shape), box: { min: M.v3(bb.xmin, bb.ymin, bb.zmin), max: M.v3(bb.xmax, bb.ymax, bb.zmax) } };
   }
@@ -309,42 +370,6 @@ const fmt = (v: number, p: number) => v.toFixed(p).replace(".", ",");
 function sizeOf(s: SheetSolved): number {
   const b = exactBox(s);
   return Math.max(1, Math.abs(b.min.x), Math.abs(b.min.y), Math.abs(b.min.z), Math.abs(b.max.x), Math.abs(b.max.y), Math.abs(b.max.z));
-}
-
-/** O centro da face cai dentro do trecho da aresta (ou do segmento do furo) do rótulo? */
-function insideSpan(s: SheetSolved, label: string, c: V3, size: number): boolean {
-  const [owner, role] = splitLabel(label);
-  if (!role.startsWith("e:") && !role.startsWith("h:")) return true;
-  const f = s.flanges.find((x) => x.id === owner);
-  if (!f) return true;
-  const inv = M.invert(f.G);
-  const q = M.apply(inv, c);
-  let a: { x: number; y: number } | undefined;
-  let b: { x: number; y: number } | undefined;
-  if (role.startsWith("e:")) {
-    const e = f.flat.find((x) => x.key === role.slice(2));
-    a = e?.a;
-    b = e?.b;
-  } else if (role.startsWith("h:")) {
-    const [key, idx] = role.slice(2).split(":");
-    const sg = f.holes.find((h) => h.key === key)?.loop.segs[Number(idx ?? 0)];
-    if (sg && sg.t === "line") {
-      a = sg.a;
-      b = sg.b;
-    } else if (sg && sg.t === "arc") {
-      const ang = Math.atan2(q.y - sg.c.y, q.x - sg.c.x);
-      const a0 = Math.atan2(sg.a.y - sg.c.y, sg.a.x - sg.c.x);
-      let t = (ang - a0) * Math.sign(sg.sweep);
-      t = ((t % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-      return t <= Math.abs(sg.sweep);
-    }
-  }
-  if (!a || !b) return true;
-  const d = M.sub2(b, a);
-  const L = M.len2(d);
-  const t = M.dot2(M.sub2(M.v2(q.x, q.y), a), d) / L;
-  const tol = dimAbs(size);
-  return t > tol && t < L - tol;
 }
 
 /** Caixa exata: vértices dos prismas + extremos analíticos dos arcos das dobras. */

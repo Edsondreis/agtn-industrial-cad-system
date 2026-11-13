@@ -12,7 +12,7 @@ import {
   sheetWarnings,
   solveSheet,
 } from "@agtn/sheetgraph";
-import { type Seg2, defaultRegions, entityOf, pointOf, profiles } from "@agtn/sketch";
+import { type SEntity, type Seg2, type Sketch, defaultRegions, entityOf, pointOf, profiles } from "@agtn/sketch";
 import { type Frame, type SheetApply, type SheetBackend, type SheetCtx, type SheetEdgeRef, type SheetFeature, SolidError, to3d } from "@agtn/solid";
 import { buildSheet } from "./build";
 
@@ -46,7 +46,7 @@ function apply(f: SheetFeature, ctx: SheetCtx): SheetApply {
     const def = defaultRegions(p);
     if (def.length !== 1) throw new SolidError("INVALID_PARAMS", p.regions.length ? "O esboço da base de chapa precisa de um único contorno fechado (pode ter furos)." : "O esboço da base de chapa não tem contorno fechado.");
     const r = p.regions[def[0]];
-    const outline = outlineOf(r.outer.segs);
+    const outline = outlineOf(r.outer.segs, sketch);
     kRule = { material: f.material, process: f.process, K: f.K };
     const k = resolveK(kRule, f.T, f.R);
     spec = {
@@ -114,7 +114,7 @@ function opOf(f: Exclude<SheetFeature, { t: "sheetBase" }>, st: SheetState, ctx:
         label: f.name,
         edge: recoverEdge(st, f.edge, f.name, warn),
         ref: f.ref,
-        segments: f.segments.map((s) => ({ length: s.length, side: s.side, bend: bendOf(st, s.deflectionDeg, s.R, s.K) })),
+        segments: f.segments.map((s) => ({ ...(s.id ? { id: s.id } : {}), length: s.length, side: s.side, bend: bendOf(st, s.deflectionDeg, s.R, s.K) })),
       };
     case "sheetBendLine": {
       const { frame, sketch } = ctx.sketch(f.sketch);
@@ -164,16 +164,26 @@ function recoverEdge(st: SheetState, ref: SheetEdgeRef, what: string, warn: stri
   const size = Math.max(1, ...fl.outline.map((e) => Math.max(Math.abs(e.a.x), Math.abs(e.a.y))));
   const tol = dimAbs(size);
   if (Math.abs(a.z) > tol || Math.abs(b.z) > tol) return plain;
-  const onLine = (p: { x: number; y: number }, e: OutlineEdge) => {
-    const d = M.sub2(e.b, e.a);
-    return Math.abs(M.cross2(d, M.sub2(p, e.a))) / M.len2(d) <= tol;
-  };
-  const hits = fl.outline.filter((e) => onLine(a, e) && onLine(b, e));
-  if (hits.length > 1) throw new SolidError("INVALID_PARAMS", `${what}: referência ambígua — a aresta ${ref.edge} sumiu e ${hits.map((h) => h.key).join(" e ")} estão na mesma reta.`);
-  if (hits.length === 1) {
-    warn.push(`${what}: referência recuperada por geometria — ${ref.edge} → ${hits[0].key} (linha refeita no mesmo lugar).`);
-    // o id da aba-filha continua o original: quem depende dela não perde a referência
-    return { flange: ref.flange, edge: hits[0].key, idKey: ref.edge };
+  // candidatas: arestas da MESMA aba sobre a mesma reta que se sobrepõem ao trecho gravado
+  const d0 = M.sub2(M.v2(b.x, b.y), M.v2(a.x, a.y));
+  const L0 = M.len2(d0);
+  const u = M.mul2(d0, 1 / L0);
+  const onLine = (p: { x: number; y: number }) => Math.abs(M.cross2(u, M.sub2(p, M.v2(a.x, a.y)))) <= tol;
+  const along = (p: { x: number; y: number }) => M.dot2(M.sub2(p, M.v2(a.x, a.y)), u);
+  const over = fl.outline.filter((e) => {
+    if (!onLine(e.a) || !onLine(e.b)) return false;
+    const [t0, t1] = [along(e.a), along(e.b)].sort((x, y) => x - y);
+    return Math.min(t1, L0) - Math.max(t0, 0) > tol;
+  });
+  if (over.length > 1) throw new SolidError("INVALID_PARAMS", `${what}: referência ambígua — a aresta ${ref.edge} sumiu e ${over.map((h) => h.key).join(" e ")} ocupam a mesma reta.`);
+  if (over.length === 1) {
+    const e = over[0];
+    const [t0, t1] = [along(e.a), along(e.b)].sort((x, y) => x - y);
+    // aceita só se o trecho gravado é o mesmo trecho (as duas pontas coincidem): geometria mudou → perdida
+    if (Math.abs(t0) <= tol && Math.abs(t1 - L0) <= tol) {
+      warn.push(`${what}: referência recuperada por geometria — ${ref.edge} → ${e.key} (aresta refeita no mesmo lugar).`);
+      return { flange: ref.flange, edge: e.key, idKey: ref.edge };
+    }
   }
   return plain;
 }
@@ -199,23 +209,75 @@ function onFlange(st: SheetState, flange: string, frame: Frame, what: string): {
   };
 }
 
-/** Contorno da base: só retas; chaves = id da linha do esboço (L3, ou L3.1/L3.2 se dividida). */
-function outlineOf(segs: readonly Seg2[]): OutlineEdge[] {
+/**
+ * Contorno da base: só retas. Chave = id da linha do esboço ("L3"). Linha dividida em trechos por outras
+ * curvas (ETAPA 2.0 · A3): `L3[«ponta»~«ponta»]`, com cada ponta nomeada pelo ponto do esboço (P5) ou pelo que
+ * a corta (X:L9), na ordem de p1 → p2 da linha — muda quem corta, muda a chave (nunca renumera em silêncio).
+ */
+function outlineOf(segs: readonly Seg2[], sk: Sketch): OutlineEdge[] {
   const bad = segs.find((s) => s.t !== "line");
   if (bad) throw new SolidError("INVALID_PARAMS", `A base de chapa só aceita contorno de linhas retas (ETAPA 1) — ${bad.src} é ${bad.t === "arc" ? "arco" : "círculo"}.`);
   const count = new Map<string, number>();
   for (const s of segs) count.set(s.src, (count.get(s.src) ?? 0) + 1);
-  const seen = new Map<string, number>();
-  return segs.map((s) => {
-    const n = (seen.get(s.src) ?? 0) + 1;
-    seen.set(s.src, n);
+  const n = segs.length;
+  const same = (p: { x: number; y: number }, q: { x: number; y: number }) => Math.hypot(p.x - q.x, p.y - q.y) <= 1e-9 * Math.max(1, Math.abs(p.x), Math.abs(p.y));
+  const endName = (i: number, p: { x: number; y: number }, neighbor: number): string => {
+    const src = segs[i].src;
+    const e = entityOf(sk, src);
+    if (e && e.t === "line") for (const pid of [e.p1, e.p2]) if (same(pointOf(sk, pid)!, p)) return pid;
+    const nb = segs[neighbor].src;
+    if (nb !== src) return `X:${nb}`;
+    // vizinho é a mesma linha (cruzamento em T): todas as curvas do esboço que passam pelo ponto
+    const through = Object.values(sk.entities)
+      .filter((x) => !x.cons && x.id !== src && passes(sk, x.id, p))
+      .map((x) => x.id)
+      .sort();
+    return `X:${through.join(",") || "?"}`;
+  };
+  const out: OutlineEdge[] = segs.map((s, i) => {
     const l = s as Extract<Seg2, { t: "line" }>;
-    return { key: count.get(s.src)! > 1 ? `${s.src}.${n}` : s.src, a: l.a, b: l.b };
+    if (count.get(s.src)! === 1) return { key: s.src, a: l.a, b: l.b };
+    const e = entityOf(sk, s.src) as Extract<SEntity, { t: "line" }>;
+    const p1 = pointOf(sk, e.p1)!;
+    const p2 = pointOf(sk, e.p2)!;
+    const t = (q: { x: number; y: number }) => (q.x - p1.x) * (p2.x - p1.x) + (q.y - p1.y) * (p2.y - p1.y);
+    const ea = endName(i, l.a, (i + n - 1) % n);
+    const eb = endName(i, l.b, (i + 1) % n);
+    const [x, y] = t(l.a) <= t(l.b) ? [ea, eb] : [eb, ea];
+    return { key: `${s.src}[${x}~${y}]`, a: l.a, b: l.b };
   });
+  const keys = new Set<string>();
+  for (const e of out) {
+    if (keys.has(e.key)) throw new SolidError("INVALID_PARAMS", `A linha ${e.key.split("[")[0]} forma dois trechos do contorno que não se distinguem — refaça o esboço.`);
+    keys.add(e.key);
+  }
+  return out;
+}
+function passes(sk: Sketch, id: string, p: { x: number; y: number }): boolean {
+  const e = entityOf(sk, id);
+  const tol = 1e-7 * Math.max(1, Math.abs(p.x), Math.abs(p.y));
+  if (!e) return false;
+  if (e.t === "line") {
+    const a = pointOf(sk, e.p1)!;
+    const b = pointOf(sk, e.p2)!;
+    const L = Math.hypot(b.x - a.x, b.y - a.y);
+    const c = Math.abs((b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x)) / L;
+    const t = ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / (L * L);
+    return c <= tol && t >= -1e-9 && t <= 1 + 1e-9;
+  }
+  if (e.t === "circle" || e.t === "arc") {
+    const c = pointOf(sk, e.c)!;
+    const r = e.t === "circle" ? e.r : Math.hypot(pointOf(sk, e.p1)!.x - c.x, pointOf(sk, e.p1)!.y - c.y);
+    return Math.abs(Math.hypot(p.x - c.x, p.y - c.y) - r) <= tol;
+  }
+  return false;
 }
 
+/** Laço do esboço → laço local; chave estável = entidades do esboço que o formam (ETAPA 2.0 · A4). */
 function loopOf(segs: readonly Seg2[], map: (p: { x: number; y: number }) => { x: number; y: number }, sign: number): Loop2 {
+  const key = [...new Set(segs.map((s) => s.src))].sort().join("+");
   return {
+    key,
     segs: segs.map((s): LoopSeg => {
       if (s.t === "line") return { t: "line", a: map(s.a), b: map(s.b) };
       if (s.t === "circle") return { t: "circle", c: map(s.c), r: s.r };
