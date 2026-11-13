@@ -24,6 +24,23 @@ export interface ParseReport {
   warnings: string[];
 }
 
+/**
+ * Campos desconhecidos (gravados por uma versão mais nova) são PRESERVADOS e devolvidos iguais ao salvar —
+ * no modelo, em cada nó e na fonte do corpo. Os campos conhecidos continuam validados e têm prioridade.
+ */
+const NODE_KEYS = new Set(["id", "name", "parent", "visible", "placement", "kind", "children", "source", "color", "material"]);
+const SOURCE_KEYS: Record<string, Set<string>> = {
+  primitive: new Set(["type", "spec"]),
+  part: new Set(["type", "features", "rollback"]),
+  brep: new Set(["type", "data", "origin"]),
+};
+const MODEL_KEYS = new Set(["version", "nodes", "roots"]);
+function unknownKeys(o: Record<string, unknown>, known: Set<string>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(o)) if (!known.has(k) && v !== undefined) out[k] = v;
+  return out;
+}
+
 const num = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 const vec = (v: unknown) => !!v && typeof v === "object" && num((v as Record<string, unknown>).x) && num((v as Record<string, unknown>).y) && num((v as Record<string, unknown>).z);
 const placementOk = (p: unknown): p is Placement => !!p && typeof p === "object" && vec((p as Placement).origin) && vec((p as Placement).rot);
@@ -48,7 +65,7 @@ export function parseModel3D(raw: unknown): ParseReport {
       continue;
     }
     const placement = placementOk(n.placement) ? n.placement : IDENTITY;
-    const base = { id, name: n.name, parent: typeof n.parent === "string" ? n.parent : null, visible: n.visible !== false, placement };
+    const base = { ...unknownKeys(n, NODE_KEYS), id, name: n.name, parent: typeof n.parent === "string" ? n.parent : null, visible: n.visible !== false, placement };
     if (n.kind === "group") {
       nodes[id] = { ...base, kind: "group", children: Array.isArray(n.children) ? (n.children as unknown[]).filter((c): c is string => typeof c === "string") : [] } satisfies GroupNode;
     } else if (n.kind === "body") {
@@ -56,7 +73,7 @@ export function parseModel3D(raw: unknown): ParseReport {
       let source: BodyNode["source"] | null = null;
       if (src?.type === "primitive" && src.spec && typeof src.spec === "object") {
         const errs = validatePrimitive(src.spec as PrimitiveSpec);
-        if (!errs.length) source = { type: "primitive", spec: src.spec as PrimitiveSpec };
+        if (!errs.length) source = { ...unknownKeys(src, SOURCE_KEYS.primitive), type: "primitive", spec: src.spec as PrimitiveSpec } as BodyNode["source"];
         else warnings.push(`"${n.name}": ${errs[0]}`);
       } else if (src?.type === "part" && Array.isArray(src.features)) {
         const feats = (src.features as unknown[]).filter((f): f is Record<string, unknown> => !!f && typeof f === "object" && typeof (f as { id?: unknown }).id === "string" && typeof (f as { t?: unknown }).t === "string" && typeof (f as { name?: unknown }).name === "string");
@@ -77,9 +94,9 @@ export function parseModel3D(raw: unknown): ParseReport {
           feats[i] = { ...feats[i], id: fid };
         }
         const rb = typeof src.rollback === "number" && src.rollback >= 0 ? Math.min(src.rollback, feats.length) : null;
-        source = { type: "part", features: feats as unknown as BodyNode["source"] extends { features: infer F } ? F : never, rollback: rb };
+        source = { ...unknownKeys(src, SOURCE_KEYS.part), type: "part", features: feats as unknown as BodyNode["source"] extends { features: infer F } ? F : never, rollback: rb } as BodyNode["source"];
       } else if (src?.type === "brep" && typeof src.data === "string" && src.data.length > 0) {
-        source = { type: "brep", data: src.data, origin: typeof src.origin === "string" ? src.origin : "importado" };
+        source = { ...unknownKeys(src, SOURCE_KEYS.brep), type: "brep", data: src.data, origin: typeof src.origin === "string" ? src.origin : "importado" } as BodyNode["source"];
       }
       if (!source) {
         warnings.push(`Corpo "${n.name}" sem geometria válida ignorado.`);
@@ -115,7 +132,7 @@ export function parseModel3D(raw: unknown): ParseReport {
       warnings.push(`"${nodes[id].name}" estava sem conjunto e foi colocado na raiz.`);
     }
   }
-  return { model: { version: MODEL3D_VERSION, nodes: fixed, roots }, warnings };
+  return { model: { ...unknownKeys(r as Record<string, unknown>, MODEL_KEYS), version: MODEL3D_VERSION, nodes: fixed, roots } as Model3D, warnings };
 }
 
 /* ----------------------------------------------------------------------------- integração com o CadDocument */

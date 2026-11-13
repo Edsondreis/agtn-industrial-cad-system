@@ -4,8 +4,11 @@
  * para a navegação do viewport nunca travar durante uma regeneração.
  */
 import { BodyCache, type Model3D, modelToStepTree, partOf, worldMatrix } from "@agtn/model3d";
-import { OcctSolidKernel, PartEvaluator, SolidError, type SolidRef, invertRigid } from "@agtn/solid";
-import type { BodyGeom, EngineApi, EngineRequest, EngineResponse, TopoRefMsg } from "./protocol";
+import { type SheetState, createSheetBackend, edgeFromFaces } from "@agtn/sheet3d";
+import { type Loop2, flatPattern, genericOpReason, sheetMath as SM } from "@agtn/sheetgraph";
+import { OcctSolidKernel, PartEvaluator, type PartResult, SolidError, type SolidRef, invertRigid } from "@agtn/solid";
+import type { ShapeHandle } from "occt-wasm";
+import type { BodyGeom, EngineApi, EngineRequest, EngineResponse, SheetInfo, TopoRefMsg } from "./protocol";
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -55,6 +58,27 @@ function geomOf(id: string, ref: SolidRef): BodyGeom {
   };
 }
 
+/** Resumo serializável da chapa para a interface (planificação lida do MESMO grafo). */
+function sheetInfo(sh: NonNullable<PartResult["sheet"]>): SheetInfo {
+  const st = sh.state as SheetState;
+  const sv = st.solved;
+  const reason = genericOpReason(sh.generic);
+  const root = sv.flanges.find((f) => f.id === sv.root)!;
+  return {
+    feature: sh.feature,
+    generic: sh.generic,
+    T: sv.T,
+    volume: sv.volume,
+    flatArea: sv.flatArea,
+    flat: flatPattern(sv, reason ? [reason] : []),
+    flanges: sv.flanges.map((f) => ({ id: f.id, label: f.label, area: f.area })),
+    flatFrame: root.G,
+    faceLabels: st.faceLabels,
+    ms: st.ms,
+  };
+}
+const sheetsOf = (r: Record<string, NonNullable<PartResult["sheet"]>>) => Object.fromEntries(Object.entries(r).map(([id, sh]) => [id, sheetInfo(sh)]));
+
 /** Operações síncronas (o `init`, assíncrono, é tratado no onmessage). */
 const api: Omit<EngineApi, "init"> = {
   sync({ model, full }) {
@@ -64,7 +88,7 @@ const api: Omit<EngineApi, "init"> = {
     lastModel = model;
     const r = c.sync(model);
     const built = r.built.map((id) => geomOf(id, c.get(id)!));
-    return { built, removed: r.removed, errors: r.errors, ms: performance.now() - t0, features: r.features, frames: r.frames, empty: r.empty, partial: r.partial };
+    return { built, removed: r.removed, errors: r.errors, ms: performance.now() - t0, features: r.features, frames: r.frames, empty: r.empty, partial: r.partial, sheets: sheetsOf(r.sheets) };
   },
   identify({ body, kind, index, model }) {
     const m = model ?? lastModel;
@@ -101,9 +125,110 @@ const api: Omit<EngineApi, "init"> = {
         tmp.push(w);
         geom = geomOf(body, w);
       }
-      return { geom, status: res.status, frames: res.frames, ms: performance.now() - t0, failed: res.failed };
+      return { geom, status: res.status, frames: res.frames, ms: performance.now() - t0, failed: res.failed, sheet: res.sheet ? sheetInfo(res.sheet) : null };
     } finally {
       for (const t of tmp) k.release(t);
+    }
+  },
+  sheetEdge({ body, index }) {
+    const { k, c } = K();
+    const sh = c.sheetOf(body);
+    if (!sh) throw new SolidError("INVALID_PARAMS", "Este corpo não é uma peça de chapa.");
+    if (sh.generic.length) throw new SolidError("INVALID_PARAMS", `A peça tem operações sólidas depois da chapa (${sh.generic.join(", ")}) — arestas de chapa não podem mais ser escolhidas.`);
+    const st = sh.state as SheetState;
+    const raw = k.raw;
+    const ref = refOf({ body, kind: "edge", index }) as unknown as ShapeHandle;
+    const tmp: ShapeHandle[] = [];
+    const T = <H extends ShapeHandle>(h: H) => (tmp.push(h), h);
+    try {
+      const edges = raw.getSubShapes(ref, "edge").map(T);
+      const e = edges[index];
+      if (!e) throw new SolidError("INVALID_PARAMS", "Aresta não encontrada.");
+      const faces = raw.getSubShapes(ref, "face").map(T);
+      const owners = faces.map((f, i) => [f, i] as const).filter(([f]) => raw.getSubShapes(f, "edge").map(T).some((x) => raw.isSame(x, e)));
+      if (owners.length !== 2) throw new SolidError("INVALID_PARAMS", "Escolha uma aresta de borda de uma aba.");
+      const r = edgeFromFaces(st.faceLabels[owners[0][1]] ?? [], st.faceLabels[owners[1][1]] ?? []);
+      if (r === "ambigua") throw new SolidError("INVALID_PARAMS", "Aresta ambígua — escolha a aresta na borda da face da aba.");
+      if (!r) throw new SolidError("INVALID_PARAMS", "Essa aresta não é borda de aba (escolha a aresta na ponta ou no lado de uma face plana da chapa).");
+      const fl = st.solved.flanges.find((f) => f.id === r.flange)!;
+      const ol = fl.outline.find((x) => x.key === r.edge);
+      const bent = st.solved.bends.find((b) => b.parent === r.flange && b.edge === r.edge)?.label ?? null;
+      const hint = ol ? { a: SM.apply(fl.G, SM.v3(ol.a.x, ol.a.y, 0)), b: SM.apply(fl.G, SM.v3(ol.b.x, ol.b.y, 0)) } : undefined;
+      return { flange: r.flange, edge: r.edge, ...(hint ? { hint } : {}), label: `${fl.label} · ${r.edge}`, bent };
+    } finally {
+      for (const h of tmp)
+        try {
+          raw.release(h);
+        } catch {
+          /* */
+        }
+    }
+  },
+  sheetFlat({ body, model }) {
+    const { k, c } = K();
+    const sh = c.sheetOf(body);
+    if (!sh) throw new SolidError("INVALID_PARAMS", "Este corpo não é uma peça de chapa.");
+    const info = sheetInfo(sh);
+    const fp = info.flat;
+    if (fp.state !== "valida") throw new SolidError("INVALID_PARAMS", `Planificação inválida: ${fp.reasons.join(" ")}`);
+    const m = model ?? lastModel;
+    if (!m) throw new SolidError("NOT_READY", "Modelo ainda não sincronizado.");
+    const W = SM.compose(worldMatrix(m, body) as number[], info.flatFrame);
+    const raw = k.raw;
+    const tmp: ShapeHandle[] = [];
+    const T = <H extends ShapeHandle>(h: H) => (tmp.push(h), h);
+    const P = (p: { x: number; y: number }, z = 0) => SM.apply(W, SM.v3(p.x, p.y, z));
+    try {
+      const wireOf = (pts: readonly { x: number; y: number }[]) => T(raw.makeWire(pts.map((p, i) => T(raw.makeLineEdge(P(p), P(pts[(i + 1) % pts.length]))))));
+      const loopWire = (l: Loop2) =>
+        T(
+          raw.makeWire(
+            l.segs.map((sg) => {
+              if (sg.t === "line") return T(raw.makeLineEdge(P(sg.a), P(sg.b)));
+              if (sg.t === "circle") return T(raw.makeCircleEdge(P(sg.c), SM.applyDir(W, SM.v3(0, 0, 1)), sg.r));
+              const a0 = Math.atan2(sg.a.y - sg.c.y, sg.a.x - sg.c.x) + sg.sweep / 2;
+              return T(raw.makeArcEdge(P(sg.a), P({ x: sg.c.x + sg.r * Math.cos(a0), y: sg.c.y + sg.r * Math.sin(a0) }), P(sg.b)));
+            }),
+          ),
+        );
+      const outer = fp.cut[0];
+      let face = T(raw.makeFace(wireOf(outer)));
+      const inner = [...fp.cut.slice(1).map((l) => wireOf(l)), ...fp.holes.map(loopWire)];
+      if (inner.length) face = T(raw.addHolesInFace(face, inner));
+      const z = SM.applyDir(W, SM.v3(0, 0, info.T));
+      const solid = raw.extrude(face, z.x, z.y, z.z);
+      const vol = raw.getVolume(solid);
+      if (Math.abs(vol - info.T * fp.area) > 1e-9 * Math.max(1, vol)) {
+        raw.release(solid);
+        throw new SolidError("KERNEL", `Planificação: volume ${vol} ≠ T × área ${info.T * fp.area}.`);
+      }
+      const ref = solid as unknown as SolidRef;
+      try {
+        const geom = geomOf(body, ref);
+        const seg = (arr: number[], s: readonly [{ x: number; y: number }, { x: number; y: number }]) => {
+          for (const q of s) {
+            const p = P(q, info.T * 1.001);
+            arr.push(p.x, p.y, p.z);
+          }
+        };
+        const bl: number[] = [];
+        const rl: number[] = [];
+        for (const b of fp.bends) {
+          seg(bl, b.line);
+          seg(rl, b.start);
+          seg(rl, b.end);
+        }
+        return { geom, bendLines: new Float32Array(bl), regionLines: new Float32Array(rl) };
+      } finally {
+        k.release(ref);
+      }
+    } finally {
+      for (const h of tmp)
+        try {
+          raw.release(h);
+        } catch {
+          /* */
+        }
     }
   },
   info(t) {
@@ -175,8 +300,8 @@ self.onmessage = async (ev: MessageEvent<EngineRequest>) => {
       const t0 = performance.now();
       kernel?.dispose();
       kernel = await OcctSolidKernel.create({ wasm: (args as { wasm: ArrayBuffer }).wasm });
-      parts = new PartEvaluator(kernel);
-      previewParts = new PartEvaluator(kernel);
+      parts = new PartEvaluator(kernel, createSheetBackend());
+      previewParts = new PartEvaluator(kernel, createSheetBackend());
       cache = new BodyCache(kernel, parts);
       result = { kernel: kernel.name, ms: performance.now() - t0 };
     } else {

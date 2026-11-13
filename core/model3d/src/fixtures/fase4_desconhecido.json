@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "roots": ["b1"],
+  "nodes": {
+    "b1": {
+      "id": "b1",
+      "name": "Chapa_1",
+      "kind": "body",
+      "parent": null,
+      "visible": true,
+      "placement": { "origin": { "x": 0, "y": 0, "z": 0 }, "rot": { "x": 0, "y": 0, "z": 0 } },
+      "color": "#9aa7b6",
+      "material": "aco_carbono",
+      "futuroNo": { "lote": "L-2027-001", "prioridade": 2 },
+      "source": {
+        "type": "part",
+        "rollback": null,
+        "futuroFonte": ["dobradeira", "laser"],
+        "features": [
+          {
+            "id": "s1",
+            "name": "Esboço_1",
+            "t": "sketch",
+            "plane": { "t": "std", "plane": "XY", "offset": 0 },
+            "sketch": {
+              "points": {
+                "P1": { "id": "P1", "x": 0, "y": 0 },
+                "P2": { "id": "P2", "x": 100, "y": 0 },
+                "P3": { "id": "P3", "x": 100, "y": 50 },
+                "P4": { "id": "P4", "x": 0, "y": 50 }
+              },
+              "entities": {
+                "L5": { "id": "L5", "t": "line", "p1": "P1", "p2": "P2" },
+                "L6": { "id": "L6", "t": "line", "p1": "P2", "p2": "P3" },
+                "L7": { "id": "L7", "t": "line", "p1": "P3", "p2": "P4" },
+                "L8": { "id": "L8", "t": "line", "p1": "P4", "p2": "P1" }
+              },
+              "constraints": [],
+              "seq": 8
+            }
+          },
+          { "id": "CH", "name": "Chapa_1", "t": "sheetBase", "sketch": "s1", "T": 2, "R": 2, "K": 0.33, "material": "aco_carbono", "process": "ar", "ref": "externa", "side": "cima" },
+          { "id": "A1", "name": "Aba_1", "t": "sheetFlange", "edges": [{ "flange": "CH", "edge": "L5" }], "length": 30, "deflectionDeg": 90, "R": null, "K": null, "side": "cima", "ref": "externa", "campoNovo": { "alivio": "oblongo" } },
+          { "id": "X1", "name": "Calandra_1", "t": "sheetRoll", "radius": 300, "axis": "L6" }
+        ]
+      }
+    }
+  },
+  "futuroModelo": { "montagem": "M-01" }
+}

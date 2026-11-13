@@ -1,5 +1,24 @@
 import type { Model3D, NodeId } from "@agtn/model3d";
-import type { EdgeRef, FaceRef, Feature, FeatureStatus, Frame, MassProps, Measurement, StepNode, TopoInfo, TopoKind } from "@agtn/solid";
+import type { FlatPattern, SheetMat } from "@agtn/sheetgraph";
+import type { EdgeRef, FaceRef, Feature, FeatureStatus, Frame, MassProps, Measurement, SheetEdgeRef, StepNode, TopoInfo, TopoKind } from "@agtn/solid";
+
+/** Peça de chapa: resumo do grafo resolvido (dados puros) para a interface. */
+export interface SheetInfo {
+  /** última operação de chapa válida */
+  readonly feature: string;
+  /** operações sólidas genéricas depois da chapa (planificação inválida) */
+  readonly generic: readonly string[];
+  readonly T: number;
+  readonly volume: number;
+  readonly flatArea: number;
+  readonly flat: FlatPattern;
+  readonly flanges: readonly { readonly id: string; readonly label: string; readonly area: number }[];
+  /** sistema local da base (plano da planificação) → coordenadas locais da peça */
+  readonly flatFrame: SheetMat;
+  /** rótulos de proveniência por face do sólido exibido */
+  readonly faceLabels: readonly (readonly string[])[];
+  readonly ms: { readonly solve: number; readonly build: number };
+}
 
 /** Geometria de um corpo pronta para o viewport (arrays transferíveis, sem cópia). */
 export interface BodyGeom {
@@ -31,6 +50,8 @@ export interface SyncResult {
   readonly empty: NodeId[];
   /** peças com operação falhando: o sólido exibido é o último válido, antes desta operação */
   readonly partial: Record<NodeId, { readonly id: string; readonly name: string; readonly error: string }>;
+  /** peças de chapa regeneradas */
+  readonly sheets: Record<NodeId, SheetInfo>;
 }
 
 export interface PreviewResult {
@@ -40,6 +61,7 @@ export interface PreviewResult {
   readonly ms: number;
   /** a prévia parou numa falha: a geometria é a do último sólido válido */
   readonly failed: { readonly id: string; readonly name: string; readonly error: string } | null;
+  readonly sheet: SheetInfo | null;
 }
 
 export interface EngineStats {
@@ -65,6 +87,10 @@ export interface EngineApi {
   identify(a: { body: NodeId; kind: "face" | "edge"; index: number; model?: Model3D }): FaceRef | EdgeRef;
   /** prévia de uma peça com as operações em edição (não altera o documento) */
   preview(a: { model: Model3D; body: NodeId; features: readonly Feature[]; rollback: number | null }): PreviewResult;
+  /** aresta do sólido de chapa exibido → aresta do grafo (aba + chave), com a posição da linha de molde */
+  sheetEdge(a: { body: NodeId; index: number }): SheetEdgeRef & { readonly label: string; readonly bent: string | null };
+  /** sólido PLANIFICADO (contorno × T, mesmo grafo) no lugar da base, com as linhas de dobra (XYZ, pares) */
+  sheetFlat(a: { body: NodeId; model?: Model3D }): { readonly geom: BodyGeom; readonly bendLines: Float32Array; readonly regionLines: Float32Array };
   importStep(a: { text: string }): StepNode[];
   exportStep(a: { model: Model3D; ids?: NodeId[] }): string;
   exportStl(a: { ids: NodeId[] }): Uint8Array;

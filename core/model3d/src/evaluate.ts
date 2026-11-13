@@ -1,4 +1,4 @@
-import { type FeatureStatus, type Frame, type PartEvaluator, type SolidKernel, type SolidRef, invertRigid } from "@agtn/solid";
+import { type FeatureStatus, type Frame, type PartEvaluator, type PartResult, type SolidKernel, type SolidRef, invertRigid } from "@agtn/solid";
 import { type BodyNode, type Model3D, type NodeId, bodies, worldMatrix } from "./model";
 import { base64ToBytes } from "./persist";
 
@@ -57,6 +57,8 @@ export interface SyncReport {
   empty: NodeId[];
   /** peças com operação falhando: o sólido exibido é o último válido, ANTES desta operação */
   partial: Record<NodeId, { readonly id: string; readonly name: string; readonly error: string }>;
+  /** peças de chapa regeneradas: estado do grafo (planificação, proveniência) e operações genéricas depois */
+  sheets: Record<NodeId, NonNullable<PartResult["sheet"]>>;
 }
 
 /**
@@ -68,13 +70,14 @@ export class BodyCache {
   private readonly items = new Map<string, { sig: string; ref: SolidRef }>();
   private readonly status = new Map<NodeId, readonly FeatureStatus[]>();
   private readonly degraded = new Map<NodeId, { id: string; name: string; error: string }>();
+  private readonly sheet = new Map<NodeId, NonNullable<PartResult["sheet"]>>();
   constructor(
     private readonly k: SolidKernel,
     readonly parts: PartEvaluator | null = null,
   ) {}
 
   sync(m: Model3D): SyncReport {
-    const rep: SyncReport = { built: [], removed: [], errors: {}, features: {}, frames: {}, empty: [], partial: {} };
+    const rep: SyncReport = { built: [], removed: [], errors: {}, features: {}, frames: {}, empty: [], partial: {}, sheets: {} };
     const all = bodies(m);
     const byId = new Map(all.map((b) => [b.id, b]));
     // ordem: ferramentas antes de quem as combina
@@ -138,6 +141,7 @@ export class BodyCache {
       this.parts?.release(id);
       this.status.delete(id);
       this.degraded.delete(id);
+      this.sheet.delete(id);
       rep.removed.push(id);
     }
     return rep;
@@ -178,6 +182,10 @@ export class BodyCache {
       this.status.set(b.id, res.status);
       if (res.failed) this.degraded.set(b.id, res.failed);
       else this.degraded.delete(b.id);
+      if (res.sheet) {
+        this.sheet.set(b.id, res.sheet);
+        rep.sheets[b.id] = res.sheet;
+      } else this.sheet.delete(b.id);
       if (res.shape === null) return null;
       return this.k.transform(res.shape as unknown as SolidRef, world);
     } finally {
@@ -192,6 +200,10 @@ export class BodyCache {
   partialOf(id: NodeId): { id: string; name: string; error: string } | undefined {
     return this.degraded.get(id);
   }
+  /** peça de chapa: estado do grafo da última regeneração (null se não é chapa) */
+  sheetOf(id: NodeId): NonNullable<PartResult["sheet"]> | undefined {
+    return this.sheet.get(id);
+  }
   featureStatus(id: NodeId): readonly FeatureStatus[] | undefined {
     return this.status.get(id);
   }
@@ -204,5 +216,6 @@ export class BodyCache {
     this.parts?.releaseAll();
     this.status.clear();
     this.degraded.clear();
+    this.sheet.clear();
   }
 }
