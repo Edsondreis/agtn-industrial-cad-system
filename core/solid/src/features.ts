@@ -163,6 +163,12 @@ export type Feature = Base &
      */
     | { readonly t: "sheetFlatCut"; readonly sketch: FeatId }
     /**
+     * desdobrar / redobrar (ETAPA 2.5): muda só o estado das dobras escolhidas (vazio = todas). Desdobrada: região
+     * plana BA × L × T, filha na posição da planificação; θ nominal, R, K e BA intactos.
+     */
+    | { readonly t: "sheetUnfold"; readonly bends: readonly string[] }
+    | { readonly t: "sheetRefold"; readonly bends: readonly string[] }
+    /**
      * alívio de dobra (ETAPA 2.1b) — NÃO é recorte: entalhe ao lado das pontas das faixas de dobra que terminam
      * dentro da aresta. Automático (largura/profundidade null): w = T + g; d = SB + g (= R + T + g a 90°, medida
      * externa); oblongo: + w/2 para o fundo redondo passar a tangência.
@@ -206,7 +212,7 @@ export interface SheetEdgeRef {
    */
   readonly hint?: { readonly a: Vec3; readonly b: Vec3 };
 }
-export const SHEET_KINDS = ["sheetBase", "sheetFlange", "sheetContour", "sheetBendLine", "sheetCut", "sheetRelief", "sheetCorner", "sheetFlatCut"] as const;
+export const SHEET_KINDS = ["sheetBase", "sheetFlange", "sheetContour", "sheetBendLine", "sheetCut", "sheetRelief", "sheetCorner", "sheetFlatCut", "sheetUnfold", "sheetRefold"] as const;
 export type SheetFeature = Extract<Feature, { t: (typeof SHEET_KINDS)[number] }>;
 export const isSheetFeature = (f: { t: string }): f is SheetFeature => (SHEET_KINDS as readonly string[]).includes(f.t);
 /** Operação que criou a aba (o id da aba começa pelo id da operação: base, «op»@…, «op»#n, «op»~…). */
@@ -238,6 +244,8 @@ export const FEATURE_LABEL: Record<FeatureKind, string> = {
   sheetRelief: "Alívio de dobra",
   sheetCorner: "Fechamento de canto",
   sheetFlatCut: "Recorte na planificação",
+  sheetUnfold: "Desdobrar",
+  sheetRefold: "Redobrar",
 };
 
 /** Prefixos dos nomes automáticos (estilo da árvore: Sketch_Base, Extrude_1…). */
@@ -263,6 +271,8 @@ export const FEATURE_PREFIX: Record<FeatureKind, string> = {
   sheetRelief: "Alívio",
   sheetCorner: "Canto",
   sheetFlatCut: "RecortePlano",
+  sheetUnfold: "Desdobrar",
+  sheetRefold: "Redobrar",
 };
 
 export const opLabel = (op: BoolOp) => ({ new: "Novo sólido", join: "Unir", cut: "Cortar", intersect: "Interseção" })[op];
@@ -430,6 +440,10 @@ export function featureRefs(f: Feature): FeatId[] {
       break;
     case "sheetFlatCut":
       out.add(f.sketch);
+      break;
+    case "sheetUnfold":
+    case "sheetRefold":
+      f.bends.forEach((b) => out.add(sheetFlangeOwner(b)));
       break;
     case "sheetRelief":
       f.bends.forEach((b) => out.add(sheetFlangeOwner(b)));

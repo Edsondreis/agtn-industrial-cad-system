@@ -28,6 +28,8 @@ export interface FlatBend {
   readonly BA: number;
   readonly BD: number;
   readonly L: number;
+  /** estado na peça (ETAPA 2.5): a planificação é a mesma dobrada ou desdobrada */
+  readonly folded: boolean;
   /** ponta da faixa dentro da aresta (alívio aplicável) */
   readonly partial: boolean;
   readonly relief: SolvedBend["relief"] | null;
@@ -128,6 +130,7 @@ export function flatPattern(s: SheetSolved, extraInvalid: readonly string[] = []
     BA: b.BA,
     BD: b.BD,
     L: b.L,
+    folded: b.folded,
     partial: b.partial,
     relief: b.relief ?? null,
     line: b.flatLine,

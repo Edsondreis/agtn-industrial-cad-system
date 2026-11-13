@@ -1,4 +1,4 @@
-import { type SheetSolved, type SolvedBend, type SolvedFlange, TOL, dimAbs, edgeMid, interfVol, sheetMath as M, type SheetV3 as V3 } from "@agtn/sheetgraph";
+import { type SheetSolved, type SolvedBend, type SolvedFlange, TOL, dimAbs, edgeMid, interfVol, loopArea, sheetMath as M, type SheetV3 as V3 } from "@agtn/sheetgraph";
 import { SolidError } from "@agtn/solid";
 import { BooleanGlue, BooleanOp, type OcctKernel, type ShapeHandle } from "occt-wasm";
 import { type Surface, expectedSurface, isContactLabel, sameSurface } from "./provenance";
@@ -136,7 +136,8 @@ function buildWith(k: OcctKernel, s: SheetSolved, T: Reg, UB: number, tamper?: B
   const visit = (f: SolvedFlange) => {
     pieces.push(prism(f));
     for (const b of childBends(f.id)) {
-      if (b.cut) pieces.push(...sectors(b));
+      if (!b.folded) pieces.push(...flatStrip(b));
+      else if (b.cut) pieces.push(...sectors(b));
       else pieces.push(sector(b));
       visit(flangeById.get(b.child)!);
     }
@@ -166,9 +167,17 @@ function buildWith(k: OcctKernel, s: SheetSolved, T: Reg, UB: number, tamper?: B
           built.push({ label: `${f.id}/h:${h.key}`, ends: null });
           return T(k.makeWire([T(k.makeCircleEdge(W(segs[0].c), M.applyDir(f.G, M.v3(0, 0, 1)), segs[0].r))]));
         }
+        // laço interno no sentido horário (o OCCT inverte um furo anti-horário e a ordem das arestas mudaria):
+        // percorre os trechos ao contrário, cada um com o rótulo do índice ORIGINAL
+        const ccw = loopArea(h.loop) > 0;
+        const order = segs.map((_, i) => i);
+        if (ccw) order.reverse();
+        const rev = (sg: (typeof segs)[number]): (typeof segs)[number] =>
+          !ccw || sg.t === "circle" ? sg : sg.t === "line" ? { t: "line", a: sg.b, b: sg.a } : { ...sg, a: sg.b, b: sg.a, sweep: -sg.sweep };
         return T(
           k.makeWire(
-            segs.map((sg, i) => {
+            order.map((i) => {
+              const sg = rev(segs[i]);
               const label = `${f.id}/h:${h.key}:${i}`;
               if (sg.t === "line") return line(W(sg.a), W(sg.b), label);
               if (sg.t === "circle") throw new SolidError("INVALID_PARAMS", "Círculo dentro de um contorno de recorte.");
@@ -224,6 +233,39 @@ function buildWith(k: OcctKernel, s: SheetSolved, T: Reg, UB: number, tamper?: B
       }),
     );
     return out;
+  }
+  /**
+   * Região de dobra DESDOBRADA (ETAPA 2.5): prisma plano BA × L × T no plano da pai (o comprimento desenvolvido é
+   * conservado), com as mesmas faces nomeadas (c0, c1, l0, l1, int/ext viram planos; recortes: u:i, s:j).
+   */
+  function flatStrip(b: SolvedBend): Piece[] {
+    const pf = flangeById.get(b.parent)!;
+    const [A, B] = b.tangent;
+    const d = M.unit2(M.sub2(B, A));
+    const n = { x: d.y, y: -d.x };
+    const up = b.side === "cima";
+    const z0 = `${b.id}/${up ? "ext" : "int"}`;
+    const zT = `${b.id}/${up ? "int" : "ext"}`;
+    const near = (x: number, y: number) => Math.abs(x - y) <= 1e-12 * Math.max(1, Math.abs(y));
+    const us = b.cut?.us ?? [];
+    const ss = b.cut?.ss ?? [];
+    const uLab = (u: number, end: boolean) => (near(u, 0) && !end ? `${b.id}/l0` : near(u, b.L) && end ? `${b.id}/l1` : `${b.id}/u:${us.findIndex((x) => near(x, u))}`);
+    const sLab = (w: number) => (near(w, 0) ? `${b.id}/c0` : near(w, b.BA) ? `${b.id}/c1` : `${b.id}/s:${ss.findIndex((x) => near(x, w))}`);
+    const rects = b.cut ? b.cut.slabs.flatMap((q) => q.mat.map(([s0, s1]) => ({ u0: q.u0, u1: q.u1, s0, s1 }))) : [{ u0: 0, u1: b.L, s0: 0, s1: b.BA }];
+    const W = (u: number, w: number) => M.apply(pf.G, M.v3(A.x + d.x * u + n.x * w, A.y + d.y * u + n.y * w, 0));
+    return rects.map((r, i) => {
+      const pts = [W(r.u0, r.s0), W(r.u1, r.s0), W(r.u1, r.s1), W(r.u0, r.s1)];
+      const labels = [sLab(r.s0), uLab(r.u1, true), sLab(r.s1), uLab(r.u0, false)];
+      const built: Built[] = pts.map((p, k2) => ({ label: labels[k2], ends: [p, pts[(k2 + 1) % 4]] }));
+      const face = T(k.makeFace(T(k.makeWire(pts.map((p, k2) => T(k.makeLineEdge(p, pts[(k2 + 1) % 4])))))));
+      const what = `${b.label} (desdobrada${rects.length > 1 ? `, fatia ${i + 1}` : ""})`;
+      const fe = faceEdgeLabels(face, built, what);
+      const eh = hashes(fe);
+      const z = M.applyDir(pf.G, M.v3(0, 0, s.T));
+      const evo = k.extrudeWithHistory(face, z.x, z.y, z.z, [k.hashCode(face, UB), ...eh], UB);
+      const shape = T(evo.result);
+      return finish(rects.length > 1 ? `${pid(b)}§${i}` : pid(b), what, "dobra", shape, labelsFrom(shape, evo, eh, built, z0, zT, what));
+    });
   }
   function sector(b: SolvedBend): Piece {
     const pf = flangeById.get(b.parent)!;
@@ -398,8 +440,8 @@ function buildWith(k: OcctKernel, s: SheetSolved, T: Reg, UB: number, tamper?: B
     const nC = planeOf(`${b.child}/A`).n;
     const u = M.unit3(b.axis.dir);
     const ang = (Math.atan2(M.dot3(M.cross3(nP, nC), u), M.dot3(nP, nC)) * 180) / Math.PI;
-    if (Math.abs(ang - b.deflectionDeg) > TOL.dimAngDeg)
-      throw new SolidError("KERNEL", `${b.label}: ângulo medido ${fmt(ang, 7)}° ≠ θ ${fmt(b.deflectionDeg, 7)}° (sentido ou eixo invertido).`);
+    if (Math.abs(ang - b.effectiveDeg) > TOL.dimAngDeg)
+      throw new SolidError("KERNEL", `${b.label}: ângulo medido ${fmt(ang, 7)}° ≠ θ efetivo ${fmt(b.effectiveDeg, 7)}° (sentido ou eixo invertido).`);
   }
   // caixa envolvente exata
   const ex = exactBox(s);
@@ -436,6 +478,13 @@ export function exactBox(s: SheetSolved): { min: V3; max: V3 } {
   const E = [M.v3(1, 0, 0), M.v3(0, 1, 0), M.v3(0, 0, 1)];
   for (const b of s.bends) {
     const pf = s.flanges.find((x) => x.id === b.parent)!;
+    if (!b.folded) {
+      // desdobrada: os cantos do prisma plano BA × L × T
+      const [A, B] = b.tangent;
+      const d = M.unit2(M.sub2(B, A));
+      for (const t of [A, B]) for (const w of [0, b.BA]) for (const z of [0, s.T]) put(M.apply(pf.G, M.v3(t.x + d.y * w, t.y - d.x * w, z)));
+      continue;
+    }
     const u = M.unit3(b.axis.dir);
     const th = (b.deflectionDeg * Math.PI) / 180;
     for (const t of b.tangent)

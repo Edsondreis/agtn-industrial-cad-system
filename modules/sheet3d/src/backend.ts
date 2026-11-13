@@ -167,6 +167,10 @@ function opOf(f: Exclude<SheetFeature, { t: "sheetBase" }>, st: SheetState, ctx:
       if (outers.some((r) => r.holes.length)) throw new SolidError("INVALID_PARAMS", `${f.name}: recorte com ilha interna não é suportado.`);
       return { t: "recorte_plano", id: f.id, label: f.name, loops: outers.map((r) => loopOf(r.outer.segs, m.map, m.sign)) };
     }
+    case "sheetUnfold":
+      return { t: "desdobrar", id: f.id, label: f.name, bends: f.bends };
+    case "sheetRefold":
+      return { t: "redobrar", id: f.id, label: f.name, bends: f.bends };
     case "sheetCorner":
       return { t: "canto", id: f.id, label: f.name, corners: f.corners, kind: f.kind, gap: f.gap, closer: f.closer, relief: f.relief };
     case "sheetCut": {

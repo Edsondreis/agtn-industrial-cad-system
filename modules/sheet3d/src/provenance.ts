@@ -74,6 +74,16 @@ export function expectedSurface(s: SheetSolved, label: string): Surface | null {
   const [A, B] = b.tangent;
   const d = M.unit2(M.sub2(B, A));
   const PP = (p: { x: number; y: number }, z = 0) => M.apply(parent.G, M.v3(p.x, p.y, z));
+  if (!b.folded && (role === "int" || role === "ext" || role.startsWith("s:"))) {
+    // desdobrada (2.5): faces da região plana no plano da pai; s:j = plano normal a n em s_j
+    if (role.startsWith("s:")) {
+      const w = b.cut?.ss[Number(role.slice(2))];
+      if (w === undefined) return null;
+      return { kind: "plane", p: PP({ x: A.x + d.y * w, y: A.y - d.x * w }), n: M.applyDir(parent.G, M.v3(d.y, -d.x, 0)) };
+    }
+    const top = (role === "int") === (b.side === "cima");
+    return { kind: "plane", p: PP(A, top ? T : 0), n: M.applyDir(parent.G, M.v3(0, 0, top ? 1 : -1)) };
+  }
   if (role.startsWith("u:") || role.startsWith("s:")) {
     const i = Number(role.slice(2));
     if (!b.cut || !Number.isInteger(i)) return null;

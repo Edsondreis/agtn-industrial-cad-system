@@ -214,4 +214,12 @@ describe("compatibilidade e ambiente", () => {
     expect(r2.status[4].state).toBe("error");
     expect(r2.status[4].error).toMatch(/oblíquo/);
   });
+  it("recorte retangular (anti-horário no esboço) numa aba: a ordem das arestas do furo confere no OCCT", () => {
+    const r0 = rect(100, 50);
+    const s = sk(r0.s, 0, "SH");
+    const hole = F("Esboço", { t: "sketch", plane: { t: "std", plane: "XY", offset: 2 }, sketch: addRectangle(emptySketch(), { x: 20, y: 20 }, { x: 40, y: 30 }).s }, "SQ");
+    const r = ev.evaluate("prh", [s, base("SH"), hole, F("Recorte_1", { t: "sheetCut", sketch: "SQ", flange: "CH" }, "RQ")]);
+    expect(states(r)).toEqual(["ok", "ok", "ok", "ok"]);
+    expect(rel(vol(r), (5000 - 200) * 2)).toBeLessThan(1e-9);
+  });
 });

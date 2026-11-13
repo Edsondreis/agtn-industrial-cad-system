@@ -127,6 +127,8 @@ const P: Record<string, string> = {
   sheetBend3d: "M3 17h8a4 4 0 0 0 4-4V4 M3 20h8a7 7 0 0 0 7-7V4 M3 14h4 M11 4h3",
   sheetCut3d: "M3 15l6-4h12l-6 4z M11 13m-2 0a2 1.2 0 1 0 4 0a2 1.2 0 1 0-4 0",
   sheetRelief3d: "M3 16l6-4h12l-6 4z M11 13.3v-3h2.2v1.8 M3 16v2l6-4",
+  sheetUnfold3d: "M3 17h18 M3 17V11 M3 11l4-4 M14 17l3-6 M17 11h4",
+  sheetRefold3d: "M3 17h10 M13 17V7 M3 17V11 M16 7a4 4 0 0 1 4 4l-2-1 M20 11l1-2",
   sheetCorner3d: "M4 18V8l5-4v10z M9 14l10 0v-10H9 M4 18h10l5-4",
   flat3d: "M3 9h18v8H3z M9 9v8 M15 9v8 M3 6h3 M18 6h3",
   send2d: "M4 4h10v16H4z M14 12h7 M18 9l3 3-3 3 M7 8h4 M7 12h4 M7 16h4",

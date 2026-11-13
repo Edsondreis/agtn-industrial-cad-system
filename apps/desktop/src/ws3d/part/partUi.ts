@@ -56,6 +56,8 @@ export const FEATURE_ICON: Record<FeatureKind, string> = {
   sheetRelief: "sheetRelief3d",
   sheetCorner: "sheetCorner3d",
   sheetFlatCut: "sheetCut3d",
+  sheetUnfold: "sheetUnfold3d",
+  sheetRefold: "sheetRefold3d",
 };
 export const featureIcon = (f: Feature) =>
   f.t === "pattern" && f.kind === "circular" ? "patcir3d" : f.t === "combine" ? (f.op === "cut" ? "cut3d" : f.op === "intersect" ? "intersect3d" : "union3d") : FEATURE_ICON[f.t];
@@ -105,6 +107,9 @@ export function featureSummary(f: Feature): string {
       return "passante";
     case "sheetFlatCut":
       return "na planificação · atravessa dobras";
+    case "sheetUnfold":
+    case "sheetRefold":
+      return f.bends.length ? `${f.bends.length} dobra(s)` : "todas";
     case "sheetCorner":
       return `${{ aberto: "aberto", sobreposto: "sobreposto", encosto: "encosto", esquadria: "esquadria" }[f.kind]} · g ${n(f.gap)} · ${f.corners.length} canto(s)`;
     case "sheetRelief":
@@ -197,6 +202,10 @@ export function defaultDraft(kind: FeatureKind, features: readonly Feature[], at
       return { t: "sheetCut", sketch: sk, flange: sheetBaseBefore(features, at) ?? "" };
     case "sheetFlatCut":
       return { t: "sheetFlatCut", sketch: sk };
+    case "sheetUnfold":
+      return { t: "sheetUnfold", bends: [] };
+    case "sheetRefold":
+      return { t: "sheetRefold", bends: [] };
     case "sheetRelief":
       return { t: "sheetRelief", bends: [], kind: "retangular", gap: loadPrefs().reliefGap, width: null, depth: null };
     case "sheetCorner":

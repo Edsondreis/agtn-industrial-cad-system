@@ -267,6 +267,28 @@ async def main():
             check("2.4 recorte plano 20 × 20 atravessando D1: todas ok, sólido OCCT = grafo, planificação válida com o rasgo interno", all(x[1] == "ok" for x in states) and v is not None and c["state"] == "valida" and c["loops"] == 2, f"{states} · {c} · {st}")
             await shot(pg, "10_recorte_plano_dobrado")
             await shot(pg, "11_recorte_plano_planificado", flat=True)
+
+            # ---------------- 2.5 desdobrar tudo / redobrar: BA conservado, volta exata
+            vfold, shfold = v, sh
+            cfold = c
+            bbf = await pg.evaluate(f"() => {{ const g = window.__agtn3d.vp.geom({BODY}.id); return g ? g.props.box ?? null : null }}")
+            await pg.click('.rb [data-op="sheetUnfold"]')
+            await pg.wait_for_selector('.fd[data-feature-dialog="sheetUnfold"]')
+            nb = await pg.locator(".fd [data-bend]").count()
+            st = await ok_dialog(pg)
+            v, sh = await consistent(pg)
+            u = await pg.evaluate(f"() => {{ const s = window.__agtn3d.sheets()[{BODY}.id]; return {{ vol: s.volume, area: s.flatArea, T: s.T, folded: s.flat.bends.map(b => b.folded), state: s.flat.state }} }}")
+            check("2.5 desdobrar tudo: lista as 2 dobras; sólido OCCT = T × área da planificação (região plana BA × L × T); planificação igual", nb == 2 and v is not None and abs(v - u["T"] * u["area"]) < 1e-6 * v and u["folded"] == [False, False] and abs(u["area"] - cfold["area"]) < 1e-9 and u["state"] == "valida", f"{nb} · {v} · {u} · {st}")
+            await shot(pg, "12_desdobrado")
+            await pg.click('.rb [data-op="sheetRefold"]')
+            await pg.wait_for_selector('.fd[data-feature-dialog="sheetRefold"]')
+            await ok_dialog(pg)
+            v, sh = await consistent(pg)
+            r2 = await pg.evaluate(f"() => {{ const s = window.__agtn3d.sheets()[{BODY}.id]; return {{ vol: s.volume, area: s.flatArea, folded: s.flat.bends.map(b => b.folded) }} }}")
+            check("2.5 redobrar tudo: volta exatamente ao volume e à planificação de antes (recalculado, sem acúmulo)", v is not None and abs(v - vfold) < 1e-9 * vfold and r2["vol"] == cfold["vol"] and r2["area"] == cfold["area"] and r2["folded"] == [True, True], f"{v} vs {vfold} · {r2}")
+            await shot(pg, "13_redobrado")
+            states = await pg.evaluate(STATES)
+            check("2.5 árvore: Desdobrar_1 e Redobrar_1 ok", [x[0] for x in states][-2:] == ["Desdobrar_1", "Redobrar_1"] and all(x[1] == "ok" for x in states), str(states))
         except Exception:
             await pg.screenshot(path=f"{OUT}/zz_falha.png")
             raise

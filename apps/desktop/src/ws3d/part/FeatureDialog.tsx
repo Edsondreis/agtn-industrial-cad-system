@@ -1,7 +1,7 @@
 import type { Model3D, NodeId } from "@agtn/model3d";
 import { type AxisRef, type EdgeRef, type FaceRef, type FeatId, type Feature, type FeatureDraft, type FeatureStatus, type Frame, FEATURE_LABEL, type PlaneRef, type SheetEdgeRef, type StdPlane, to3d, validateFeature } from "@agtn/solid";
 import type { SheetInfo } from "../protocol";
-import { BaseFields, BendLineFields, ContourFields, CornerFields, FlangeFields, FlangeSelect, ReliefFields } from "./SheetFields";
+import { BaseFields, BendLineFields, ContourFields, CornerFields, FlangeFields, FlangeSelect, FoldFields, ReliefFields } from "./SheetFields";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NumField } from "../../ui/fields";
 import { Icon } from "../../ui/Icons";
@@ -396,6 +396,10 @@ export function FeatureDialog(p: FeatureDialogProps) {
       }
       case "sheetRelief":
         return <ReliefFields d={d} set={(x) => set<"sheetRelief">(x)} bends={p.sheet?.flat.bends ?? []} />;
+      case "sheetUnfold":
+        return <FoldFields d={d} set={(x) => set<"sheetUnfold">(x)} bends={p.sheet?.flat.bends ?? []} unfold />;
+      case "sheetRefold":
+        return <FoldFields d={d} set={(x) => set<"sheetRefold">(x)} bends={p.sheet?.flat.bends ?? []} unfold={false} />;
       case "sheetCorner":
         return <CornerFields d={d} set={(x) => set<"sheetCorner">(x)} corners={p.sheet?.corners ?? []} />;
       case "sheetFlatCut":

@@ -188,7 +188,14 @@ export type SheetOp =
    * [φ0, φ1] × [u0, u1] pela fibra neutra, φ = s / (R + K·T)); arcos e círculos dentro da faixa: bloqueados.
    * O laço fica dentro do contorno da planificação (não toca a borda externa).
    */
-  | { readonly t: "recorte_plano"; readonly id: string; readonly label: string; readonly loops: readonly Loop2[] };
+  | { readonly t: "recorte_plano"; readonly id: string; readonly label: string; readonly loops: readonly Loop2[] }
+  /**
+   * Desdobrar / redobrar (ETAPA 2.5): muda só o ESTADO das dobras (lista vazia = todas). Desdobrada: θ efetivo 0
+   * com a região de dobra plana BA × L × T (o comprimento desenvolvido original é conservado) e a filha na posição
+   * da planificação; o θ nominal, R, K e BA não mudam. Redobrar volta à geometria nominal exata (recalculada).
+   */
+  | { readonly t: "desdobrar"; readonly id: string; readonly label: string; readonly bends: readonly string[] }
+  | { readonly t: "redobrar"; readonly id: string; readonly label: string; readonly bends: readonly string[] };
 
 export interface SheetSpec {
   readonly base: SheetBaseSpec;
@@ -263,6 +270,12 @@ export interface SolvedBend {
   readonly partial: boolean;
   /** eixo da dobra (mundo): ponto e direção unitária; giro de +θ em torno de `dir` leva a pai à filha */
   readonly axis: { readonly p: V3; readonly dir: V3 };
+  /**
+   * estado (ETAPA 2.5): dobrada (θ efetivo = θ nominal) ou desdobrada (θ efetivo = 0; região plana BA × L × T).
+   * `deflectionDeg` é sempre o NOMINAL; BA, OSB, ISB, BD, SB e a planificação vêm dele.
+   */
+  readonly folded: boolean;
+  readonly effectiveDeg: number;
   /** posição do material (ETAPA 2.2) e o deslocamento δ da linha de molde para fora da aresta escolhida */
   readonly position: MaterialPosition;
   readonly delta: number;
@@ -317,7 +330,10 @@ export interface SheetSolved {
   readonly root: string;
   readonly flanges: readonly SolvedFlange[];
   readonly bends: readonly SolvedBend[];
-  /** V = Σ A_i·T + Σ θ·T·(R + T/2)·L (mm³) */
+  /**
+   * V = Σ A_i·T + Σ θ·T·(R + T/2)·L (mm³). Região recortada (2.4): Σ fatias Δu·Δs·T·(R + T/2)/(R + K·T).
+   * Desdobrada (2.5): BA·L·T (fatias Δu·Δs·T) — modelo do fator K: conserva o comprimento da fibra neutra.
+   */
   readonly volume: number;
   /** área da planificação = Σ A_i + Σ BA·L (mm²) */
   readonly flatArea: number;

@@ -98,6 +98,8 @@ interface WBend {
   relief?: { op: string; label: string; kind: ReliefKind; gap: number; width?: number; depth?: number };
   /** posição do material (ETAPA 2.2); ausente = "dentro" */
   position?: MaterialPosition;
+  /** desdobrada (ETAPA 2.5) */
+  unfolded?: boolean;
 }
 const isPartial = (b: WBend) => b.o0 !== undefined;
 
@@ -308,6 +310,21 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
         for (const b of list) b.relief = { op: op.id, label: op.label, kind: op.kind, gap: op.gap, ...(op.width !== undefined ? { width: op.width } : {}), ...(op.depth !== undefined ? { depth: op.depth } : {}) };
         return;
       }
+      case "desdobrar":
+      case "redobrar": {
+        const un = op.t === "desdobrar";
+        const what = un ? "desdobrar" : "redobrar";
+        const list = op.bends.length ? op.bends : order.filter((id) => (un ? !bends.get(id)!.unfolded : bends.get(id)!.unfolded));
+        if (!list.length) return void err(un ? "UNFOLD_NONE" : "REFOLD_NONE", `${op.label}: não há dobra para ${what}.`, { op: op.id });
+        for (const id of list) {
+          const b = bends.get(id);
+          if (!b) return void err("REF_LOST", `${op.label}: referência perdida — a dobra ${id} não existe mais.`, { op: op.id, bends: [id] });
+          if (un && b.unfolded) return void err("UNFOLD_TWICE", `${op.label}: ${b.label} já está desdobrada.`, { op: op.id, bends: [id] });
+          if (!un && !b.unfolded) return void err("REFOLD_FOLDED", `${op.label}: ${b.label} não está desdobrada.`, { op: op.id, bends: [id] });
+        }
+        for (const id of list) bends.get(id)!.unfolded = un;
+        return;
+      }
       case "recorte_plano": {
         if (!op.loops.length) return void err("CUT_EMPTY", `${op.label}: o esboço não tem contorno fechado.`, { op: op.id });
         loopKeys(op.loops).forEach((key, i) => flatCuts.push({ op: op.id, label: op.label, key, loop: op.loops[i] }));
@@ -475,7 +492,9 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
   const z0 = base.side === "baixo" ? -T : 0;
   const G0 = frameMat(v3(pl.o.x + pl.n.x * z0, pl.o.y + pl.n.y * z0, pl.o.z + pl.n.z * z0), pl.x, pl.y, pl.n);
 
-  const visit = (fid: string, G: Mat, H: Mat, outline: OutlineEdge[]): boolean => {
+  /** G: posição efetiva (estado dobrado/desdobrado); Gn: posição NOMINAL (tudo dobrado) — a geometria que define
+   * a peça (cantos) usa Gn, para não mudar ao desdobrar */
+  const visit = (fid: string, G: Mat, H: Mat, outline: OutlineEdge[], Gn: Mat = G): boolean => {
     const f = flanges.get(fid)!;
     // a raiz da filha recua o SB real (δ só desloca a linha de molde do lado da pai)
     const sbOf = (b: WBend, raiz = false) => (raiz ? setbackFor(b.ref, b.theta, b.R, T) : offOf(b));
@@ -601,7 +620,8 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
       const C: V3 = v3(A.x, A.y, up ? T + b.R : -b.R);
       const ax: V3 = up ? v3(-dE.x, -dE.y, 0) : v3(dE.x, dE.y, 0);
       const fold = compose(rotation(C, ax, th), compose(translation(v3(-BA * n.x, -BA * n.y, 0)), P));
-      return { b, A, B, Lb, n, th, BA, SB, C, ax, Gc: compose(G, fold), Hc: compose(H, P) };
+      // desdobrada: a filha na posição da planificação (P), NÃO θ = 0 na fórmula da dobra (que zeraria o BA)
+      return { b, A, B, Lb, n, th, BA, SB, C, ax, Gc: compose(G, b.unfolded ? P : fold), Gn: compose(Gn, fold), Hc: compose(H, P) };
     });
     // 2) cantos: o lado de cada aba no canto = interseção com o plano da outra (fibra mais restritiva)
     type Line2 = { n: V2; c: number };
@@ -619,16 +639,16 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
       /** faces da aba: normal para fora (da face interna para a externa) e as constantes dos dois planos */
       const facesOf = (x: (typeof cfs)[number]) => {
         const outerZ = x.b.side === "cima" ? 0 : T;
-        const nW = applyDir(x.Gc, v3(0, 0, outerZ === 0 ? -1 : 1));
-        const d = (z: number) => dot3(nW, apply(x.Gc, v3(0, 0, z)));
+        const nW = applyDir(x.Gn, v3(0, 0, outerZ === 0 ? -1 : 1));
+        const d = (z: number) => dot3(nW, apply(x.Gn, v3(0, 0, z)));
         return { n: nW, outer: d(outerZ), inner: d(T - outerZ) };
       };
       const Fa = facesOf(ca);
       const Fb = facesOf(cb);
       /** semiespaço m·p ≤ d (mundo) → reta no plano da aba x (local), na fibra mais restritiva (z = 0 ou T) */
       const toLocal = (x: (typeof cfs)[number], m: V3, d: number): Line2 | null => {
-        const nl = v3(dot3(m, applyDir(x.Gc, v3(1, 0, 0))), dot3(m, applyDir(x.Gc, v3(0, 1, 0))), dot3(m, applyDir(x.Gc, v3(0, 0, 1))));
-        const cl = d - dot3(m, apply(x.Gc, v3(0, 0, 0)));
+        const nl = v3(dot3(m, applyDir(x.Gn, v3(1, 0, 0))), dot3(m, applyDir(x.Gn, v3(0, 1, 0))), dot3(m, applyDir(x.Gn, v3(0, 0, 1))));
+        const cl = d - dot3(m, apply(x.Gn, v3(0, 0, 0)));
         const L = Math.hypot(nl.x, nl.y);
         if (L < 1e-9) return null;
         const cc = Math.min(cl, cl - nl.z * T);
@@ -738,6 +758,8 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
         edge: b.edge,
         child: b.child,
         deflectionDeg: b.theta,
+        folded: !b.unfolded,
+        effectiveDeg: b.unfolded ? 0 : b.theta,
         includedDeg: bendToIncluded(b.theta),
         R: b.R,
         K: b.K,
@@ -784,7 +806,7 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
         relief: { kind: "retangular", a: ba, b: bb },
       });
     }
-    for (const cf of cfs) if (!visit(cf.b.child, cf.Gc, cf.Hc, outlines.get(cf.b.child)!)) return false;
+    for (const cf of cfs) if (!visit(cf.b.child, cf.Gc, cf.Hc, outlines.get(cf.b.child)!, cf.Gn)) return false;
     return true;
   };
 
@@ -816,6 +838,8 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
 
 /** Volume da região de dobra: θ·T·(R + T/2)·L; com recorte (2.4), Σ fatias (Δu·Δs / (R + K·T))·T·(R + T/2). */
 export function bendVolume(b: SolvedBend, T: number): number {
+  // desdobrada (2.5): região plana BA × L × T (fatias Δu·Δs·T)
+  if (!b.folded) return b.cut ? bendFlatArea(b) * T : b.BA * b.L * T;
   if (!b.cut) return deg(b.deflectionDeg) * T * (b.R + T / 2) * b.L;
   const k = (T * (b.R + T / 2)) / (b.R + b.K * T);
   return b.cut.slabs.reduce((v, q) => v + q.mat.reduce((w, m) => w + (q.u1 - q.u0) * (m[1] - m[0]) * k, 0), 0);

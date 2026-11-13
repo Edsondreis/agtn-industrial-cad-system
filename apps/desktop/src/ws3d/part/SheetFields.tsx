@@ -388,3 +388,47 @@ export function CornerFields({
     </>
   );
 }
+
+/** Desdobrar / redobrar (ETAPA 2.5): dobras escolhidas (nenhuma marcada = todas as que podem). */
+export function FoldFields({
+  d,
+  set,
+  bends,
+  unfold,
+}: {
+  d: { bends: readonly string[] };
+  set: (p: { bends: string[] }) => void;
+  bends: readonly { id: string; label: string; n: number; folded: boolean; deflectionDeg: number; BA: number }[];
+  unfold: boolean;
+}) {
+  const on = new Set(d.bends);
+  const can = bends.filter((b) => b.folded === unfold || on.has(b.id));
+  return (
+    <>
+      <div className="fd-list">
+        <div className="fd-list-h">{unfold ? "Dobras a desdobrar" : "Dobras a redobrar"} (nenhuma marcada = todas)</div>
+        {!can.length && <div className="fd-note">{unfold ? "Todas as dobras já estão desdobradas." : "Nenhuma dobra desdobrada."}</div>}
+        {can.map((b) => (
+          <label key={b.id} className="fd-check" data-bend={b.id}>
+            <input
+              type="checkbox"
+              checked={on.has(b.id)}
+              onChange={(e) => {
+                const x = new Set(on);
+                if (e.target.checked) x.add(b.id);
+                else x.delete(b.id);
+                set({ bends: bends.filter((q) => x.has(q.id)).map((q) => q.id) });
+              }}
+            />
+            D{b.n} {b.label} · θ {n2(b.deflectionDeg)}° · BA {n2(b.BA)} mm
+          </label>
+        ))}
+      </div>
+      <div className="fd-note">
+        {unfold
+          ? "Desdobrada: θ efetivo 0, a região de dobra fica plana com o comprimento desenvolvido BA (conservado) e a aba vai para a posição da planificação. θ nominal, R, K e BA não mudam."
+          : "Redobrar recalcula a geometria nominal do histórico — exata, sem acúmulo. Recortes feitos com a dobra desdobrada voltam com a aba."}
+      </div>
+    </>
+  );
+}

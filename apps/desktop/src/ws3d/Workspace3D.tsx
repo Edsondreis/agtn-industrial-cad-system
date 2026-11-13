@@ -122,6 +122,8 @@ const SHEET_OPS: [FeatureKind, string, string, string][] = [
   ["sheetRelief", "sheetRelief3d", "Alívio", "Alívio de dobra nas pontas das faixas que terminam dentro da aresta (retangular, oblongo, lágrima)"],
   ["sheetCorner", "sheetCorner3d", "Canto", "Fechamento de canto entre abas vizinhas: sobreposto, encosto ou esquadria, com folga"],
   ["sheetCut", "sheetCut3d", "Recorte", "Recorte / furo passante numa aba plana (esboço na face)"],
+  ["sheetUnfold", "sheetUnfold3d", "Desdobrar", "Desdobrar dobras escolhidas (ou todas) na árvore: região plana BA × L × T, θ nominal e BA intactos"],
+  ["sheetRefold", "sheetRefold3d", "Redobrar", "Redobrar: volta à geometria nominal exata (recalculada do histórico)"],
   ["sheetFlatCut", "sheetCut3d", "Recorte plano", "Recorte desenhado na planificação (plano da base) que pode atravessar dobras: retangular/oblongo alinhado; lados na faixa paralelos ou perpendiculares à dobra"],
 ];
 
