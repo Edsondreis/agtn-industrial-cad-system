@@ -46,6 +46,7 @@ export function expectedSurface(s: SheetSolved, label: string): Surface | null {
     if (role.startsWith("e:")) {
       const e = f.flat.find((x) => x.key === role.slice(2));
       if (!e) return null;
+      if (e.arc) return { kind: "cyl", p: P(e.arc.c.x, e.arc.c.y, 0), axis: D(0, 0, 1), r: M.len2(M.sub2(e.a, e.arc.c)) };
       const d = M.unit2(M.sub2(e.b, e.a));
       return { kind: "plane", p: P(e.a.x, e.a.y, 0), n: D(d.y, -d.x, 0) };
     }

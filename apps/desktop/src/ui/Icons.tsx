@@ -126,6 +126,7 @@ const P: Record<string, string> = {
   sheetContour3d: "M3 19h7a3 3 0 0 0 3-3V8a3 3 0 0 1 3-3h5 M3 21h7 M21 7h-5",
   sheetBend3d: "M3 17h8a4 4 0 0 0 4-4V4 M3 20h8a7 7 0 0 0 7-7V4 M3 14h4 M11 4h3",
   sheetCut3d: "M3 15l6-4h12l-6 4z M11 13m-2 0a2 1.2 0 1 0 4 0a2 1.2 0 1 0-4 0",
+  sheetRelief3d: "M3 16l6-4h12l-6 4z M11 13.3v-3h2.2v1.8 M3 16v2l6-4",
   flat3d: "M3 9h18v8H3z M9 9v8 M15 9v8 M3 6h3 M18 6h3",
   send2d: "M4 4h10v16H4z M14 12h7 M18 9l3 3-3 3 M7 8h4 M7 12h4 M7 16h4",
 };

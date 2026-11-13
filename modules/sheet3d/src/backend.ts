@@ -31,7 +31,16 @@ export interface SheetState {
 }
 
 export function createSheetBackend(): SheetBackend {
-  return { apply };
+  return { apply, superseded };
+}
+
+/** Avisos do grafo da etapa que não existem mais no estado final (mesmo código e mesmas dobras). */
+function superseded(step: unknown, final: unknown, featureId: string): readonly string[] {
+  const a = step as SheetState;
+  const b = final as SheetState;
+  const key = (i: { code: string; bends?: readonly string[] }) => `${i.code}|${(i.bends ?? []).join(",")}`;
+  const still = new Set(b.solved.issues.filter((i) => i.level === "warning").map(key));
+  return a.solved.issues.filter((i) => i.level === "warning" && i.op === featureId && !still.has(key(i))).map((i) => i.message);
 }
 
 function apply(f: SheetFeature, ctx: SheetCtx): SheetApply {
@@ -137,6 +146,17 @@ function opOf(f: Exclude<SheetFeature, { t: "sheetBase" }>, st: SheetState, ctx:
         bend: bendOf(st, f.deflectionDeg, f.R, f.K),
       };
     }
+    case "sheetRelief":
+      return {
+        t: "alivio",
+        id: f.id,
+        label: f.name,
+        bends: f.bends,
+        kind: f.kind,
+        gap: f.gap,
+        ...(f.width !== null ? { width: f.width } : {}),
+        ...(f.depth !== null ? { depth: f.depth } : {}),
+      };
     case "sheetCut": {
       const { frame, sketch } = ctx.sketch(f.sketch);
       const m = onFlange(st, f.flange, frame, f.name);

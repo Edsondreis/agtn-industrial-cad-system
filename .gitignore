@@ -8,3 +8,4 @@ coverage/
 tests/output/
 apps/desktop/src-tauri/gen/schemas/
 *.local
+__pycache__/

@@ -152,6 +152,20 @@ export type Feature = Base &
       }
     /** recorte/furo passante numa aba plana (contornos fechados do esboço sobre a face da aba) */
     | { readonly t: "sheetCut"; readonly sketch: FeatId; readonly flange: string }
+    /**
+     * alívio de dobra (ETAPA 2.1b) — NÃO é recorte: entalhe ao lado das pontas das faixas de dobra que terminam
+     * dentro da aresta. Automático (largura/profundidade null): w = T + g; d = SB + g (= R + T + g a 90°, medida
+     * externa); oblongo: + w/2 para o fundo redondo passar a tangência.
+     */
+    | {
+        readonly t: "sheetRelief";
+        /** dobras (id = id da aba-filha) */
+        readonly bends: readonly string[];
+        readonly kind: "retangular" | "oblongo" | "lagrima";
+        readonly gap: number;
+        readonly width: number | null;
+        readonly depth: number | null;
+      }
   );
 
 export type SheetRef = "externa" | "interna";
@@ -166,7 +180,7 @@ export interface SheetEdgeRef {
    */
   readonly hint?: { readonly a: Vec3; readonly b: Vec3 };
 }
-export const SHEET_KINDS = ["sheetBase", "sheetFlange", "sheetContour", "sheetBendLine", "sheetCut"] as const;
+export const SHEET_KINDS = ["sheetBase", "sheetFlange", "sheetContour", "sheetBendLine", "sheetCut", "sheetRelief"] as const;
 export type SheetFeature = Extract<Feature, { t: (typeof SHEET_KINDS)[number] }>;
 export const isSheetFeature = (f: { t: string }): f is SheetFeature => (SHEET_KINDS as readonly string[]).includes(f.t);
 /** Operação que criou a aba (o id da aba começa pelo id da operação: base, «op»@…, «op»#n, «op»~…). */
@@ -195,6 +209,7 @@ export const FEATURE_LABEL: Record<FeatureKind, string> = {
   sheetContour: "Flange de contorno",
   sheetBendLine: "Dobra",
   sheetCut: "Recorte de chapa",
+  sheetRelief: "Alívio de dobra",
 };
 
 /** Prefixos dos nomes automáticos (estilo da árvore: Sketch_Base, Extrude_1…). */
@@ -217,6 +232,7 @@ export const FEATURE_PREFIX: Record<FeatureKind, string> = {
   sheetContour: "Flange",
   sheetBendLine: "Dobra",
   sheetCut: "Recorte",
+  sheetRelief: "Alívio",
 };
 
 export const opLabel = (op: BoolOp) => ({ new: "Novo sólido", join: "Unir", cut: "Cortar", intersect: "Interseção" })[op];
@@ -298,6 +314,12 @@ export function validateFeature(f: FeatureDraft): string[] {
     case "sheetCut":
       if (!f.flange) e.push("Escolha a aba do recorte.");
       break;
+    case "sheetRelief":
+      if (!f.bends.length) e.push("Escolha pelo menos uma dobra.");
+      if (!(f.gap >= 0)) e.push("Folga deve ser ≥ 0.");
+      if (f.width !== null && !(f.width > 0)) e.push("Largura do alívio deve ser maior que zero.");
+      if (f.depth !== null && !(f.depth > 0)) e.push("Profundidade do alívio deve ser maior que zero.");
+      break;
   }
   return e;
   function kOk(K: number | null) {
@@ -367,6 +389,9 @@ export function featureRefs(f: Feature): FeatId[] {
     case "sheetCut":
       out.add(f.sketch);
       out.add(sheetFlangeOwner(f.flange));
+      break;
+    case "sheetRelief":
+      f.bends.forEach((b) => out.add(sheetFlangeOwner(b)));
       break;
   }
   return [...out];

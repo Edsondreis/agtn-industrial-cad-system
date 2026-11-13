@@ -181,4 +181,19 @@ describe("compatibilidade e ambiente", () => {
     expect(r.status[2].error).toBe("A operação Calandra_1 (sheetRoll) é de uma versão mais nova do AGTN CAD — atualize para editar. Ela foi preservada no arquivo.");
     expect(r.status[3].state).toBe("dependency_error");
   });
+  it("aviso 'dobra sem alívio' na aba some quando um Alívio posterior resolve; volta se o alívio for suprimido", () => {
+    const r0 = rect(100, 50);
+    const s = sk(r0.s, 0, "SR");
+    const ab = F("Aba_1", { t: "sheetFlange", edges: [{ flange: "CH", edge: r0.lines[0] }], length: 30, deflectionDeg: 90, R: null, K: null, side: "cima", ref: "externa", offsetStart: 20, offsetEnd: 30 }, "AR");
+    const r1 = ev.evaluate("pr", [s, base("SR"), ab]);
+    expect(r1.status[2].warning).toMatch(/sem alívio/);
+    const bend = st(r1).solved.bends[0].id;
+    const al = F("Alívio_1", { t: "sheetRelief", bends: [bend], kind: "retangular", gap: 0.5, width: null, depth: null }, "RL");
+    const r2 = ev.evaluate("pr", [s, base("SR"), ab, al]);
+    expect(states(r2)).toEqual(["ok", "ok", "ok", "ok"]);
+    expect(r2.status[2].warning).toBeUndefined();
+    expect(rel(vol(r2), st(r2).solved.volume)).toBeLessThan(1e-9);
+    const r3 = ev.evaluate("pr", [s, base("SR"), ab, { ...al, suppressed: true }]);
+    expect(r3.status[2].warning).toMatch(/sem alívio/);
+  });
 });

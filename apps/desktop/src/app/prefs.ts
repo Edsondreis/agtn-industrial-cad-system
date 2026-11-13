@@ -22,9 +22,13 @@ export interface AppPrefs {
   dwgVersion: CadVersion;
   /** Versão do DXF exportado (R12 = máxima compatibilidade com CAM; R2000 = elipse/spline/hachura nativas). */
   dxfVersion: "R12" | "R2000";
+  /** Chapa 3D: folga inicial g do alívio de dobra (mm) — parâmetro AGTN, editável em cada alívio */
+  reliefGap: number;
+  /** Chapa 3D: versão do DXF da planificação (padrão R2000, que grava $INSUNITS = mm) */
+  sheetDxfVersion: "R12" | "R2000";
 }
 const KEY = "agtncad.prefs.v1";
-const DEFAULTS: AppPrefs = { showStartCenter: true, defaultUnits: "mm", dwgVersion: "ACAD2018", dxfVersion: "R12" };
+const DEFAULTS: AppPrefs = { showStartCenter: true, defaultUnits: "mm", dwgVersion: "ACAD2018", dxfVersion: "R12", reliefGap: 0.5, sheetDxfVersion: "R2000" };
 
 export function loadPrefs(): AppPrefs {
   try {
@@ -35,6 +39,8 @@ export function loadPrefs(): AppPrefs {
       defaultUnits: p.defaultUnits === "cm" || p.defaultUnits === "m" ? p.defaultUnits : "mm",
       dwgVersion: isVersion(p.dwgVersion) ? p.dwgVersion : DEFAULTS.dwgVersion,
       dxfVersion: p.dxfVersion === "R2000" ? "R2000" : "R12",
+      reliefGap: typeof p.reliefGap === "number" && Number.isFinite(p.reliefGap) && p.reliefGap >= 0 ? p.reliefGap : DEFAULTS.reliefGap,
+      sheetDxfVersion: p.sheetDxfVersion === "R12" ? "R12" : "R2000",
     };
   } catch {
     return { ...DEFAULTS };

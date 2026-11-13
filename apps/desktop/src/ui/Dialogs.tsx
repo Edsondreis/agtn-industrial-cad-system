@@ -395,6 +395,27 @@ export function PrefsDialog({
         </button>
       </div>
       {dwgSection}
+      <div className="sm-row" style={{ gridTemplateColumns: "1fr 180px" }} title="Folga g dos alívios de dobra automáticos: largura w = T + g, profundidade d = SB + g. Parâmetro inicial da AGTN, editável em cada alívio — não é norma de fabricação.">
+        <span className="k">Chapa 3D · folga do alívio (mm)</span>
+        <input
+          type="number"
+          min={0}
+          step={0.1}
+          value={prefs.reliefGap}
+          onChange={(e) => {
+            const v = Number(e.target.value);
+            if (Number.isFinite(v) && v >= 0) onChange({ ...prefs, reliefGap: v });
+          }}
+          data-pref="reliefGap"
+        />
+      </div>
+      <div className="sm-row" style={{ gridTemplateColumns: "1fr 180px" }}>
+        <span className="k">Chapa 3D · DXF da planificação</span>
+        <select value={prefs.sheetDxfVersion} onChange={(e) => onChange({ ...prefs, sheetDxfVersion: e.target.value as AppPrefs["sheetDxfVersion"] })} data-pref="sheetDxfVersion">
+          <option value="R2000">R2000 (unidade mm gravada) — padrão</option>
+          <option value="R12">R12 (compatibilidade máxima com CAM)</option>
+        </select>
+      </div>
       <p className="note">As preferências ficam salvas neste computador. Configurações do desenho (grade, cotas) ficam em Ferramentas → Configurações do desenho.</p>
     </Modal>
   );

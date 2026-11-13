@@ -1,7 +1,7 @@
 import type { Model3D, NodeId } from "@agtn/model3d";
 import { type AxisRef, type EdgeRef, type FaceRef, type FeatId, type Feature, type FeatureDraft, type FeatureStatus, type Frame, FEATURE_LABEL, type PlaneRef, type SheetEdgeRef, type StdPlane, to3d, validateFeature } from "@agtn/solid";
 import type { SheetInfo } from "../protocol";
-import { BaseFields, BendLineFields, ContourFields, FlangeFields, FlangeSelect } from "./SheetFields";
+import { BaseFields, BendLineFields, ContourFields, FlangeFields, FlangeSelect, ReliefFields } from "./SheetFields";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NumField } from "../../ui/fields";
 import { Icon } from "../../ui/Icons";
@@ -394,6 +394,8 @@ export function FeatureDialog(p: FeatureDialogProps) {
           </>
         );
       }
+      case "sheetRelief":
+        return <ReliefFields d={d} set={(x) => set<"sheetRelief">(x)} bends={p.sheet?.flat.bends ?? []} />;
       case "sheetCut":
         return (
           <>

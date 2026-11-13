@@ -60,7 +60,11 @@ export interface OutlineEdge {
   readonly b: V2;
   /** região plana: trecho da linha de tangência desta dobra (faixa parcial da ETAPA 2) */
   readonly bend?: string;
+  /** arco de a até b em torno de c; varredura com sinal (+ = anti-horário) — alívios oblongo/lágrima */
+  readonly arc?: { readonly c: V2; readonly sweep: number };
 }
+
+export type ReliefKind = "retangular" | "oblongo" | "lagrima";
 
 export interface EdgeRef {
   readonly flange: string;
@@ -134,6 +138,24 @@ export type SheetOp =
       readonly side: BendSide;
       readonly ref: SheetRef;
     }
+  /**
+   * Alívio de dobra (ETAPA 2.1b) — operação própria, NÃO é recorte: entalhe na aba-pai, ao lado de cada ponta da
+   * faixa de dobra que termina dentro da aresta, do vértice virtual até passar a linha de tangência.
+   * Automático: largura w = T + g; profundidade d = SB + g (= R + T + g com θ 90° e medida externa).
+   */
+  | {
+      readonly t: "alivio";
+      readonly id: string;
+      readonly label: string;
+      /** dobras (id = id da aba-filha) */
+      readonly bends: readonly string[];
+      readonly kind: ReliefKind;
+      /** folga g (mm) */
+      readonly gap: number;
+      /** manual; ausente = automático */
+      readonly width?: number;
+      readonly depth?: number;
+    }
   /** Recorte / furo passante numa aba plana (laços no sistema local da aba). */
   | { readonly t: "recorte"; readonly id: string; readonly label: string; readonly flange: string; readonly loops: readonly Loop2[] };
 
@@ -206,9 +228,13 @@ export interface SolvedBend {
   readonly tangent: readonly [V2, V2];
   /** comprimento da dobra (ao longo da aresta) */
   readonly L: number;
+  /** faixa parcial com ponta dentro da aresta (candidata a alívio) */
+  readonly partial: boolean;
   /** eixo da dobra (mundo): ponto e direção unitária; giro de +θ em torno de `dir` leva a pai à filha */
   readonly axis: { readonly p: V3; readonly dir: V3 };
   /** normal da face de dentro e de fora no início do arco (mundo) */
+  /** alívios aplicados (ETAPA 2.1b): tipo, largura e profundidade efetivas e as pontas aliviadas */
+  readonly relief?: { readonly op: string; readonly kind: ReliefKind; readonly w: number; readonly d: number; readonly ends: readonly ("inicio" | "fim")[] };
   /** planificação (sistema da base): início, linha (centro) e fim da região de dobra */
   readonly flatStart: readonly [V2, V2];
   readonly flatLine: readonly [V2, V2];

@@ -1,4 +1,4 @@
-import { type SheetSolved, type SolvedBend, type SolvedFlange, TOL, dimAbs, interfVol, sheetMath as M, type SheetV3 as V3 } from "@agtn/sheetgraph";
+import { type SheetSolved, type SolvedBend, type SolvedFlange, TOL, dimAbs, edgeMid, interfVol, sheetMath as M, type SheetV3 as V3 } from "@agtn/sheetgraph";
 import { SolidError } from "@agtn/solid";
 import { BooleanGlue, BooleanOp, type OcctKernel, type ShapeHandle } from "occt-wasm";
 import { type Surface, expectedSurface, isContactLabel, sameSurface } from "./provenance";
@@ -147,7 +147,16 @@ function buildWith(k: OcctKernel, s: SheetSolved, T: Reg, UB: number, tamper?: B
       built.push({ label, ends: [a, b] });
       return T(k.makeLineEdge(a, b));
     };
-    const outer = T(k.makeWire(f.flat.map((e) => line(W(e.a), W(e.b), `${f.id}/e:${e.key}`))));
+    const outer = T(
+      k.makeWire(
+        f.flat.map((e) => {
+          if (!e.arc) return line(W(e.a), W(e.b), `${f.id}/e:${e.key}`);
+          const m = edgeMid(e);
+          built.push({ label: `${f.id}/e:${e.key}`, ends: [W(e.a), W(e.b)] });
+          return T(k.makeArcEdge(W(e.a), W(m), W(e.b)));
+        }),
+      ),
+    );
     let face = T(k.makeFace(outer));
     if (f.holes.length) {
       const hw = f.holes.map((h) => {

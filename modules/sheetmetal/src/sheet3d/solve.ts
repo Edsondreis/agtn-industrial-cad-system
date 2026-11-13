@@ -45,6 +45,8 @@ import type {
   SolvedHole,
 } from "./model";
 import { dimAbs, numAbs } from "./tolerance";
+import { edgeSeg, edgesArea, pointInEdges, sweepVia } from "./edges";
+import type { ReliefKind } from "./model";
 
 /**
  * Resolve o grafo da chapa em duas fases:
@@ -87,6 +89,8 @@ interface WBend {
   /** faixa parcial (ETAPA 2.1a): recuos na aresta de molde da pai; ausente = aresta inteira */
   o0?: number;
   o1?: number;
+  /** alívio de dobra (ETAPA 2.1b) */
+  relief?: { op: string; label: string; kind: ReliefKind; gap: number; width?: number; depth?: number };
 }
 const isPartial = (b: WBend) => b.o0 !== undefined;
 
@@ -262,6 +266,22 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
       }
       case "linha":
         return splitByLine(op);
+      case "alivio": {
+        if (!op.bends.length) return void err("NO_BEND", `${op.label}: escolha pelo menos uma dobra.`, { op: op.id });
+        if (!(op.gap >= 0) || !Number.isFinite(op.gap)) return void err("RELIEF_GAP", `${op.label}: folga deve ser ≥ 0.`, { op: op.id });
+        if (op.width !== undefined && !(op.width > 0)) return void err("RELIEF_W", `${op.label}: largura do alívio deve ser maior que zero.`, { op: op.id });
+        if (op.depth !== undefined && !(op.depth > 0)) return void err("RELIEF_D", `${op.label}: profundidade do alívio deve ser maior que zero.`, { op: op.id });
+        const list: WBend[] = [];
+        for (const id of op.bends) {
+          const b = bends.get(id);
+          if (!b) return void err("REF_LOST", `${op.label}: referência perdida — a dobra ${id} não existe mais.`, { op: op.id, bends: [id] });
+          if (!isPartial(b)) return void err("RELIEF_NOT_NEEDED", `${op.label}: ${b.label} vai de canto a canto da aresta — não há ponta de dobra dentro da aresta para aliviar.`, { op: op.id, bends: [id] });
+          if (b.relief) return void err("RELIEF_DUP", `${op.label}: ${b.label} já tem o alívio ${b.relief.label}.`, { op: op.id, bends: [id] });
+          list.push(b);
+        }
+        for (const b of list) b.relief = { op: op.id, label: op.label, kind: op.kind, gap: op.gap, ...(op.width !== undefined ? { width: op.width } : {}), ...(op.depth !== undefined ? { depth: op.depth } : {}) };
+        return;
+      }
       case "recorte": {
         const f = flanges.get(op.flange);
         if (!f) return void err("REF_LOST", `${op.label}: referência perdida — a aba ${op.flange} não existe mais.`, { op: op.id, flanges: [op.flange] });
@@ -364,7 +384,14 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
   /* ------------------------------------------------------------------------------- fase 2: geometria */
   const outF: SolvedFlange[] = [];
   const outB: SolvedBend[] = [];
-  const reliefOf = (_bend: string): boolean => false;
+  /** largura e profundidade efetivas do alívio (automático: w = T + g; d = SB + g, +w/2 no oblongo) */
+  const reliefDims = (b: WBend): ReliefDims => {
+    const r = b.relief!;
+    const SB = setbackFor(b.ref, b.theta, b.R, T);
+    const w = r.width ?? T + r.gap;
+    const d = r.depth ?? (r.kind === "oblongo" ? SB + r.gap + w / 2 : SB + r.gap);
+    return { kind: r.kind, w, d, bend: b.id };
+  };
   const childrenOf = (fid: string) => order.map((id) => bends.get(id)!).filter((b) => b.parent === fid);
   const pl = base.plane;
   const z0 = base.side === "baixo" ? -T : 0;
@@ -397,7 +424,7 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
           return;
         }
         if (sp.t0 > t + dimAbs(L)) out.push({ t0: t, t1: sp.t0, off: 0, key: e.key });
-        out.push({ t0: sp.t0, t1: sp.t1, off: sbOf(sp.b), key: `${e.key}^${n + 1}`, bend: sp.b.id });
+        out.push({ t0: sp.t0, t1: sp.t1, off: sbOf(sp.b), key: `${e.key}^${n + 1}`, bend: sp.b.id, ...(sp.b.relief ? { relief: reliefDims(sp.b) } : {}) });
         t = sp.t1;
       });
       if (t < L - dimAbs(L)) out.push({ t0: t, t1: L, off: 0, key: e.key });
@@ -405,6 +432,15 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
     };
     const flat = trimOutlinePieces(outline, pieces);
     if (overlapErr) return false;
+    if (!flat.ok && flat.relief) {
+      const b = bends.get(flat.relief)!;
+      err("RELIEF_FIT", `${b.relief!.label}: o alívio de ${b.label} não cabe na ${f.label} (encosta em outra borda, furo ou dobra) — reduza a largura/profundidade ou aumente o recuo.`, {
+        op: b.relief!.op,
+        bends: [b.id],
+        flanges: [f.id],
+      });
+      return false;
+    }
     if (!flat.ok) {
       const pb = f.parentBend ? bends.get(f.parentBend) : undefined;
       const sbAt = (k: string) => Math.max(0, ...bendsAt(fid, k).map(sbOf));
@@ -420,7 +456,16 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
       return false;
     }
     // faixa que termina dentro da aresta: sem alívio, o material da pai encosta na dobra (risco de rasgo)
-    for (const b of childrenOf(fid)) if (isPartial(b) && !reliefOf(b.id)) warn("NO_RELIEF", `${b.label}: a dobra termina dentro da aresta — sem alívio de dobra há risco de rasgo no canto.`, { op: b.op, bends: [b.id] });
+    const relieved = flat.relieved;
+    for (const b of childrenOf(fid)) {
+      if (!isPartial(b)) continue;
+      const ends = relieved.get(b.id) ?? [];
+      if (b.relief && !ends.length) {
+        err("RELIEF_NOT_NEEDED", `${b.relief.label}: as duas pontas de ${b.label} estão em cantos da aresta — não há onde aliviar.`, { op: b.relief.op, bends: [b.id] });
+        return false;
+      }
+      if (!b.relief && (flat.interior.get(b.id)?.length ?? 0) > 0) warn("NO_RELIEF", `${b.label}: a dobra termina dentro da aresta — sem alívio de dobra há risco de rasgo no canto.`, { op: b.op, bends: [b.id] });
+    }
     const size = Math.max(1, ...flat.edges.map((e) => Math.max(Math.abs(e.a.x), Math.abs(e.a.y))));
     const tol = dimAbs(size);
     // furos dentro da região plana (sem tocar a borda nem a região de dobra)
@@ -440,7 +485,7 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
           err("CUT_OVERLAP", `${f.label}: os recortes ${f.holes[i].key} e ${f.holes[j].key} se tocam ou se sobrepõem.`, { op: f.holes[j].op, flanges: [f.id] });
           return false;
         }
-    const area = polyArea(flat.edges.map((e) => e.a)) - f.holes.reduce((a, h) => a + Math.abs(loopArea(h.loop)), 0);
+    const area = edgesArea(flat.edges) - f.holes.reduce((a, h) => a + Math.abs(loopArea(h.loop)), 0);
     outF.push({ id: f.id, label: f.label, op: f.op, outline, flat: flat.edges, holes: f.holes, G, H, parentBend: f.parentBend, area });
 
     for (const b of childrenOf(fid)) {
@@ -509,10 +554,14 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
         SB,
         tangent: [A, B],
         L: Lb,
+        partial: (flat.interior.get(b.id)?.length ?? 0) > 0,
         axis: { p: apply(G, C), dir: applyDir(G, ax) },
         flatStart: strip(0),
         flatLine: strip(BA / 2),
         flatEnd: strip(BA),
+        ...(b.relief && relieved.get(b.id)?.length
+          ? { relief: { op: b.relief.op, kind: b.relief.kind, w: reliefDims(b).w, d: reliefDims(b).d, ends: relieved.get(b.id)! } }
+          : {}),
       });
       if (!visit(b.child, Gc, Hc, childOutline)) return false;
     }
@@ -544,6 +593,13 @@ function loopKeys(loops: readonly Loop2[]): string[] {
   });
 }
 
+export interface ReliefDims {
+  kind: ReliefKind;
+  /** largura w e profundidade d (a partir do vértice virtual, para dentro) */
+  w: number;
+  d: number;
+  bend: string;
+}
 export interface EdgePiece {
   /** trecho da aresta de molde [t0, t1] a partir de a */
   t0: number;
@@ -552,17 +608,23 @@ export interface EdgePiece {
   off: number;
   key: string;
   bend?: string;
+  relief?: ReliefDims;
 }
+export type TrimResult =
+  | { ok: true; edges: OutlineEdge[]; interior: Map<string, ("inicio" | "fim")[]>; relieved: Map<string, ("inicio" | "fim")[]> }
+  | { ok: false; edge: string; relief?: string };
 
 /**
  * Região plana com faixas parciais (ETAPA 2.1a): cada aresta de molde é dividida em trechos com recuo próprio
  * (livre = 0; faixa de dobra = SB). Retas deslocadas consecutivas se cruzam (vértice); paralelas com recuos
  * diferentes ganham um DEGRAU perpendicular na fronteira do trecho (onde a dobra começa/termina dentro da
- * aresta). Chaves: trecho livre = aresta; faixa n = «aresta»^n; degraus = «aresta»^n:p0 (entra) / :p1 (sai) ou
- * «aresta A»>«aresta B» entre arestas colineares.
+ * aresta). Com ALÍVIO (2.1b) o degrau vira o entalhe do alívio, do lado livre, do vértice virtual até a
+ * profundidade d (retangular, oblongo com fundo semicircular, lágrima com bulbo de raio w).
+ * Chaves: trecho livre = aresta; faixa n = «aresta»^n; degraus = «aresta»^n:p0 (entra) / :p1 (sai) ou
+ * «aresta A»>«aresta B» entre arestas colineares; alívio = «faixa»:r0.i (início) / :r1.i (fim).
  */
-export function trimOutlinePieces(outline: readonly OutlineEdge[], piecesOf: (e: OutlineEdge) => EdgePiece[]): { ok: true; edges: OutlineEdge[] } | { ok: false; edge: string } {
-  type Ln = { p: V2; d: V2; n: V2; off: number; key: string; bend?: string; m0: V2; m1: V2; edge: string };
+export function trimOutlinePieces(outline: readonly OutlineEdge[], piecesOf: (e: OutlineEdge) => EdgePiece[]): TrimResult {
+  type Ln = { p: V2; d: V2; n: V2; off: number; key: string; bend?: string; relief?: ReliefDims; m0: V2; m1: V2; edge: string };
   const lines: Ln[] = [];
   for (const e of outline) {
     const d = unit2(sub2(e.b, e.a));
@@ -570,47 +632,111 @@ export function trimOutlinePieces(outline: readonly OutlineEdge[], piecesOf: (e:
     for (const pc of piecesOf(e)) {
       const m0 = add2(e.a, mul2(d, pc.t0));
       const m1 = add2(e.a, mul2(d, pc.t1));
-      lines.push({ p: sub2(m0, mul2(n, pc.off)), d, n, off: pc.off, key: pc.key, ...(pc.bend ? { bend: pc.bend } : {}), m0, m1, edge: e.key });
+      lines.push({ p: sub2(m0, mul2(n, pc.off)), d, n, off: pc.off, key: pc.key, ...(pc.bend ? { bend: pc.bend } : {}), ...(pc.relief ? { relief: pc.relief } : {}), m0, m1, edge: e.key });
     }
   }
   const N = lines.length;
-  // vértices entre a reta j e a j+1 (1 ponto, ou 2 com o degrau)
-  const joints: { pts: V2[]; stepKey?: string }[] = [];
+  const interior = new Map<string, ("inicio" | "fim")[]>();
+  const relieved = new Map<string, ("inicio" | "fim")[]>();
+  const mark = (m: Map<string, ("inicio" | "fim")[]>, b: string, e: "inicio" | "fim") => m.set(b, [...(m.get(b) ?? []), e]);
+  // entre a reta j e a j+1: primeiro e último ponto e o caminho entre eles (degrau ou alívio)
+  type Joint = { first: V2; last: V2; path: OutlineEdge[] };
+  const joints: Joint[] = [];
   for (let j = 0; j < N; j++) {
     const L0 = lines[j];
     const L1 = lines[(j + 1) % N];
     const x = lineX(L0.p, L0.d, L1.p, L1.d);
     if (x) {
-      joints.push({ pts: [x] });
+      joints.push({ first: x, last: x, path: [] });
       continue;
     }
     if (dot2(L0.d, L1.d) <= 0) return { ok: false, edge: L1.edge };
     if (Math.abs(L0.off - L1.off) < 1e-12) {
-      joints.push({ pts: [sub2(L0.m1, mul2(L0.n, L0.off))] });
+      const q = sub2(L0.m1, mul2(L0.n, L0.off));
+      joints.push({ first: q, last: q, path: [] });
+      continue;
+    }
+    // degrau: a dobra começa (livre → faixa) ou termina (faixa → livre) dentro da aresta
+    const enter = L0.off < L1.off;
+    const span = enter ? L1 : L0;
+    if (span.bend && Math.min(L0.off, L1.off) < 1e-12) mark(interior, span.bend, enter ? "inicio" : "fim");
+    if (span.relief && span.bend && Math.min(L0.off, L1.off) < 1e-12) {
+      const path = reliefPath(span, enter);
+      if (!path) return { ok: false, edge: span.edge, relief: span.bend };
+      mark(relieved, span.bend, enter ? "inicio" : "fim");
+      joints.push(path);
       continue;
     }
     const sameEdge = L0.edge === L1.edge;
     const stepKey = sameEdge ? (L1.bend ? `${L1.key}:p0` : `${L0.key}:p1`) : `${L0.edge}>${L1.edge}`;
-    joints.push({ pts: [sub2(L0.m1, mul2(L0.n, L0.off)), sub2(L1.m0, mul2(L1.n, L1.off))], stepKey });
+    const p0 = sub2(L0.m1, mul2(L0.n, L0.off));
+    const p1 = sub2(L1.m0, mul2(L1.n, L1.off));
+    if (len2(sub2(p1, p0)) <= 1e-12) return { ok: false, edge: L1.edge };
+    joints.push({ first: p0, last: p1, path: [{ key: stepKey, a: p0, b: p1 }] });
   }
   const edges: OutlineEdge[] = [];
   for (let j = 0; j < N; j++) {
     const prev = joints[(j + N - 1) % N];
     const next = joints[j];
     const Lj = lines[j];
-    const a = prev.pts[prev.pts.length - 1];
-    const b = next.pts[0];
+    const a = prev.last;
+    const b = next.first;
     const de = sub2(b, a);
-    if (!(dot2(de, Lj.d) > 0) || len2(de) <= 1e-9 * Math.max(1, len2(sub2(Lj.m1, Lj.m0)))) return { ok: false, edge: Lj.edge };
+    if (!(dot2(de, Lj.d) > 0) || len2(de) <= 1e-9 * Math.max(1, len2(sub2(Lj.m1, Lj.m0)))) return { ok: false, edge: Lj.edge, ...(Lj.relief || lines[(j + 1) % N].relief || lines[(j + N - 1) % N].relief ? { relief: (Lj.relief ?? lines[(j + 1) % N].relief ?? lines[(j + N - 1) % N].relief)!.bend } : {}) };
     edges.push({ key: Lj.key, a, b, ...(Lj.bend ? { bend: Lj.bend } : {}) });
-    if (next.pts.length === 2) {
-      if (len2(sub2(next.pts[1], next.pts[0])) <= 1e-12) return { ok: false, edge: Lj.edge };
-      edges.push({ key: next.stepKey!, a: next.pts[0], b: next.pts[1] });
-    }
+    edges.push(...next.path);
   }
-  const segs: Seg[] = edges.map((e) => lineSeg(e.a, e.b));
-  if (selfIntersections(segs, true, 1e-9).length) return { ok: false, edge: outline[0].key };
-  return { ok: true, edges };
+  const segs: Seg[] = edges.map(edgeSeg);
+  if (selfIntersections(segs, true, 1e-9).length) {
+    const rl = lines.find((l) => l.relief);
+    return { ok: false, edge: outline[0].key, ...(rl ? { relief: rl.relief!.bend } : {}) };
+  }
+  return { ok: true, edges, interior, relieved };
+}
+
+/**
+ * Entalhe do alívio no degrau da faixa `span` (entrando = ponta inicial; saindo = ponta final). Coordenadas:
+ * u ao longo da aresta (a partir da ponta da faixa, para o lado LIVRE é negativo no início e positivo no fim) e
+ * profundidade para dentro a partir do vértice virtual. A parede do lado da dobra fica na própria ponta da faixa
+ * (a região de dobra continua retangular); o entalhe passa a linha de tangência (profundidade SB) por g.
+ */
+function reliefPath(span: { d: V2; n: V2; off: number; key: string; m0: V2; m1: V2; relief?: ReliefDims }, enter: boolean): { first: V2; last: V2; path: OutlineEdge[] } | null {
+  const r = span.relief!;
+  const SB = span.off;
+  const m = enter ? span.m0 : span.m1;
+  const sgn = enter ? -1 : 1; // lado livre
+  const P = (u: number, depth: number) => sub2(add2(m, mul2(span.d, u * sgn)), mul2(span.n, depth));
+  const w = r.w;
+  const d = r.d;
+  const tag = `${span.key}:r${enter ? 0 : 1}`;
+  let pts: { p: V2; arc?: { c: V2; via: V2 } }[];
+  if (r.kind === "retangular") {
+    if (!(d > SB + 1e-9)) return null;
+    pts = [{ p: P(w, 0) }, { p: P(w, d) }, { p: P(0, d) }, { p: P(0, SB) }];
+  } else if (r.kind === "oblongo") {
+    const rr = w / 2;
+    if (!(d - rr > SB + 1e-9)) return null;
+    pts = [{ p: P(w, 0) }, { p: P(w, d - rr) }, { p: P(0, d - rr), arc: { c: P(rr, d - rr), via: P(rr, d) } }, { p: P(0, SB) }];
+  } else {
+    // lágrima: rasgo de largura w até a profundidade h = d, bulbo de raio w tangente à ponta da faixa
+    const rb = w;
+    const h = d;
+    if (!(h > SB + 1e-9) || !(h - rb > 1e-9)) return null;
+    // centro (u = w, h): a parede livre do rasgo passa pelo centro e encontra o bulbo no topo (h − w)
+    pts = [{ p: P(w, 0) }, { p: P(w, h - rb) }, { p: P(0, h), arc: { c: P(rb, h), via: P(2 * rb, h) } }, { p: P(0, SB) }];
+  }
+  // no fim da faixa o percurso é o inverso (da faixa para o lado livre)
+  const seq = enter ? pts : [...pts].reverse().map((q, i, arr) => ({ p: q.p, ...(i > 0 && arr[i - 1].arc ? { arc: arr[i - 1].arc } : {}) }));
+  const path: OutlineEdge[] = [];
+  for (let i = 0; i + 1 < seq.length; i++) {
+    const a = seq[i].p;
+    const b = seq[i + 1].p;
+    const arc = seq[i + 1].arc;
+    if (len2(sub2(b, a)) <= 1e-12) return null;
+    if (arc) path.push({ key: `${tag}.${i}`, a, b, arc: { c: arc.c, sweep: sweepVia(arc.c, a, b, arc.via) } });
+    else path.push({ key: `${tag}.${i}`, a, b });
+  }
+  return { first: seq[0].p, last: seq[seq.length - 1].p, path };
 }
 
 /** Contorno recuado: cada aresta desloca `off(key)` para dentro; vértices = interseção das retas deslocadas. */
@@ -723,19 +849,12 @@ function loopPoint(l: Loop2): V2 {
   const s = l.segs[0];
   return s.t === "circle" ? v2(s.c.x + s.r, s.c.y) : s.a;
 }
-function pointInPoly(p: V2, edges: readonly OutlineEdge[]): boolean {
-  let inside = false;
-  for (const e of edges) {
-    const { a, b } = e;
-    if ((a.y > p.y) !== (b.y > p.y) && p.x < a.x + ((p.y - a.y) * (b.x - a.x)) / (b.y - a.y)) inside = !inside;
-  }
-  return inside;
-}
+const pointInPoly = (p: V2, edges: readonly OutlineEdge[]): boolean => pointInEdges(p, edges);
 /** null = dentro e sem tocar; "cross" = toca/cruza a borda; "out" = fora. */
 function loopInside(l: Loop2, edges: readonly OutlineEdge[], tol: number): "cross" | "out" | null {
   const ls = toSegs(l);
   for (const e of edges) {
-    const es = lineSeg(e.a, e.b);
+    const es = edgeSeg(e);
     for (const s of ls) if (segSeg(es, s).length) return "cross";
     // distância (folga zero = toca)
     for (const s of ls) if (segDistance(es, s) <= tol) return "cross";
@@ -750,8 +869,15 @@ function loopsTouch(a: Loop2, b: Loop2, tol: number): boolean {
 }
 /** Ponto dentro de laço fechado (retas e arcos exatos): paridade de cruzamentos de um raio. */
 function pointInLoop(p: V2, segs: readonly Seg[]): boolean {
-  // direção irracional para não passar por vértices em casos alinhados
-  const far = 1e9;
+  // direção irracional para não passar por vértices em casos alinhados; comprimento limitado à caixa do laço
+  // (um raio de 1e9 perde precisão na interseção com arcos e cria cruzamentos falsos)
+  let m = 0;
+  for (const s of segs) {
+    const [q, r] = s.kind === "line" ? [s.a, 0] : [s.c, s.r];
+    m = Math.max(m, Math.abs(q.x - p.x) + r, Math.abs(q.y - p.y) + r);
+    if (s.kind === "line") m = Math.max(m, Math.abs(s.b.x - p.x), Math.abs(s.b.y - p.y));
+  }
+  const far = 4 * m + 1;
   const ray = lineSeg(p, v2(p.x + far, p.y + far * 0.000137036));
   let n = 0;
   for (const s of segs) n += segSeg(ray, s).length;

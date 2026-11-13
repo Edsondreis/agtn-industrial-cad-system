@@ -79,6 +79,11 @@ export interface PartResult {
  */
 export interface SheetBackend {
   apply(f: SheetFeature, ctx: SheetCtx): SheetApply;
+  /**
+   * Avisos da operação `featureId` (no estado `step`) que uma operação de chapa posterior já resolveu no estado
+   * final (ex.: "dobra sem alívio" depois de um Alívio). Opcional: sem ele os avisos ficam como foram gerados.
+   */
+  superseded?(step: unknown, final: unknown, featureId: FeatId): readonly string[];
 }
 export interface SheetCtx {
   readonly kernel: OcctKernel;
@@ -224,6 +229,20 @@ export class PartEvaluator {
       if (e.sheet !== undefined) sheet = { state: e.sheet, feature: f.id, generic: [] };
       else if (sheet && f.t !== "sketch" && !isSheetFeature(f) && e.status.state === "ok") sheet.generic.push(f.name);
     }
+    // avisos de chapa resolvidos mais adiante no histórico (cópia do status: o cache guarda o aviso da etapa)
+    const sb = this.sheetBackend;
+    if (sheet && sb?.superseded)
+      for (let i = 0; i < status.length; i++) {
+        const e = entries[i];
+        const w = status[i].warning;
+        if (!w || e?.sheet === undefined || features[i].id === sheet.feature) continue;
+        let left = w;
+        for (const m of sb.superseded(e.sheet, sheet.state, features[i].id)) left = left.replace(m, "").trim();
+        if (left !== w) {
+          const { warning: _, ...rest } = status[i];
+          status[i] = left ? { ...rest, warning: left.replace(/\s{2,}/g, " ") } : rest;
+        }
+      }
     return { shape: result, status, frames, failed, sheet };
   }
 
@@ -515,6 +534,7 @@ export class PartEvaluator {
       case "sheetContour":
       case "sheetBendLine":
       case "sheetCut":
+      case "sheetRelief":
         return this.runSheet(f, c);
       case "combine": {
         const base = this.need(c.input, "combinar");

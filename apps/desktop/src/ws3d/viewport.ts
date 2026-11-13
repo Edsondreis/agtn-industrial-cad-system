@@ -199,10 +199,13 @@ export class Viewport3D {
       box.union(new Box3().setFromCenterAndSize(b.sphere.center, new Vector3(1, 1, 1).multiplyScalar(b.sphere.radius * 2)));
       any = true;
     }
+    // planificação exibida no lugar do corpo (o corpo fica oculto): entra no enquadramento
+    if (this.flat) any = true;
     if (!any) return null;
     // esfera mais justa: caixas reais dos corpos
     const tight = new Box3();
     for (const b of this.bodies.values()) if (b.root.visible) tight.union(boxOf(b.geom));
+    if (this.flat) tight.union(boxOf(this.flat.visual.geom));
     return tight.getBoundingSphere(new Sphere());
   }
   private selectionSphere(): Sphere | null {

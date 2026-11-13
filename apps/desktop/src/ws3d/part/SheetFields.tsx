@@ -245,3 +245,67 @@ export function FlangeSelect({ v, flanges, set }: { v: string; flanges: readonly
     </Row>
   );
 }
+
+/** Alívio de dobra: operação própria (não é recorte). Lista as dobras da peça; só as de faixa parcial aceitam. */
+export function ReliefFields({
+  d,
+  set,
+  bends,
+}: {
+  d: Of<"sheetRelief">;
+  set: (p: Partial<Of<"sheetRelief">>) => void;
+  bends: readonly { id: string; label: string; partial: boolean; relief?: { w: number; d: number } | null }[];
+}) {
+  const on = new Set(d.bends);
+  return (
+    <>
+      <Row k="Tipo">
+        <div className="fd-seg" role="radiogroup">
+          {(["retangular", "oblongo", "lagrima"] as const).map((k) => (
+            <button key={k} className={d.kind === k ? "on" : ""} onClick={() => set({ kind: k })} data-kind={k}>
+              {{ retangular: "Retangular", oblongo: "Oblongo", lagrima: "Lágrima" }[k]}
+            </button>
+          ))}
+        </div>
+      </Row>
+      <Row k="Folga g" title="Folga inicial AGTN (Preferências); editável aqui.">
+        <Unit v={d.gap} set={(v) => set({ gap: v })} min={0} field="gap" />
+      </Row>
+      <Row k="Largura">
+        <label className="fd-check">
+          <input type="checkbox" checked={d.width === null} onChange={(e) => set({ width: e.target.checked ? null : 2.5 })} /> auto (T + g)
+        </label>
+        {d.width !== null && <Unit v={d.width} set={(v) => set({ width: v })} min={0} field="width" />}
+      </Row>
+      <Row k="Profundidade">
+        <label className="fd-check">
+          <input type="checkbox" checked={d.depth === null} onChange={(e) => set({ depth: e.target.checked ? null : 6 })} /> auto (SB + g)
+        </label>
+        {d.depth !== null && <Unit v={d.depth} set={(v) => set({ depth: v })} min={0} field="depth" />}
+      </Row>
+      <div className="fd-list">
+        <div className="fd-list-h">Dobras com ponta dentro da aresta</div>
+        {!bends.some((b) => b.partial) && <div className="fd-note">Nenhuma dobra parcial — use Recuo início/fim na aba para a dobra terminar dentro da aresta.</div>}
+        {bends
+          .filter((b) => b.partial || on.has(b.id))
+          .map((b) => (
+            <label key={b.id} className="fd-check" data-bend={b.id}>
+              <input
+                type="checkbox"
+                checked={on.has(b.id)}
+                onChange={(e) => {
+                  const x = new Set(on);
+                  if (e.target.checked) x.add(b.id);
+                  else x.delete(b.id);
+                  set({ bends: bends.filter((q) => x.has(q.id)).map((q) => q.id) });
+                }}
+              />
+              {b.label}
+              {b.relief ? ` · alívio ${n2(b.relief.w)} × ${n2(b.relief.d)} mm` : ""}
+            </label>
+          ))}
+      </div>
+      <div className="fd-note">Entalhe na aba-pai ao lado de cada ponta da faixa, do vértice virtual até passar a linha de tangência por g. Recalculado quando T, R ou θ mudam.</div>
+    </>
+  );
+}

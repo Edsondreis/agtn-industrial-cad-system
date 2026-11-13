@@ -181,7 +181,26 @@ const api: Omit<EngineApi, "init"> = {
     const T = <H extends ShapeHandle>(h: H) => (tmp.push(h), h);
     const P = (p: { x: number; y: number }, z = 0) => SM.apply(W, SM.v3(p.x, p.y, z));
     try {
-      const wireOf = (pts: readonly { x: number; y: number }[]) => T(raw.makeWire(pts.map((p, i) => T(raw.makeLineEdge(P(p), P(pts[(i + 1) % pts.length]))))));
+      // contorno com bulges (arcos dos alívios): arco pelo ponto médio exato
+      const wireOf = (pts: readonly { x: number; y: number }[], bulges: readonly number[] = []) =>
+        T(
+          raw.makeWire(
+            pts.map((p, i) => {
+              const q = pts[(i + 1) % pts.length];
+              const bu = bulges[i] ?? 0;
+              if (Math.abs(bu) < 1e-15) return T(raw.makeLineEdge(P(p), P(q)));
+              // ponto médio do arco: sagita = bulge · corda/2, à DIREITA do percurso se bulge > 0 (anti-horário)
+              const mx = (p.x + q.x) / 2;
+              const my = (p.y + q.y) / 2;
+              const dx = q.x - p.x;
+              const dy = q.y - p.y;
+              const s = (bu * Math.hypot(dx, dy)) / 2;
+              const L = Math.hypot(dx, dy);
+              const mid = { x: mx + (dy / L) * s, y: my - (dx / L) * s };
+              return T(raw.makeArcEdge(P(p), P(mid), P(q)));
+            }),
+          ),
+        );
       const loopWire = (l: Loop2) =>
         T(
           raw.makeWire(
@@ -194,8 +213,8 @@ const api: Omit<EngineApi, "init"> = {
           ),
         );
       const outer = fp.cut[0];
-      let face = T(raw.makeFace(wireOf(outer)));
-      const inner = [...fp.cut.slice(1).map((l) => wireOf(l)), ...fp.holes.map(loopWire)];
+      let face = T(raw.makeFace(wireOf(outer, fp.cutBulges[0])));
+      const inner = [...fp.cut.slice(1).map((l, i) => wireOf(l, fp.cutBulges[i + 1])), ...fp.holes.map(loopWire)];
       if (inner.length) face = T(raw.addHolesInFace(face, inner));
       const z = SM.applyDir(W, SM.v3(0, 0, info.T));
       const solid = raw.extrude(face, z.x, z.y, z.z);
