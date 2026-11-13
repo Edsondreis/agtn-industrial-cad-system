@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /** Converte texto digitado em número aceitando vírgula ou ponto decimal. */
 export function parseNum(s: string): number | null {
@@ -29,12 +29,22 @@ export function NumField({
   const fmt = (v: number) => (Number.isFinite(v) ? String(Number(v.toFixed(digits))).replace(".", ",") : "");
   const [txt, setTxt] = useState(fmt(value));
   const [bad, setBad] = useState(false);
+  /** o usuário digitou desde a última sincronização? (sem isso, um campo que perde o foco logo depois de o
+   * valor mudar por fora — ex.: θ ↔ α — gravaria o texto antigo de volta) */
+  const dirty = useRef(false);
   useEffect(() => {
     setTxt(fmt(value));
     setBad(false);
+    dirty.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
   const commit = () => {
+    if (!dirty.current) {
+      setTxt(fmt(value));
+      setBad(false);
+      return;
+    }
+    dirty.current = false;
     const v = parseNum(txt);
     if (v === null || (min !== undefined && v < min)) {
       setBad(true);
@@ -51,12 +61,16 @@ export function NumField({
       disabled={disabled}
       title={title}
       spellCheck={false}
-      onChange={(e) => setTxt(e.target.value)}
+      onChange={(e) => {
+        dirty.current = true;
+        setTxt(e.target.value);
+      }}
       onBlur={commit}
       onKeyDown={(e) => {
         e.stopPropagation();
         if (e.key === "Enter") (e.target as HTMLInputElement).blur();
         if (e.key === "Escape") {
+          dirty.current = false;
           setTxt(fmt(value));
           setBad(false);
           (e.target as HTMLInputElement).blur();

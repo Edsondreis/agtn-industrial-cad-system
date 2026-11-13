@@ -1,5 +1,20 @@
 # Changelog
 
+## Em desenvolvimento (branch `feature/agtn-3d-ia`, não publicado) — FASE 4 · ETAPA 1: Sheet Metal 3D
+- Aba **Chapa** na faixa 3D:
+  - **Base de chapa**: contorno do esboço; T, material, processo, raio; K da tabela material × processo × R/T com a origem, ou manual.
+  - **Aba lateral**: escolhida clicando a aresta no modelo; uma por aresta; canto aberto automático.
+  - **Flange de contorno**: perfil de seção constante numa aresta reta, calculado pelo motor de perfis do 2D.
+  - **Dobra** por linha de esboço.
+  - **Recorte/furo** na aba.
+- O ângulo mostra θ (dobra) e α (interno) juntos; o arquivo guarda só θ.
+- Sólido 3D e planificação saem do MESMO grafo e das mesmas fórmulas do AGTN SHEET METAL 2D.
+- Conferências em toda regeneração: volume pela fórmula, espessura, ângulo medido, interferência entre abas (erro com as abas e o volume) e proveniência das faces.
+- **Dobrado | Planificado** no viewport. Painel com blank, área, corte, massa e a tabela D1…Dn (θ, α, R, K, BA, BD).
+- **Enviar ao DESENHO** nas camadas de corte, dobra e marcação do 2D.
+- `.agtncad`: campos desconhecidos (versão mais nova) são preservados ao salvar. Operação desconhecida aparece como erro claro e continua no arquivo.
+- Campo numérico não regrava o valor antigo ao perder o foco sem digitação.
+
 ## Em desenvolvimento (branch `feature/agtn-3d-ia`, não publicado) — Auditoria da FASE 3
 - Operação depois de uma falha não fica mais "ok" sobre o sólido antigo: estado **"não avaliada (dependência
   com erro)"**; dependente de operação suprimida é suprimido junto; faixa no viewport e nota nas propriedades

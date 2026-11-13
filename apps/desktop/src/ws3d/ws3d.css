@@ -316,3 +316,4 @@
 .p3-bends th:first-child, .p3-bends td:first-child { text-align: left; }
 .rb-btn.on { background: rgba(94, 160, 230, 0.18); }
 .rb-btn.wide { width: auto; min-width: 66px; padding: 0 4px; white-space: nowrap; }
+.fd .fd-check input[type="checkbox"] { width: 14px; height: 14px; margin: 0 4px 0 0; }
