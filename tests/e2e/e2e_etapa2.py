@@ -289,6 +289,33 @@ async def main():
             await shot(pg, "13_redobrado")
             states = await pg.evaluate(STATES)
             check("2.5 árvore: Desdobrar_1 e Redobrar_1 ok", [x[0] for x in states][-2:] == ["Desdobrar_1", "Redobrar_1"] and all(x[1] == "ok" for x in states), str(states))
+
+            # ---------------- 2.6 DXF direto da planificação (R2000 padrão e R12), conferido e relido pelo ezdxf
+            import ezdxf
+            from ezdxf import recover
+            bid = await pg.evaluate(f"() => {BODY}.id")
+            await pg.click(f'.t3-row[data-node="{bid}"] .t3-name')
+            for ver in ("R2000", "R12"):
+                await pg.click('.rb [data-op="sheetDxf"]')
+                await pg.wait_for_selector('.modal[aria-label="DXF da planificação"]')
+                await pg.select_option('.modal select[data-field="dxfVersion"]', ver)
+                await pg.locator('.modal [data-dxf="regions"] input').check()
+                async with pg.expect_download() as dl:
+                    await pg.click('[data-testid="flat-dxf-go"]')
+                path = f"{OUT}/planificacao_{ver}.dxf"
+                await (await dl.value).save_as(path)
+                rep = await pg.inner_text('[data-testid="flat-dxf-report"]')
+                if ver == "R2000":
+                    await pg.screenshot(path=f"{OUT}/14_dxf_dialogo.png")
+                await pg.click('.modal .btn:text-is("Fechar")')
+                doc, aud = recover.readfile(path)
+                msp = doc.modelspace()
+                layers = {e.dxf.layer for e in msp}
+                outer = [e for e in msp if e.dxf.layer == "CUT_OUTER"]
+                inner = [e for e in msp if e.dxf.layer == "CUT_INNER"]
+                ins = doc.header.get("$INSUNITS")
+                ok = "conferência: ok" in rep.lower() and not aud.has_errors and len(outer) == 1 and len(inner) == 1 and {"BEND_UP", "BEND_MARK", "BEND_REGION"} <= layers and (ins == 4 if ver == "R2000" else True)
+                check(f"2.6 DXF {ver}: conferido no app e auditado pelo ezdxf (1 contorno externo, 1 rasgo interno, camadas BEND_*, INSUNITS {ins})", ok, f"{rep.splitlines()[0]} · {sorted(layers)} · erros ezdxf {len(aud.errors)}")
         except Exception:
             await pg.screenshot(path=f"{OUT}/zz_falha.png")
             raise

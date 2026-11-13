@@ -55,6 +55,7 @@ import { DEFAULT_SPECS, PrimitiveDialog } from "./PrimitiveDialog";
 import { Props3D } from "./Props3D";
 import type { EngineStats, SheetInfo, SyncResult, TopoRefMsg } from "./protocol";
 import { flatEntities } from "@agtn/sheetgraph";
+import { FlatDxfDialog } from "./part/FlatDxfDialog";
 import type { Change } from "@agtn/document";
 import type { Entity } from "@agtn/geometry";
 import { sheetLayerChanges } from "./part/sheetUi";
@@ -114,17 +115,33 @@ interface FeatSess {
   key: number;
 }
 type Tab = "modelar" | "chapa" | "corpos";
-const SHEET_OPS: [FeatureKind, string, string, string][] = [
-  ["sheetBase", "sheetBase3d", "Base", "Base de chapa: contorno fechado do esboço, espessura, material, raio e K"],
-  ["sheetFlange", "sheetFlange3d", "Aba de borda", "Aba de borda: uma por aresta escolhida (inteira ou com recuos), posição do material, cantos detectados"],
-  ["sheetContour", "sheetContour3d", "Flange", "Flange de contorno: perfil aberto de seção constante ao longo de uma aresta reta"],
-  ["sheetBendLine", "sheetBend3d", "Dobra", "Dobra por linha de esboço numa aba plana"],
-  ["sheetRelief", "sheetRelief3d", "Alívio", "Alívio de dobra nas pontas das faixas que terminam dentro da aresta (retangular, oblongo, lágrima)"],
-  ["sheetCorner", "sheetCorner3d", "Canto", "Fechamento de canto entre abas vizinhas: sobreposto, encosto ou esquadria, com folga"],
-  ["sheetCut", "sheetCut3d", "Recorte", "Recorte / furo passante numa aba plana (esboço na face)"],
-  ["sheetUnfold", "sheetUnfold3d", "Desdobrar", "Desdobrar dobras escolhidas (ou todas) na árvore: região plana BA × L × T, θ nominal e BA intactos"],
-  ["sheetRefold", "sheetRefold3d", "Redobrar", "Redobrar: volta à geometria nominal exata (recalculada do histórico)"],
-  ["sheetFlatCut", "sheetCut3d", "Recorte plano", "Recorte desenhado na planificação (plano da base) que pode atravessar dobras: retangular/oblongo alinhado; lados na faixa paralelos ou perpendiculares à dobra"],
+/** Operações de chapa agrupadas na faixa: forma, recursos (alívio/canto/recortes) e estado (desdobrar/redobrar). */
+const SHEET_GROUPS: [string, [FeatureKind, string, string, string][]][] = [
+  [
+    "CHAPA",
+    [
+      ["sheetBase", "sheetBase3d", "Base", "Base de chapa: contorno fechado do esboço, espessura, material, raio e K"],
+      ["sheetFlange", "sheetFlange3d", "Aba de borda", "Aba de borda: uma por aresta escolhida (inteira ou com recuos), posição do material, cantos detectados"],
+      ["sheetContour", "sheetContour3d", "Flange", "Flange de contorno: perfil aberto de seção constante ao longo de uma aresta reta"],
+      ["sheetBendLine", "sheetBend3d", "Dobra", "Dobra por linha de esboço numa aba plana"],
+    ],
+  ],
+  [
+    "RECURSOS",
+    [
+      ["sheetRelief", "sheetRelief3d", "Alívio", "Alívio de dobra nas pontas das faixas que terminam dentro da aresta (retangular, oblongo, lágrima)"],
+      ["sheetCorner", "sheetCorner3d", "Canto", "Fechamento de canto entre abas vizinhas: sobreposto, encosto ou esquadria, com folga"],
+      ["sheetCut", "sheetCut3d", "Recorte", "Recorte / furo passante numa aba plana (esboço na face)"],
+      ["sheetFlatCut", "sheetCut3d", "Rec. plano", "Recorte desenhado na planificação (plano da base) que pode atravessar dobras: retangular/oblongo alinhado; lados na faixa paralelos ou perpendiculares à dobra"],
+    ],
+  ],
+  [
+    "DOBRAR",
+    [
+      ["sheetUnfold", "sheetUnfold3d", "Desdobrar", "Desdobrar dobras escolhidas (ou todas) na árvore: região plana BA × L × T, θ nominal e BA intactos"],
+      ["sheetRefold", "sheetRefold3d", "Redobrar", "Redobrar: volta à geometria nominal exata (recalculada do histórico)"],
+    ],
+  ],
 ];
 
 const withSource = (m: Model3D, id: NodeId, source: PartSource): Model3D => ({ ...m, nodes: { ...m.nodes, [id]: { ...(m.nodes[id] as Extract<Model3D["nodes"][string], { kind: "body" }>), source } } });
@@ -163,6 +180,7 @@ export function Workspace3D({ ctl, onInsert }: { ctl: CadController; onInsert?: 
   const [frames, setFrames] = useState<Record<NodeId, Readonly<Record<string, Frame>>>>({});
   const [sheets, setSheets] = useState<Record<NodeId, SheetInfo>>({});
   const [flatView, setFlatView] = useState<NodeId | null>(null);
+  const [dxfDlg, setDxfDlg] = useState<NodeId | null>(null);
   const sheetsRef = useRef(sheets);
   sheetsRef.current = sheets;
   const [fsel, setFsel] = useState<{ body: NodeId; id: FeatId } | null>(null);
@@ -920,17 +938,19 @@ export function Workspace3D({ ctl, onInsert }: { ctl: CadController; onInsert?: 
               </div>
               <div className="rb-cap">ESBOÇO</div>
             </div>
-            <div className="rb-grp">
-              <div className="rb-btns">
-                {SHEET_OPS.map(([k, ic, lb, tip]) => (
-                  <button key={k} className="rb-btn" title={tip} onClick={() => openFeature(k)} disabled={eng.s !== "ready"} data-op={k}>
-                    <Icon name={ic} />
-                    <span>{lb}</span>
-                  </button>
-                ))}
+            {SHEET_GROUPS.map(([cap, ops]) => (
+              <div className="rb-grp" key={cap}>
+                <div className="rb-btns">
+                  {ops.map(([k, ic, lb, tip]) => (
+                    <button key={k} className="rb-btn" title={tip} onClick={() => openFeature(k)} disabled={eng.s !== "ready"} data-op={k}>
+                      <Icon name={ic} />
+                      <span>{lb}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="rb-cap">{cap}</div>
               </div>
-              <div className="rb-cap">CHAPA</div>
-            </div>
+            ))}
             <div className="rb-grp">
               <div className="rb-btns">
                 <button className={`rb-btn wide${flatView ? " on" : ""}`} title="Alternar Dobrado | Planificado (mesmo grafo da peça)" onClick={toggleFlat} disabled={eng.s !== "ready"} data-op="sheetFlat" aria-pressed={!!flatView}>
@@ -940,6 +960,21 @@ export function Workspace3D({ ctl, onInsert }: { ctl: CadController; onInsert?: 
                 <button className="rb-btn wide" title="Enviar a planificação ao DESENHO (camadas de corte, dobra e marcação)" onClick={sendFlat} disabled={eng.s !== "ready"} data-op="sheetSend">
                   <Icon name="send2d" />
                   <span>Ao DESENHO</span>
+                </button>
+                <button
+                  className="rb-btn wide"
+                  title="DXF direto da planificação (R2000 padrão / R12), camadas CUT/BEND, conferido automaticamente"
+                  onClick={() => {
+                    const b = sheetBody();
+                    if (!b) return toast("Selecione uma peça de chapa.", "warn");
+                    if (sheets[b].flat.state !== "valida") return toast(`Planificação inválida: ${sheets[b].flat.reasons.join(" ")}`, "error");
+                    setDxfDlg(b);
+                  }}
+                  disabled={eng.s !== "ready"}
+                  data-op="sheetDxf"
+                >
+                  <Icon name="send2d" />
+                  <span>DXF chapa</span>
                 </button>
               </div>
               <div className="rb-cap">PLANIFICAÇÃO</div>
@@ -1114,6 +1149,7 @@ export function Workspace3D({ ctl, onInsert }: { ctl: CadController; onInsert?: 
             </div>
           )}
           {sk && <DimInput editor={sk.editor} place={(p) => vp.current?.sketchScreen(p) ?? null} />}
+          {dxfDlg && sheets[dxfDlg] && <FlatDxfDialog info={sheets[dxfDlg]} name={model.nodes[dxfDlg]?.name ?? "Chapa"} onClose={() => setDxfDlg(null)} />}
           {fd && partSrc(model, fd.body) && (
             <FeatureDialog
               key={fd.key}

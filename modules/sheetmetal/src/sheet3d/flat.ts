@@ -28,6 +28,13 @@ export interface FlatBend {
   readonly BA: number;
   readonly BD: number;
   readonly L: number;
+  /**
+   * trechos da linha de dobra e dos limites da região SOBRE MATERIAL (recorte que atravessa a faixa, 2.4, os
+   * interrompe); sem recorte = um trecho cada (line/start/end)
+   */
+  readonly lineSegs: readonly (readonly [V2, V2])[];
+  readonly startSegs: readonly (readonly [V2, V2])[];
+  readonly endSegs: readonly (readonly [V2, V2])[];
   /** estado na peça (ETAPA 2.5): a planificação é a mesma dobrada ou desdobrada */
   readonly folded: boolean;
   /** ponta da faixa dentro da aresta (alívio aplicável) */
@@ -117,6 +124,23 @@ export function flatPattern(s: SheetSolved, extraInvalid: readonly string[] = []
     box.maxX = Math.max(box.maxX, q.x);
     box.maxY = Math.max(box.maxY, q.y);
   }
+  /** trechos em s = w sobre material (fatias da faixa recortada) */
+  const segsAt = (b: (typeof s.bends)[number], w: number): [V2, V2][] => {
+    const A = b.flatStart[0];
+    const du = mul2(sub2(b.flatStart[1], A), 1 / b.L);
+    const ds = mul2(sub2(b.flatEnd[0], A), 1 / b.BA);
+    const P = (u: number) => add2(add2(A, mul2(du, u)), mul2(ds, w));
+    if (!b.cut) return [[P(0), P(b.L)]];
+    const out: [V2, V2][] = [];
+    const eps = 1e-12 * Math.max(1, b.BA);
+    for (const q of b.cut.slabs) {
+      if (!q.mat.some((m) => m[0] <= w + eps && w - eps <= m[1])) continue;
+      const last = out[out.length - 1];
+      if (last && len2(sub2(last[1], P(q.u0))) <= 1e-12 * Math.max(1, b.L)) last[1] = P(q.u1);
+      else out.push([P(q.u0), P(q.u1)]);
+    }
+    return out;
+  };
   const bends: FlatBend[] = s.bends.map((b, i) => ({
     id: b.id,
     label: b.label,
@@ -130,6 +154,9 @@ export function flatPattern(s: SheetSolved, extraInvalid: readonly string[] = []
     BA: b.BA,
     BD: b.BD,
     L: b.L,
+    lineSegs: segsAt(b, b.BA / 2),
+    startSegs: segsAt(b, 0),
+    endSegs: segsAt(b, b.BA),
     folded: b.folded,
     partial: b.partial,
     relief: b.relief ?? null,

@@ -6,3 +6,4 @@ export type { V2 as SheetV2, V3 as SheetV3, Mat as SheetMat } from "./math";
 export { flatPattern, flatEntities, type FlatPattern, type FlatBend, type FlatEntityOptions } from "./flat";
 export { sheetWarnings, genericOpReason } from "./validate";
 export { edgeSeg, edgeMid, edgeBulge, edgesArea, edgesLength, pointInEdges, sweepVia } from "./edges";
+export { FLAT_LAYER, FLAT_LAYERS, type FlatDxfCheck, type FlatDxfOptions, type FlatDxfReport, flatDxfInput, flatToDxf, validateFlatDxf } from "./flatdxf";
