@@ -21,6 +21,25 @@ def check(name, ok, detail=""):
     print(("PASS " if ok else "FAIL ") + name + (f" — {detail}" if detail else ""), flush=True)
 
 
+async def reopen(pg, path):
+    """recarrega a página e abre o arquivo (Ctrl+O); tenta de novo se a página ainda não pegou o atalho"""
+    await pg.goto(URL)
+    await pg.wait_for_timeout(1200)
+    for attempt in range(3):
+        try:
+            async with pg.expect_file_chooser(timeout=8000) as fc:
+                await pg.keyboard.press("Control+o")
+            await (await fc.value).set_files(path)
+            break
+        except Exception:
+            if attempt == 2:
+                raise
+            await pg.wait_for_timeout(1500)
+    await pg.wait_for_timeout(800)
+    await pg.get_by_role("button", name="3D", exact=True).click()
+    await pg.wait_for_selector(".st3-dot.ready", timeout=30000)
+
+
 async def num(pg, field, v):
     inp = pg.locator(f'.fd [data-field="{field}"] input').first
     await inp.fill(str(v))
@@ -141,14 +160,7 @@ async def main():
             fl = [f for f in feats if f["t"] == "sheetFlange"][0]
             check("arquivo: histórico com sheetRelief e recuos da aba", kinds == ["sketch", "sheetBase", "sheetFlange", "sheetRelief"] and fl.get("offsetStart") == 20 and fl.get("offsetEnd") == 30, str(kinds))
             rsaved = r
-            await pg.goto(URL)
-            await pg.wait_for_timeout(1200)
-            async with pg.expect_file_chooser() as fc:
-                await pg.keyboard.press("Control+o")
-            await (await fc.value).set_files(path)
-            await pg.wait_for_timeout(800)
-            await pg.get_by_role("button", name="3D", exact=True).click()
-            await pg.wait_for_selector(".st3-dot.ready", timeout=30000)
+            await reopen(pg, path)
             v, sh = await consistent(pg)
             r = await pg.evaluate(RELIEF)
             check("reaberto: mesmo alívio, mesma área, sólido = grafo", r == rsaved and v is not None, f"{r['base']}")
@@ -316,6 +328,22 @@ async def main():
                 ins = doc.header.get("$INSUNITS")
                 ok = "conferência: ok" in rep.lower() and not aud.has_errors and len(outer) == 1 and len(inner) == 1 and {"BEND_UP", "BEND_MARK", "BEND_REGION"} <= layers and (ins == 4 if ver == "R2000" else True)
                 check(f"2.6 DXF {ver}: conferido no app e auditado pelo ezdxf (1 contorno externo, 1 rasgo interno, camadas BEND_*, INSUNITS {ins})", ok, f"{rep.splitlines()[0]} · {sorted(layers)} · erros ezdxf {len(aud.errors)}")
+
+            # ---------------- arquivo da ETAPA 2 completo: salvar, reabrir, mesmo volume e mesma planificação
+            vref = await pg.evaluate(VOL)
+            aref = await pg.evaluate(f"() => window.__agtn3d.sheets()[{BODY}.id].flatArea")
+            async with pg.expect_download() as dl:
+                await pg.keyboard.press("Control+s")
+            path = f"{OUT}/etapa2_completo.agtncad"
+            await (await dl.value).save_as(path)
+            data = json.load(open(path))
+            part = [n for n in data["extras"]["agtn3d"]["nodes"].values() if n["kind"] == "body"][0]
+            kinds = [f["t"] for f in part["source"]["features"]]
+            await reopen(pg, path)
+            v, sh = await consistent(pg)
+            a2 = await pg.evaluate(f"() => window.__agtn3d.sheets()[{BODY}.id].flatArea")
+            json.dump({"volume": vref, "flatArea": aref}, open(f"{OUT}/etapa2_completo.ref.json", "w"))
+            check("arquivo ETAPA 2 (canto, recorte plano, desdobrar/redobrar): reaberto com o mesmo volume e a mesma planificação", v is not None and abs(v - vref) < 1e-9 * vref and a2 == aref and "sheetCorner" in kinds and "sheetFlatCut" in kinds and "sheetUnfold" in kinds, f"{kinds} · {v} vs {vref}")
         except Exception:
             await pg.screenshot(path=f"{OUT}/zz_falha.png")
             raise
