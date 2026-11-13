@@ -1,5 +1,22 @@
 # Changelog
 
+## Em desenvolvimento (branch `feature/agtn-3d-ia`, não publicado) — FASE 4 · ETAPA 2: recursos de chapa 3D
+- **Aba de borda** (antes "Aba lateral"): recuos de início e fim (faixa parcial); posição do material (por dentro,
+  por fora, dobra por fora); várias arestas; cantos detectados e mostrados no painel.
+- **Alívio de dobra** (retangular, oblongo, lágrima): automático w = T + g, d = SB + g; folga editável na operação
+  e em Preferências (0,5 mm, não é norma).
+- **Canto**: sobreposto, encosto e esquadria com folga, para qualquer θ e ângulo do canto (mesmas regras da
+  bandeja 2D). Alívio de canto redondo: bloqueado com mensagem.
+- **Recorte plano**: recorte desenhado na planificação que atravessa dobras (retangular, oblongo alinhado, lados
+  paralelos/perpendiculares à dobra). Círculo, arco ou lado oblíquo dentro da faixa: bloqueado com mensagem.
+- **Desdobrar / Redobrar** na árvore: θ nominal e BA intactos; redobrar volta exatamente à peça.
+- **DXF chapa**: DXF direto da planificação (2000 padrão, R12 opcional), camadas CUT_OUTER/CUT_INNER/BEND_UP/
+  BEND_DOWN/BEND_MARK/BEND_REGION/REFERENCE; o arquivo é relido e conferido antes de gravar. O DXF do DESENHO não
+  mudou (bytes idênticos).
+- Faixa da Chapa em grupos CHAPA / RECURSOS / DOBRAR.
+- Corrigido: furo poligonal numa aba de chapa falhava (só o circular funcionava); caixas de seleção brancas e
+  ilegíveis no app Linux (WebKitGTK); rótulo "Material" repetido na base de chapa.
+
 ## Em desenvolvimento (branch `feature/agtn-3d-ia`, não publicado) — FASE 4 · ETAPA 1: Sheet Metal 3D
 - Aba **Chapa** na faixa 3D:
   - **Base de chapa**: contorno do esboço; T, material, processo, raio; K da tabela material × processo × R/T com a origem, ou manual.

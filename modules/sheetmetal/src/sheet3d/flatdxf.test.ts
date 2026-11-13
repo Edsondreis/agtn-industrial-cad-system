@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { DEFAULT_LAYER } from "@agtn/document";
-import { writeDxf } from "@agtn/dxf";
+import { dxfBytes, writeDxf } from "@agtn/dxf";
 import { type Entity, deg2rad, makeEntity } from "@agtn/geometry";
 import { flatEntities, flatPattern } from "./flat";
 import { FLAT_LAYER, flatDxfInput, flatToDxf, validateFlatDxf } from "./flatdxf";
@@ -45,7 +45,7 @@ describe("DXF direto da planificação", () => {
         expect(fp.state).toBe("valida");
         const o = { version, regions: true, reference: true, title: name } as const;
         const txt = flatToDxf(fp, o);
-        writeFileSync(`${OUT}/chapa3d_${name}_${version}.dxf`, txt);
+        writeFileSync(`${OUT}/chapa3d_${name}_${version}.dxf`, dxfBytes(txt)); // como o app grava (CP1252)
         const rep = validateFlatDxf(txt, fp, o);
         expect(rep.checks.filter((c) => !c.ok)).toEqual([]);
         expect(rep.ok).toBe(true);
