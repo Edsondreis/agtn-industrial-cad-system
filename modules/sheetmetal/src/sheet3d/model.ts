@@ -61,6 +61,8 @@ export interface OutlineEdge {
 export interface EdgeRef {
   readonly flange: string;
   readonly edge: string;
+  /** chave usada no id da aba-filha (a original, quando a aresta foi recuperada por geometria) */
+  readonly idKey?: string;
 }
 
 export interface SheetBendParams {

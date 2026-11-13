@@ -96,7 +96,77 @@ export type Feature = Base &
       }
     /** booleana com outros corpos do modelo (ids de nós) */
     | { readonly t: "combine"; readonly op: "join" | "cut" | "intersect"; readonly tools: readonly string[] }
+    /* ------------------------------------------------------------------ chapa (FASE 4 · ETAPA 1) */
+    /** base de chapa: contorno fechado do esboço (só retas) + furos; padrões da peça */
+    | {
+        readonly t: "sheetBase";
+        readonly sketch: FeatId;
+        readonly T: number;
+        /** raio interno padrão */
+        readonly R: number;
+        /** fator K padrão; null = tabela material × processo × T × R/T */
+        readonly K: number | null;
+        readonly material: string;
+        readonly process: string;
+        readonly ref: SheetRef;
+        /** material para o lado da normal do esboço ("cima") ou o contrário */
+        readonly side: SheetSide;
+      }
+    /** aba lateral: uma aba por aresta inteira (canto aberto automático) */
+    | {
+        readonly t: "sheetFlange";
+        readonly edges: readonly SheetEdgeRef[];
+        readonly length: number;
+        /** θ = ângulo de dobra (deflexão); α = 180° − θ só na interface */
+        readonly deflectionDeg: number;
+        readonly R: number | null;
+        readonly K: number | null;
+        readonly side: SheetSide;
+        readonly ref: SheetRef;
+      }
+    /** flange de contorno: perfil aberto de seção constante (tabela de segmentos) ao longo de UMA aresta reta */
+    | {
+        readonly t: "sheetContour";
+        readonly edge: SheetEdgeRef;
+        readonly segments: readonly { readonly length: number; readonly deflectionDeg: number; readonly side: SheetSide; readonly R: number | null; readonly K: number | null }[];
+        readonly ref: SheetRef;
+      }
+    /** dobra por linha do esboço (linha = centro da região de dobra na planificação) */
+    | {
+        readonly t: "sheetBendLine";
+        readonly sketch: FeatId;
+        readonly line: string;
+        readonly flange: string;
+        readonly deflectionDeg: number;
+        readonly R: number | null;
+        readonly K: number | null;
+        /** "cima" = para o lado da normal do esboço */
+        readonly side: SheetSide;
+        readonly ref: SheetRef;
+        /** lado que fica fixo, olhando a linha de p1 para p2 com a normal do esboço para quem olha */
+        readonly fixed: "esq" | "dir";
+      }
+    /** recorte/furo passante numa aba plana (contornos fechados do esboço sobre a face da aba) */
+    | { readonly t: "sheetCut"; readonly sketch: FeatId; readonly flange: string }
   );
+
+export type SheetRef = "externa" | "interna";
+export type SheetSide = "cima" | "baixo";
+/** Aresta de chapa por id semântico (aba + chave da aresta), nunca índice do OCCT. */
+export interface SheetEdgeRef {
+  readonly flange: string;
+  readonly edge: string;
+  /**
+   * Posição da aresta (linha de molde, mundo) quando foi escolhida. Só usada se o id sumir (linha apagada e
+   * redesenhada): aceita UMA aresta da mesma aba exatamente na mesma reta, com aviso; duas → ambígua.
+   */
+  readonly hint?: { readonly a: Vec3; readonly b: Vec3 };
+}
+export const SHEET_KINDS = ["sheetBase", "sheetFlange", "sheetContour", "sheetBendLine", "sheetCut"] as const;
+export type SheetFeature = Extract<Feature, { t: (typeof SHEET_KINDS)[number] }>;
+export const isSheetFeature = (f: { t: string }): f is SheetFeature => (SHEET_KINDS as readonly string[]).includes(f.t);
+/** Operação que criou a aba (o id da aba começa pelo id da operação: base, «op»@…, «op»#n, «op»~…). */
+export const sheetFlangeOwner = (flange: string): FeatId => flange.split(/[@#~]/)[0];
 
 export type FeatureKind = Feature["t"];
 type NoBase<F> = F extends Feature ? Omit<F, "id" | "name"> : never;
@@ -116,6 +186,11 @@ export const FEATURE_LABEL: Record<FeatureKind, string> = {
   mirror: "Espelhamento",
   pattern: "Padrão",
   combine: "Combinar corpos",
+  sheetBase: "Base de chapa",
+  sheetFlange: "Aba lateral",
+  sheetContour: "Flange de contorno",
+  sheetBendLine: "Dobra",
+  sheetCut: "Recorte de chapa",
 };
 
 /** Prefixos dos nomes automáticos (estilo da árvore: Sketch_Base, Extrude_1…). */
@@ -133,6 +208,11 @@ export const FEATURE_PREFIX: Record<FeatureKind, string> = {
   mirror: "Espelho",
   pattern: "Padrão",
   combine: "Combinar",
+  sheetBase: "Chapa",
+  sheetFlange: "Aba",
+  sheetContour: "Flange",
+  sheetBendLine: "Dobra",
+  sheetCut: "Recorte",
 };
 
 export const opLabel = (op: BoolOp) => ({ new: "Novo sólido", join: "Unir", cut: "Cortar", intersect: "Interseção" })[op];
@@ -187,8 +267,36 @@ export function validateFeature(f: FeatureDraft): string[] {
     case "combine":
       if (!f.tools.length) e.push("Escolha os corpos-ferramenta.");
       break;
+    case "sheetBase":
+      pos(f.T, "Espessura");
+      if (!(f.R >= 0)) e.push("Raio interno deve ser ≥ 0.");
+      kOk(f.K);
+      break;
+    case "sheetFlange":
+      pos(f.length, "Comprimento da aba");
+      bendOk(f.deflectionDeg, f.R, f.K);
+      if (!f.edges.length) e.push("Escolha pelo menos uma aresta.");
+      break;
+    case "sheetContour":
+      if (!f.segments.length) e.push("O perfil precisa de pelo menos um segmento.");
+      f.segments.forEach((sg, i) => {
+        if (!(sg.length > 0)) e.push(`Segmento ${i + 1}: comprimento deve ser maior que zero.`);
+        bendOk(sg.deflectionDeg, sg.R, sg.K);
+      });
+      break;
+    case "sheetBendLine":
+      bendOk(f.deflectionDeg, f.R, f.K);
+      break;
   }
   return e;
+  function kOk(K: number | null) {
+    if (K !== null && !(K >= 0 && K <= 1)) e.push("Fator K deve estar entre 0 e 1.");
+  }
+  function bendOk(th: number, R: number | null, K: number | null) {
+    if (!(th > 0 && th < 180)) e.push("Ângulo de dobra (deflexão θ) deve estar entre 0° e 180° (exclusivo).");
+    if (R !== null && !(R >= 0)) e.push("Raio interno deve ser ≥ 0.");
+    kOk(K);
+  }
 }
 
 /** Ids de operações que esta operação usa (esboços, alvos, faces/arestas de origem). */
@@ -231,6 +339,23 @@ export function featureRefs(f: Feature): FeatId[] {
     case "pattern":
       f.targets.forEach((t) => out.add(t));
       axis(f.dir);
+      break;
+    case "sheetBase":
+      out.add(f.sketch);
+      break;
+    case "sheetFlange":
+      f.edges.forEach((e) => out.add(sheetFlangeOwner(e.flange)));
+      break;
+    case "sheetContour":
+      out.add(sheetFlangeOwner(f.edge.flange));
+      break;
+    case "sheetBendLine":
+      out.add(f.sketch);
+      out.add(sheetFlangeOwner(f.flange));
+      break;
+    case "sheetCut":
+      out.add(f.sketch);
+      out.add(sheetFlangeOwner(f.flange));
       break;
   }
   return [...out];

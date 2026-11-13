@@ -48,6 +48,8 @@ export default defineConfig({
       "@agtn/document": r("../../core/document/src/index.ts"),
       "@agtn/dxf": r("../../modules/dxf/src/index.ts"),
       "@agtn/sheetmetal": r("../../modules/sheetmetal/src/index.ts"),
+      "@agtn/sheetgraph": r("../../modules/sheetmetal/src/sheet3d/index.ts"),
+      "@agtn/sheet3d": r("../../modules/sheet3d/src/index.ts"),
       "@agtn/lasertext": r("../../modules/lasertext/src/index.ts"),
       "@agtn/parts": r("../../modules/parts/src/index.ts"),
       "@agtn/plot": r("../../modules/plot/src/index.ts"),

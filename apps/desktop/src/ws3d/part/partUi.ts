@@ -47,6 +47,11 @@ export const FEATURE_ICON: Record<FeatureKind, string> = {
   mirror: "mirror3d",
   pattern: "patlin3d",
   combine: "union3d",
+  sheetBase: "sheetBase3d",
+  sheetFlange: "sheetFlange3d",
+  sheetContour: "sheetContour3d",
+  sheetBendLine: "sheetBend3d",
+  sheetCut: "sheetCut3d",
 };
 export const featureIcon = (f: Feature) =>
   f.t === "pattern" && f.kind === "circular" ? "patcir3d" : f.t === "combine" ? (f.op === "cut" ? "cut3d" : f.op === "intersect" ? "intersect3d" : "union3d") : FEATURE_ICON[f.t];
@@ -84,6 +89,16 @@ export function featureSummary(f: Feature): string {
       return f.kind === "linear" ? `${f.count} × ${n(f.spacing)} mm` : `${f.count} × ${n(f.angle)}°`;
     case "combine":
       return `${OP[f.op]} · ${f.tools.length} corpo(s)`;
+    case "sheetBase":
+      return `T ${n(f.T)} · R ${n(f.R)} · K ${f.K === null ? "tabela" : n(f.K)}`;
+    case "sheetFlange":
+      return `${n(f.length)} mm · θ ${n(f.deflectionDeg)}° (α ${n(180 - f.deflectionDeg)}°) · ${f.edges.length} aresta(s)`;
+    case "sheetContour":
+      return `${f.segments.length} segmento(s) · ${f.ref}`;
+    case "sheetBendLine":
+      return `θ ${n(f.deflectionDeg)}° (α ${n(180 - f.deflectionDeg)}°) · ${f.side}`;
+    case "sheetCut":
+      return "passante";
   }
 }
 

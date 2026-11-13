@@ -1,0 +1,13 @@
+{
+  "name": "@agtn/sheet3d",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@agtn/sheetmetal": "*",
+    "@agtn/solid": "*",
+    "@agtn/sketch": "*"
+  }
+}

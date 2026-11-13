@@ -1,7 +1,7 @@
 import { type Seg2, type Sketch, defaultRegions, entityOf, pathChain, pointOf, profiles } from "@agtn/sketch";
 import { JoinType, type OcctKernel, type ShapeHandle } from "occt-wasm";
-import type { AxisRef, BoolOp, EdgeRef, FaceRef, FeatId, Feature, PlaneRef } from "./features";
-import { featureRefs, validateFeature } from "./features";
+import type { AxisRef, BoolOp, EdgeRef, FaceRef, FeatId, Feature, PlaneRef, SheetFeature } from "./features";
+import { FEATURE_LABEL, featureRefs, isSheetFeature, validateFeature } from "./features";
 import type { OcctSolidKernel } from "./occt";
 import { placementMatrix } from "./placement";
 import type { PrimitiveSpec } from "./primitives";
@@ -68,6 +68,32 @@ export interface PartResult {
   readonly frames: Readonly<Record<FeatId, Frame>>;
   /** primeira operação que quebrou a cadeia do sólido (o resultado é o sólido de antes dela) */
   readonly failed: { readonly id: FeatId; readonly name: string; readonly error: string } | null;
+  /** peça de chapa: estado da última operação de chapa válida + operações sólidas genéricas depois dela */
+  readonly sheet: { readonly state: unknown; readonly feature: FeatId; readonly generic: readonly string[] } | null;
+}
+
+/**
+ * PONTO DE EXTENSÃO DA CHAPA (FASE 4). O `core/solid` não conhece o motor de chapa (as dependências só
+ * descem): o módulo de chapa implementa esta interface e é injetado no avaliador. Cache, estados, rollback,
+ * propagação de erro e validação do sólido continuam aqui. Sem backend → erro explícito.
+ */
+export interface SheetBackend {
+  apply(f: SheetFeature, ctx: SheetCtx): SheetApply;
+}
+export interface SheetCtx {
+  readonly kernel: OcctKernel;
+  /** estado da chapa da operação de chapa anterior (null na base) */
+  readonly prev: unknown | null;
+  readonly sketch: (id: FeatId) => { readonly frame: Frame; readonly sketch: Sketch };
+  /** registra um temporário OCCT (liberado no fim da operação se não for o resultado) */
+  readonly T: <H extends ShapeHandle>(h: H) => H;
+}
+export interface SheetApply {
+  /** estado novo (dados puros, sem handles OCCT) */
+  readonly state: unknown;
+  /** sólido completo da chapa (substitui o anterior) */
+  readonly shape: ShapeHandle;
+  readonly warning?: string;
 }
 
 type Anchor =
@@ -93,6 +119,8 @@ interface Entry {
   status: FeatureStatus;
   /** volume do resultado (calculado uma vez; serve de entrada para a operação seguinte) */
   vol?: number;
+  /** estado da chapa (só operações de chapa válidas) */
+  sheet?: unknown;
 }
 
 type Desc = { kind: "plane"; p: Vec3; n: Vec3 } | { kind: "cyl"; p: Vec3; axis: Vec3; r: number } | { kind: "point"; p: Vec3 };
@@ -126,8 +154,17 @@ export class PartEvaluator {
   private readonly cache = new Map<string, Entry[]>();
   private readonly k: OcctKernel;
 
-  constructor(private readonly sk: OcctSolidKernel) {
+  constructor(
+    private readonly sk: OcctSolidKernel,
+    private sheetBackend: SheetBackend | null = null,
+  ) {
     this.k = sk.raw;
+  }
+
+  /** Liga o motor de chapa (o cache é descartado: as operações de chapa passam a ser avaliadas). */
+  setSheetBackend(b: SheetBackend | null) {
+    this.sheetBackend = b;
+    this.releaseAll();
   }
 
   evaluate(partId: string, features: readonly Feature[], opts: { rollback?: number | null; external?: (id: string) => External | null } = {}): PartResult {
@@ -178,7 +215,16 @@ export class PartEvaluator {
     // entradas além do rollback continuam no cache (reaproveitadas se nada mudar antes delas)
     if (stop >= features.length) this.releaseFrom(entries, features.length);
     this.cache.set(partId, entries);
-    return { shape: result, status, frames, failed };
+    // chapa: última operação de chapa válida e as operações sólidas genéricas que vieram depois
+    let sheet = null as { state: unknown; feature: FeatId; generic: string[] } | null;
+    for (let i = 0; i < Math.min(stop, features.length); i++) {
+      const e = entries[i];
+      const f = features[i];
+      if (!e) continue;
+      if (e.sheet !== undefined) sheet = { state: e.sheet, feature: f.id, generic: [] };
+      else if (sheet && f.t !== "sketch" && !isSheetFeature(f) && e.status.state === "ok") sheet.generic.push(f.name);
+    }
+    return { shape: result, status, frames, failed, sheet };
   }
 
   /** Sólido no estado após a operação `index` (para editar com rollback). */
@@ -235,6 +281,9 @@ export class PartEvaluator {
       status: { id: f.id, state, error, cause, ms: 0 },
     });
     if (f.suppressed) return pass("suppressed");
+    // operação desconhecida: arquivo de versão mais nova — preservada, nunca executada às cegas
+    if (!Object.prototype.hasOwnProperty.call(FEATURE_LABEL, (f as { t: string }).t))
+      return pass("error", `A operação ${f.name} (${String((f as { t: string }).t)}) é de uma versão mais nova do AGTN CAD — atualize para editar. Ela foi preservada no arquivo.`);
     let errs: string[];
     try {
       errs = validateFeature(f);
@@ -277,7 +326,7 @@ export class PartEvaluator {
       const out = this.run(f, ctx, external);
       if (out.result !== null) keep.add(out.result);
       if (out.tool !== null) keep.add(out.tool);
-      let warning: string | undefined;
+      let warning: string | undefined = out.warning;
       let v: number | undefined;
       if (out.result !== null && out.result !== input) {
         if (!this.k.isValid(out.result)) throw new SolidError("KERNEL", "O resultado não é um sólido válido (geometria degenerada).");
@@ -298,6 +347,7 @@ export class PartEvaluator {
         anchor: out.anchor,
         status: { id: f.id, state: "ok", ms: 0, ...(warning ? { warning } : {}) },
         vol: v ?? inputVol,
+        ...(out.sheet !== undefined ? { sheet: out.sheet } : {}),
       };
     } catch (e) {
       keep.clear();
@@ -460,6 +510,12 @@ export class PartEvaluator {
         }
         return { result: r, tool: null };
       }
+      case "sheetBase":
+      case "sheetFlange":
+      case "sheetContour":
+      case "sheetBendLine":
+      case "sheetCut":
+        return this.runSheet(f, c);
       case "combine": {
         const base = this.need(c.input, "combinar");
         const tools = f.tools.map((id) => {
@@ -471,6 +527,33 @@ export class PartEvaluator {
         return { result: this.apply(base, tool, f.op, T), tool, op: f.op };
       }
     }
+  }
+
+  /** Operação de chapa: estado anterior + regras de encadeamento; a geometria é do backend injetado. */
+  private runSheet(f: SheetFeature, c: Ctx): Out {
+    if (!this.sheetBackend) throw new SolidError("INVALID_PARAMS", "O motor de chapa não está carregado neste ambiente.");
+    let prev: unknown = null;
+    let prevIdx = -1;
+    for (let j = c.index - 1; j >= 0; j--)
+      if (c.entries[j]?.sheet !== undefined) {
+        prev = c.entries[j].sheet;
+        prevIdx = j;
+        break;
+      }
+    if (f.t === "sheetBase") {
+      if (prev !== null) throw new SolidError("INVALID_PARAMS", "Esta peça já tem uma base de chapa (ETAPA 1: uma chapa por corpo).");
+      if (c.input !== null) throw new SolidError("INVALID_PARAMS", "A base de chapa precisa ser a primeira operação sólida do corpo (ETAPA 1).");
+    } else {
+      if (prev === null) throw new SolidError("INVALID_PARAMS", "Crie a base de chapa antes desta operação.");
+      for (let j = prevIdx + 1; j < c.index; j++) {
+        const g = c.features[j];
+        if (g.t === "sketch" || isSheetFeature(g) || g.suppressed) continue;
+        if (c.entries[j]?.status.state === "ok")
+          throw new SolidError("INVALID_PARAMS", `Depois de ${g.name} (operação sólida genérica) a peça deixou de ser só chapa — operações de chapa não podem vir depois dela (ETAPA 1).`);
+      }
+    }
+    const r = this.sheetBackend.apply(f, { kernel: this.k, prev, sketch: (id) => this.sketchOf(id, c), T: c.T });
+    return { result: r.shape, tool: null, sheet: r.state, ...(r.warning ? { warning: r.warning } : {}) };
   }
 
   /* =========================================================================================== auxiliares */
@@ -885,6 +968,8 @@ interface Out {
   op?: BoolOp;
   frame?: Frame;
   anchor?: Anchor;
+  sheet?: unknown;
+  warning?: string;
 }
 
 function withoutEntity(s: Sketch, id: string): Sketch {

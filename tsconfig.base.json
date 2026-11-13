@@ -22,6 +22,8 @@
       "@agtn/document": ["core/document/src/index.ts"],
       "@agtn/dxf": ["modules/dxf/src/index.ts"],
       "@agtn/sheetmetal": ["modules/sheetmetal/src/index.ts"],
+      "@agtn/sheetgraph": ["modules/sheetmetal/src/sheet3d/index.ts"],
+      "@agtn/sheet3d": ["modules/sheet3d/src/index.ts"],
       "@agtn/lasertext": ["modules/lasertext/src/index.ts"],
       "@agtn/parts": ["modules/parts/src/index.ts"],
       "@agtn/plot": ["modules/plot/src/index.ts"],

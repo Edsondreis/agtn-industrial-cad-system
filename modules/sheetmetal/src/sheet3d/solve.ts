@@ -210,7 +210,7 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
         }
         if (nErr() > before) return;
         op.edges.forEach((e, i) => {
-          const id = `${op.id}@${e.flange}/${e.edge}`;
+          const id = `${op.id}@${e.flange}/${e.idKey ?? e.edge}`;
           addChild(parents[i], e.edge, id, op.edges.length > 1 ? `${op.label}.${i + 1}` : op.label, op.id, "aba", op.length, bp, op.side, op.ref);
         });
         return;
