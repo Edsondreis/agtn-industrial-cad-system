@@ -105,6 +105,16 @@ function SheetPanel({ info, body }: { info: SheetInfo; body: BodyNode }) {
       <h4>Chapa</h4>
       <Row k="Espessura" v={fmt(info.T, 3)} unit="mm" />
       <Row k="Abas / dobras" v={`${info.flanges.length} / ${fp.bends.length}`} />
+      {info.corners.length > 0 && (
+        <Row
+          k="Cantos"
+          v={
+            <span data-testid="sheet-corners" title={info.corners.map((c) => `${c.label} · ${c.kind} · ${fmt(c.angleDeg, 1)}°`).join("\n")}>
+              {info.corners.length} {info.corners.every((c) => c.kind === "aberto") ? (info.corners.length > 1 ? "abertos" : "aberto") : ""}
+            </span>
+          }
+        />
+      )}
       <Row k="Planificação" v={<b className={ok ? "ok" : "bad"} data-testid="flat-state">{ok ? "válida" : "inválida"}</b>} />
       {!ok && fp.reasons.map((r, i) => <div key={i} className="fd-note bad">{r}</div>)}
       {ok && (

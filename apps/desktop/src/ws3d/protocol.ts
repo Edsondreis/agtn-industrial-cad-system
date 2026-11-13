@@ -13,6 +13,8 @@ export interface SheetInfo {
   readonly flatArea: number;
   readonly flat: FlatPattern;
   readonly flanges: readonly { readonly id: string; readonly label: string; readonly area: number }[];
+  /** cantos entre faixas de dobra vizinhas (ETAPA 2.2: detectados; tipo aplicado pela operação Canto, 2.3) */
+  readonly corners: readonly { readonly id: string; readonly label: string; readonly angleDeg: number; readonly kind: string }[];
   /** sistema local da base (plano da planificação) → coordenadas locais da peça */
   readonly flatFrame: SheetMat;
   /** rótulos de proveniência por face do sólido exibido */

@@ -1,4 +1,4 @@
-import type { BendSide, SheetBaseSpec, SheetDefaults, SheetOp, SheetRef, SheetSpec } from "./model";
+import type { BendSide, MaterialPosition, SheetBaseSpec, SheetDefaults, SheetOp, SheetRef, SheetSpec } from "./model";
 
 /** Peças de referência para testes (motor puro e OCCT). */
 export const XY = { o: { x: 0, y: 0, z: 0 }, x: { x: 1, y: 0, z: 0 }, y: { x: 0, y: 1, z: 0 }, n: { x: 0, y: 0, z: 1 } };
@@ -25,7 +25,7 @@ export function rectBase(A: number, B: number, d: Partial<SheetDefaults> = {}, s
   };
 }
 
-export function aba(id: string, edges: [string, string][], length: number, deflectionDeg: number, o: { side?: BendSide; ref?: SheetRef; R?: number; K?: number; o0?: number; o1?: number } = {}): SheetOp {
+export function aba(id: string, edges: [string, string][], length: number, deflectionDeg: number, o: { side?: BendSide; ref?: SheetRef; R?: number; K?: number; o0?: number; o1?: number; pos?: MaterialPosition } = {}): SheetOp {
   return {
     t: "aba",
     id,
@@ -33,6 +33,7 @@ export function aba(id: string, edges: [string, string][], length: number, defle
     edges: edges.map(([flange, edge]) => ({ flange, edge })),
     length,
     ...(o.o0 !== undefined || o.o1 !== undefined ? { offsetStart: o.o0 ?? 0, offsetEnd: o.o1 ?? 0 } : {}),
+    ...(o.pos ? { position: o.pos } : {}),
     bend: { deflectionDeg, ...(o.R !== undefined ? { R: o.R } : {}), ...(o.K !== undefined ? { K: o.K } : {}) },
     side: o.side ?? "cima",
     ref: o.ref ?? "externa",

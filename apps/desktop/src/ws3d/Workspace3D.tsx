@@ -116,7 +116,7 @@ interface FeatSess {
 type Tab = "modelar" | "chapa" | "corpos";
 const SHEET_OPS: [FeatureKind, string, string, string][] = [
   ["sheetBase", "sheetBase3d", "Base", "Base de chapa: contorno fechado do esboço, espessura, material, raio e K"],
-  ["sheetFlange", "sheetFlange3d", "Aba lateral", "Aba ao longo da aresta inteira (uma por aresta; canto aberto automático)"],
+  ["sheetFlange", "sheetFlange3d", "Aba de borda", "Aba de borda: uma por aresta escolhida (inteira ou com recuos), posição do material, cantos detectados"],
   ["sheetContour", "sheetContour3d", "Flange", "Flange de contorno: perfil aberto de seção constante ao longo de uma aresta reta"],
   ["sheetBendLine", "sheetBend3d", "Dobra", "Dobra por linha de esboço numa aba plana"],
   ["sheetRelief", "sheetRelief3d", "Alívio", "Alívio de dobra nas pontas das faixas que terminam dentro da aresta (retangular, oblongo, lágrima)"],

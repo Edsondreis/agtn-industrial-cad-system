@@ -94,7 +94,7 @@ export function featureSummary(f: Feature): string {
     case "sheetBase":
       return `T ${n(f.T)} · R ${n(f.R)} · K ${f.K === null ? "tabela" : n(f.K)}`;
     case "sheetFlange":
-      return `${n(f.length)} mm · θ ${n(f.deflectionDeg)}° (α ${n(180 - f.deflectionDeg)}°) · ${f.edges.length} aresta(s)`;
+      return `${n(f.length)} mm · θ ${n(f.deflectionDeg)}° (α ${n(180 - f.deflectionDeg)}°) · ${f.edges.length} aresta(s)${f.position && f.position !== "dentro" ? ` · material ${f.position === "fora" ? "por fora" : "dobra por fora"}` : ""}${(f.offsetStart ?? 0) + (f.offsetEnd ?? 0) > 0 ? ` · recuos ${n(f.offsetStart ?? 0)}/${n(f.offsetEnd ?? 0)}` : ""}`;
     case "sheetContour":
       return `${f.segments.length} segmento(s) · ${f.ref}`;
     case "sheetBendLine":

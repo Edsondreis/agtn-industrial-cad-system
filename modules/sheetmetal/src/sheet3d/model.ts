@@ -95,7 +95,7 @@ export interface SheetBaseSpec {
 }
 
 export type SheetOp =
-  /** Aba lateral: uma aba por aresta inteira (canto aberto automático com as vizinhas). */
+  /** Aba de borda: uma aba por aresta escolhida (inteira ou parcial com recuos; canto aberto, detectado). */
   | {
       readonly t: "aba";
       readonly id: string;
@@ -109,6 +109,11 @@ export type SheetOp =
        */
       readonly offsetStart?: number;
       readonly offsetEnd?: number;
+      /**
+       * Posição do material (ETAPA 2.2): deslocamento δ da linha de molde em relação à aresta escolhida.
+       * "dentro" δ = 0 (padrão, ETAPA 1) · "fora" δ = T · "dobra_fora" δ = SB (a dobra começa na aresta).
+       */
+      readonly position?: MaterialPosition;
       readonly bend: SheetBendParams;
       readonly side: BendSide;
       readonly ref: SheetRef;
@@ -232,13 +237,34 @@ export interface SolvedBend {
   readonly partial: boolean;
   /** eixo da dobra (mundo): ponto e direção unitária; giro de +θ em torno de `dir` leva a pai à filha */
   readonly axis: { readonly p: V3; readonly dir: V3 };
-  /** normal da face de dentro e de fora no início do arco (mundo) */
+  /** posição do material (ETAPA 2.2) e o deslocamento δ da linha de molde para fora da aresta escolhida */
+  readonly position: MaterialPosition;
+  readonly delta: number;
   /** alívios aplicados (ETAPA 2.1b): tipo, largura e profundidade efetivas e as pontas aliviadas */
   readonly relief?: { readonly op: string; readonly kind: ReliefKind; readonly w: number; readonly d: number; readonly ends: readonly ("inicio" | "fim")[] };
   /** planificação (sistema da base): início, linha (centro) e fim da região de dobra */
   readonly flatStart: readonly [V2, V2];
   readonly flatLine: readonly [V2, V2];
   readonly flatEnd: readonly [V2, V2];
+}
+
+/** Posição do material da aba de borda (ETAPA 2.2) */
+export type MaterialPosition = "dentro" | "fora" | "dobra_fora";
+
+/**
+ * Canto entre duas faixas de dobra vizinhas na mesma aba-pai (ETAPA 2.2: detectado; 2.3: tratado).
+ * `a` termina no vértice e `b` começa nele (sentido do contorno da pai). Id estável: «a»+«b».
+ */
+export interface SolvedCorner {
+  readonly id: string;
+  readonly parent: string;
+  readonly a: string;
+  readonly b: string;
+  /** vértice da região plana da pai onde as duas linhas de tangência se encontram (coords. locais da pai) */
+  readonly at: V2;
+  /** ângulo interno do canto da pai (graus) */
+  readonly angleDeg: number;
+  readonly kind: "aberto";
 }
 
 export interface SheetSolved {
@@ -252,4 +278,6 @@ export interface SheetSolved {
   readonly volume: number;
   /** área da planificação = Σ A_i + Σ BA·L (mm²) */
   readonly flatArea: number;
+  /** cantos entre faixas de dobra vizinhas (ETAPA 2.2) */
+  readonly corners?: readonly SolvedCorner[];
 }

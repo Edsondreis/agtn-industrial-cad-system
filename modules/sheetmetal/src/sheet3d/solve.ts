@@ -46,7 +46,7 @@ import type {
 } from "./model";
 import { dimAbs, numAbs } from "./tolerance";
 import { edgeSeg, edgesArea, pointInEdges, sweepVia } from "./edges";
-import type { ReliefKind } from "./model";
+import type { MaterialPosition, ReliefKind, SolvedCorner } from "./model";
 
 /**
  * Resolve o grafo da chapa em duas fases:
@@ -91,6 +91,8 @@ interface WBend {
   o1?: number;
   /** alívio de dobra (ETAPA 2.1b) */
   relief?: { op: string; label: string; kind: ReliefKind; gap: number; width?: number; depth?: number };
+  /** posição do material (ETAPA 2.2); ausente = "dentro" */
+  position?: MaterialPosition;
 }
 const isPartial = (b: WBend) => b.o0 !== undefined;
 
@@ -193,9 +195,22 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
     return f;
   };
 
-  const addChild = (parent: WFlange, edge: string, id: string, label: string, op: string, kind: WBend["kind"], length: number, bp: NonNullable<ReturnType<typeof bendParams>>, side: BendSide, ref: SheetRef, span?: { o0: number; o1: number }) => {
+  const addChild = (
+    parent: WFlange,
+    edge: string,
+    id: string,
+    label: string,
+    op: string,
+    kind: WBend["kind"],
+    length: number,
+    bp: NonNullable<ReturnType<typeof bendParams>>,
+    side: BendSide,
+    ref: SheetRef,
+    span?: { o0: number; o1: number },
+    position?: MaterialPosition,
+  ) => {
     flanges.set(id, { id, label, op, shape: { kind: "aba", length }, holes: [], parentBend: id });
-    bends.set(id, { id, label, op, kind, parent: parent.id, edge, child: id, ...bp, side, ref, ...(span ? span : {}) });
+    bends.set(id, { id, label, op, kind, parent: parent.id, edge, child: id, ...bp, side, ref, ...(span ? span : {}), ...(position && position !== "dentro" ? { position } : {}) });
     order.push(id);
   };
 
@@ -212,6 +227,8 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
         const o1 = op.offsetEnd ?? 0;
         if (!(o0 >= 0) || !(o1 >= 0) || !Number.isFinite(o0) || !Number.isFinite(o1)) return void err("OFFSET", `${op.label}: recuos devem ser ≥ 0.`, { op: op.id });
         const partial = o0 > 0 || o1 > 0;
+        const pos = op.position ?? "dentro";
+        if (!(["dentro", "fora", "dobra_fora"] as const).includes(pos)) return void err("POSITION", `${op.label}: posição do material desconhecida (${String(pos)}).`, { op: op.id });
         const seen = new Set<string>();
         const parents: WFlange[] = [];
         for (const e of op.edges) {
@@ -225,7 +242,7 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
         if (nErr() > before) return;
         op.edges.forEach((e, i) => {
           const id = `${op.id}@${e.flange}/${e.idKey ?? e.edge}`;
-          addChild(parents[i], e.edge, id, op.edges.length > 1 ? `${op.label}.${i + 1}` : op.label, op.id, "aba", op.length, bp, op.side, op.ref, partial ? { o0, o1 } : undefined);
+          addChild(parents[i], e.edge, id, op.edges.length > 1 ? `${op.label}.${i + 1}` : op.label, op.id, "aba", op.length, bp, op.side, op.ref, partial ? { o0, o1 } : undefined, pos);
         });
         return;
       }
@@ -384,10 +401,16 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
   /* ------------------------------------------------------------------------------- fase 2: geometria */
   const outF: SolvedFlange[] = [];
   const outB: SolvedBend[] = [];
+  const outC: SolvedCorner[] = [];
   /** largura e profundidade efetivas do alívio (automático: w = T + g; d = SB + g, +w/2 no oblongo) */
+  /** δ: quanto a linha de molde avança para fora da aresta escolhida (posição do material, ETAPA 2.2) */
+  const deltaOf = (b: WBend): number => (b.position === "fora" ? T : b.position === "dobra_fora" ? setbackFor(b.ref, b.theta, b.R, T) : 0);
+  /** recuo da linha de tangência para dentro da aresta escolhida: SB − δ (negativo = a pai cresce para fora) */
+  const offOf = (b: WBend): number => setbackFor(b.ref, b.theta, b.R, T) - deltaOf(b);
   const reliefDims = (b: WBend): ReliefDims => {
     const r = b.relief!;
-    const SB = setbackFor(b.ref, b.theta, b.R, T);
+    // profundidade a partir da aresta escolhida: passa a linha de tangência (SB − δ) pela folga g
+    const SB = offOf(b);
     const w = r.width ?? T + r.gap;
     const d = r.depth ?? (r.kind === "oblongo" ? SB + r.gap + w / 2 : SB + r.gap);
     return { kind: r.kind, w, d, bend: b.id };
@@ -399,7 +422,8 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
 
   const visit = (fid: string, G: Mat, H: Mat, outline: OutlineEdge[]): boolean => {
     const f = flanges.get(fid)!;
-    const sbOf = (b: WBend) => setbackFor(b.ref, b.theta, b.R, T);
+    // a raiz da filha recua o SB real (δ só desloca a linha de molde do lado da pai)
+    const sbOf = (b: WBend, raiz = false) => (raiz ? setbackFor(b.ref, b.theta, b.R, T) : offOf(b));
     // trechos de cada aresta: livre (recuo 0) ou faixa de uma dobra (recuo SB); faixas parciais em ordem
     let overlapErr = false;
     const pieces = (e: OutlineEdge): EdgePiece[] => {
@@ -408,7 +432,7 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
       if (!bs.length) return [{ t0: 0, t1: L, off: 0, key: e.key }];
       // a raiz da filha é sempre a faixa inteira (a largura da filha já é a da faixa)
       const full = e.key === "raiz" && f.parentBend ? bends.get(f.parentBend)! : bs.find((b) => !isPartial(b));
-      if (full) return [{ t0: 0, t1: L, off: sbOf(full), key: e.key, bend: full.id }];
+      if (full) return [{ t0: 0, t1: L, off: sbOf(full, e.key === "raiz" && full.id === f.parentBend), key: e.key, bend: full.id }];
       const spans = bs.map((b) => ({ b, t0: b.o0!, t1: L - b.o1! })).sort((p, q) => p.t0 - q.t0);
       const out: EdgePiece[] = [];
       let t = 0;
@@ -443,7 +467,7 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
     }
     if (!flat.ok) {
       const pb = f.parentBend ? bends.get(f.parentBend) : undefined;
-      const sbAt = (k: string) => Math.max(0, ...bendsAt(fid, k).map(sbOf));
+      const sbAt = (k: string) => Math.max(0, ...bendsAt(fid, k).map((b) => sbOf(b, k === "raiz" && b.id === f.parentBend)));
       const need = sbAt("raiz") + sbAt("ponta");
       if (f.shape.kind === "aba" && pb && f.shape.length <= need + numAbs(need)) {
         err(
@@ -461,7 +485,13 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
       if (!isPartial(b)) continue;
       const ends = relieved.get(b.id) ?? [];
       if (b.relief && !ends.length) {
-        err("RELIEF_NOT_NEEDED", `${b.relief.label}: as duas pontas de ${b.label} estão em cantos da aresta — não há onde aliviar.`, { op: b.relief.op, bends: [b.id] });
+        err(
+          "RELIEF_NOT_NEEDED",
+          (b.position ?? "dentro") !== "dentro" && offOf(b) <= 1e-12
+            ? `${b.relief.label}: ${b.label} não recua a aba-pai (posição do material ${b.position === "fora" ? "por fora" : "dobra por fora"}) — não há material encostado na dobra para aliviar.`
+            : `${b.relief.label}: as duas pontas de ${b.label} estão em cantos da aresta — não há onde aliviar.`,
+          { op: b.relief.op, bends: [b.id] },
+        );
         return false;
       }
       if (!b.relief && (flat.interior.get(b.id)?.length ?? 0) > 0) warn("NO_RELIEF", `${b.label}: a dobra termina dentro da aresta — sem alívio de dobra há risco de rasgo no canto.`, { op: b.op, bends: [b.id] });
@@ -485,6 +515,7 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
           err("CUT_OVERLAP", `${f.label}: os recortes ${f.holes[i].key} e ${f.holes[j].key} se tocam ou se sobrepõem.`, { op: f.holes[j].op, flanges: [f.id] });
           return false;
         }
+    for (const c of flat.corners) outC.push({ id: `${c.a}+${c.b}`, parent: fid, a: c.a, b: c.b, at: c.at, angleDeg: c.angleDeg, kind: "aberto" });
     const area = edgesArea(flat.edges) - f.holes.reduce((a, h) => a + Math.abs(loopArea(h.loop)), 0);
     outF.push({ id: f.id, label: f.label, op: f.op, outline, flat: flat.edges, holes: f.holes, G, H, parentBend: f.parentBend, area });
 
@@ -555,6 +586,8 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
         tangent: [A, B],
         L: Lb,
         partial: (flat.interior.get(b.id)?.length ?? 0) > 0,
+        position: b.position ?? "dentro",
+        delta: deltaOf(b),
         axis: { p: apply(G, C), dir: applyDir(G, ax) },
         flatStart: strip(0),
         flatLine: strip(BA / 2),
@@ -577,7 +610,7 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
   outB.sort((a, b) => rank.get(a.id)! - rank.get(b.id)!);
   const volume = outF.reduce((v, f) => v + f.area * T, 0) + outB.reduce((v, b) => v + deg(b.deflectionDeg) * T * (b.R + T / 2) * b.L, 0);
   const flatArea = outF.reduce((v, f) => v + f.area, 0) + outB.reduce((v, b) => v + b.BA * b.L, 0);
-  return { ok: true, issues, T, root: base.id, flanges: outF, bends: outB, volume, flatArea };
+  return { ok: true, issues, T, root: base.id, flanges: outF, bends: outB, volume, flatArea, corners: outC };
 }
 
 /* ================================================================================================ */
@@ -611,7 +644,14 @@ export interface EdgePiece {
   relief?: ReliefDims;
 }
 export type TrimResult =
-  | { ok: true; edges: OutlineEdge[]; interior: Map<string, ("inicio" | "fim")[]>; relieved: Map<string, ("inicio" | "fim")[]> }
+  | {
+      ok: true;
+      edges: OutlineEdge[];
+      interior: Map<string, ("inicio" | "fim")[]>;
+      relieved: Map<string, ("inicio" | "fim")[]>;
+      /** vértices onde duas faixas de dobra se encontram (a termina, b começa) */
+      corners: { a: string; b: string; at: V2; angleDeg: number }[];
+    }
   | { ok: false; edge: string; relief?: string };
 
 /**
@@ -642,12 +682,18 @@ export function trimOutlinePieces(outline: readonly OutlineEdge[], piecesOf: (e:
   // entre a reta j e a j+1: primeiro e último ponto e o caminho entre eles (degrau ou alívio)
   type Joint = { first: V2; last: V2; path: OutlineEdge[] };
   const joints: Joint[] = [];
+  const corners: { a: string; b: string; at: V2; angleDeg: number }[] = [];
   for (let j = 0; j < N; j++) {
     const L0 = lines[j];
     const L1 = lines[(j + 1) % N];
     const x = lineX(L0.p, L0.d, L1.p, L1.d);
     if (x) {
       joints.push({ first: x, last: x, path: [] });
+      if (L0.bend && L1.bend && L0.bend !== L1.bend && L0.edge !== L1.edge) {
+        // canto da pai: ângulo interno entre as arestas (sentido anti-horário)
+        const ang = Math.PI - Math.atan2(cross2(L0.d, L1.d), dot2(L0.d, L1.d));
+        corners.push({ a: L0.bend, b: L1.bend, at: x, angleDeg: (ang * 180) / Math.PI });
+      }
       continue;
     }
     if (dot2(L0.d, L1.d) <= 0) return { ok: false, edge: L1.edge };
@@ -656,14 +702,19 @@ export function trimOutlinePieces(outline: readonly OutlineEdge[], piecesOf: (e:
       joints.push({ first: q, last: q, path: [] });
       continue;
     }
-    // degrau: a dobra começa (livre → faixa) ou termina (faixa → livre) dentro da aresta
-    const enter = L0.off < L1.off;
-    const span = enter ? L1 : L0;
-    if (span.bend && Math.min(L0.off, L1.off) < 1e-12) mark(interior, span.bend, enter ? "inicio" : "fim");
-    if (span.relief && span.bend && Math.min(L0.off, L1.off) < 1e-12) {
+    // degrau: a dobra começa (livre → faixa) ou termina (faixa → livre) dentro da aresta. Com a posição do
+    // material (2.2) a faixa pode recuar MENOS que o trecho livre (ou avançar para fora): degrau para fora, sem
+    // material da pai encostado na dobra — não há ponta interna nem alívio.
+    const spanIs1 = L1.bend !== undefined && (L0.bend === undefined || L1.off > L0.off);
+    const enter = spanIs1;
+    const span = spanIs1 ? L1 : L0;
+    const other = spanIs1 ? L0 : L1;
+    const inward = span.bend !== undefined && other.bend === undefined && span.off > other.off + 1e-12;
+    if (inward) mark(interior, span.bend!, enter ? "inicio" : "fim");
+    if (span.relief && inward) {
       const path = reliefPath(span, enter);
       if (!path) return { ok: false, edge: span.edge, relief: span.bend };
-      mark(relieved, span.bend, enter ? "inicio" : "fim");
+      mark(relieved, span.bend!, enter ? "inicio" : "fim");
       joints.push(path);
       continue;
     }
@@ -691,7 +742,7 @@ export function trimOutlinePieces(outline: readonly OutlineEdge[], piecesOf: (e:
     const rl = lines.find((l) => l.relief);
     return { ok: false, edge: outline[0].key, ...(rl ? { relief: rl.relief!.bend } : {}) };
   }
-  return { ok: true, edges, interior, relieved };
+  return { ok: true, edges, interior, relieved, corners };
 }
 
 /**

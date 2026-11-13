@@ -112,7 +112,7 @@ export type Feature = Base &
         /** material para o lado da normal do esboço ("cima") ou o contrário */
         readonly side: SheetSide;
       }
-    /** aba lateral: uma aba por aresta inteira (canto aberto automático) */
+    /** aba de borda: uma aba por aresta escolhida (faixa inteira ou parcial; canto aberto detectado) */
     | {
         readonly t: "sheetFlange";
         readonly edges: readonly SheetEdgeRef[];
@@ -126,6 +126,11 @@ export type Feature = Base &
         /** recuos da faixa de dobra a partir do início/fim da aresta (mm; ausente = aresta inteira) */
         readonly offsetStart?: number;
         readonly offsetEnd?: number;
+        /**
+         * posição do material (ETAPA 2.2): "dentro" (padrão, ausente nos arquivos da ETAPA 1) · "fora" (a linha de
+         * molde avança T) · "dobra_fora" (avança SB: a dobra começa na aresta)
+         */
+        readonly position?: SheetMaterialPosition;
       }
     /** flange de contorno: perfil aberto de seção constante (tabela de segmentos) ao longo de UMA aresta reta */
     | {
@@ -170,6 +175,8 @@ export type Feature = Base &
 
 export type SheetRef = "externa" | "interna";
 export type SheetSide = "cima" | "baixo";
+export type SheetMaterialPosition = "dentro" | "fora" | "dobra_fora";
+export const SHEET_POSITIONS: readonly SheetMaterialPosition[] = ["dentro", "fora", "dobra_fora"];
 /** Aresta de chapa por id semântico (aba + chave da aresta), nunca índice do OCCT. */
 export interface SheetEdgeRef {
   readonly flange: string;
@@ -205,7 +212,7 @@ export const FEATURE_LABEL: Record<FeatureKind, string> = {
   pattern: "Padrão",
   combine: "Combinar corpos",
   sheetBase: "Base de chapa",
-  sheetFlange: "Aba lateral",
+  sheetFlange: "Aba de borda",
   sheetContour: "Flange de contorno",
   sheetBendLine: "Dobra",
   sheetCut: "Recorte de chapa",
@@ -295,6 +302,7 @@ export function validateFeature(f: FeatureDraft): string[] {
     case "sheetFlange":
       pos(f.length, "Comprimento da aba");
       if ((f.offsetStart !== undefined && !(f.offsetStart >= 0)) || (f.offsetEnd !== undefined && !(f.offsetEnd >= 0))) e.push("Recuos devem ser ≥ 0.");
+      if (f.position !== undefined && !SHEET_POSITIONS.includes(f.position)) e.push("Posição do material desconhecida.");
       bendOk(f.deflectionDeg, f.R, f.K);
       if (!f.edges.length) e.push("Escolha pelo menos uma aresta.");
       break;

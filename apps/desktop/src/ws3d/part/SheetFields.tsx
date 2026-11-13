@@ -136,13 +136,23 @@ export function FlangeFields({ d, set }: { d: Of<"sheetFlange">; set: (p: Partia
       <AngleField theta={d.deflectionDeg} set={(v) => set({ deflectionDeg: v })} />
       <SideRef side={d.side} refm={d.ref} set={(p) => set(p)} />
       <RKFields R={d.R} K={d.K} set={(p) => set(p as Partial<Of<"sheetFlange">>)} />
+      <Row k="Posição do material" title="Onde fica a aba em relação à aresta escolhida (desloca a linha de molde δ para fora da aresta).">
+        <select value={d.position ?? "dentro"} onChange={(e) => set({ position: e.target.value as NonNullable<Of<"sheetFlange">["position"]> })} data-field="position">
+          <option value="dentro">Material por dentro (δ = 0)</option>
+          <option value="fora">Material por fora (δ = T)</option>
+          <option value="dobra_fora">Dobra por fora (δ = recuo SB)</option>
+        </select>
+      </Row>
       <Row k="Recuo início" title="Distância do início da aresta (canto de molde) até onde a dobra começa. 0 = aresta inteira.">
         <Unit v={d.offsetStart ?? 0} set={(v) => set({ offsetStart: v })} min={0} field="offsetStart" />
       </Row>
       <Row k="Recuo fim" title="Distância do fim da aresta até onde a dobra termina. 0 = aresta inteira.">
         <Unit v={d.offsetEnd ?? 0} set={(v) => set({ offsetEnd: v })} min={0} field="offsetEnd" />
       </Row>
-      {(d.offsetStart ?? 0) + (d.offsetEnd ?? 0) > 0 && <div className="fd-note">Dobra parcial: sem alívio de dobra há risco de rasgo nas pontas da faixa.</div>}
+      {(d.offsetStart ?? 0) + (d.offsetEnd ?? 0) > 0 && (d.position ?? "dentro") !== "dobra_fora" && (
+        <div className="fd-note">Dobra parcial: sem alívio de dobra há risco de rasgo nas pontas da faixa.</div>
+      )}
+      {d.edges.length > 1 && <div className="fd-note">Várias arestas: cantos entre abas vizinhas ficam abertos (detectados no painel Chapa; fechamento na operação Canto).</div>}
     </>
   );
 }

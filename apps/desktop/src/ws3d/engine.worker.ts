@@ -72,6 +72,7 @@ function sheetInfo(sh: NonNullable<PartResult["sheet"]>): SheetInfo {
     flatArea: sv.flatArea,
     flat: flatPattern(sv, reason ? [reason] : []),
     flanges: sv.flanges.map((f) => ({ id: f.id, label: f.label, area: f.area })),
+    corners: (sv.corners ?? []).map((c) => ({ id: c.id, label: `${sv.bends.find((b) => b.id === c.a)?.label ?? c.a} × ${sv.bends.find((b) => b.id === c.b)?.label ?? c.b}`, angleDeg: c.angleDeg, kind: c.kind })),
     flatFrame: root.G,
     faceLabels: st.faceLabels,
     ms: st.ms,
