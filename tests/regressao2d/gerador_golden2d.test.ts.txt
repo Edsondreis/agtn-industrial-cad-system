@@ -1,0 +1,63 @@
+import { createHash } from "node:crypto";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { CadDocument, DEFAULT_LAYER, serializeDocument } from "@agtn/document";
+import { writeDxf } from "@agtn/dxf";
+import { type Entity, TAU, deg2rad, interpolateSpline, makeEntity } from "@agtn/geometry";
+import { DEFAULT_PLOT, layoutPlot, plotToPdf, plotToSvg } from "@agtn/plot";
+import { flatPatternEntities, sectionEntities } from "../../../sheetmetal/src/output";
+import { solveProfile } from "../../../sheetmetal/src/engine";
+import { solveTray, trayFlatEntities } from "../../../sheetmetal/src/tray";
+
+/** Gerador de referência 2D (ETAPA 3, R1): mesma entrada nos dois códigos (v3.1.1 e branch), ids fixos. */
+const OUT = process.env.GOLDEN_OUT ?? "/tmp/golden/out";
+it("golden 2D", () => {
+  mkdirSync(OUT, { recursive: true });
+  let n = 0;
+  const id = <E extends Entity>(e: E): E => ({ ...e, id: `G${++n}` });
+  const layers = [
+    DEFAULT_LAYER,
+    { name: "CORTE", color: 7, lineweight: 0.35, linetype: "CONTINUOUS", visible: true, locked: false },
+    { name: "EIXO", color: 4, lineweight: 0.25, linetype: "CENTER", visible: true, locked: false },
+  ];
+  const base: Entity[] = [
+    makeEntity({ type: "line", a: { x: 0.1 + 0.2, y: -12.345678901234 }, b: { x: 1e5 / 3, y: 7 } }, "CORTE", { lineweight: 0.5 }),
+    makeEntity({ type: "circle", c: { x: 50, y: 50 }, r: 12.5 }, "CORTE", { color: 3 }),
+    makeEntity({ type: "arc", c: { x: -20, y: 5 }, r: 7.25, a0: deg2rad(30), a1: deg2rad(300) }, "CORTE"),
+    makeEntity({ type: "polyline", pts: [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 50 }], bulges: [0, -0.3, 0], closed: true }, "CORTE"),
+    makeEntity({ type: "text", p: { x: 10, y: 10 }, h: 3.5, rot: deg2rad(90), value: "DOBRA 90° Ø12 ±0,1 AÇÃO", halign: 1 }, "EIXO", { linetype: "CENTER" }),
+    makeEntity({ type: "text", p: { x: 200, y: 10 }, h: 5, rot: 0, value: "LINHA 1\nLINHA 2", halign: 0 }, "0"),
+    makeEntity({ type: "ellipse", c: { x: 300, y: 50 }, major: { x: 40, y: 30 }, ratio: 0.4, t0: 0, t1: TAU }, "CORTE"),
+    makeEntity({ type: "spline", ...interpolateSpline([{ x: 0, y: 200 }, { x: 40, y: 260 }, { x: 90, y: 220 }, { x: 150, y: 280 }]) }, "CORTE"),
+    makeEntity({ type: "dimension", kind: "aligned", p1: { x: 0, y: 0 }, p2: { x: 100, y: 0 }, loc: { x: 50, y: -15 }, rot: 0, textOverride: null, assoc: null }, "0"),
+  ].map(id);
+  // chapa 2D: perfil U, bandeja 710.0CUH25-01-03 e bandeja enrijecida
+  const prof = solveProfile({ T: 2, startAngle: Math.PI / 2, partLength: 1000, flanges: [{ label: "A", length: 40, face: "B" }, { label: "B", length: 80, face: "B" }, { label: "C", length: 40, face: "B" }], bends: [{ label: "D1", angleDeg: 90, R: 2, K: 0.43, dir: "right" }, { label: "D2", angleDeg: 90, R: 2, K: 0.43, dir: "right" }] });
+  const tray = solveTray({ A: 535, B: 520, flanges: { S: 25.4, N: 25.4, O: 25.4, L: 25.4 }, ref: "externa", T: 3.18, R: 2, K: 0.33, corner: "sobreposto", overlap: "A", gap: 0 });
+  const tray2 = solveTray({ A: 400, B: 300, flanges: { S: 40, N: 40, O: 40, L: 40 }, lips: { S: 12, N: 12, O: 12, L: 12 }, ref: "externa", T: 2, R: 2, K: 0.43, corner: "encosto", overlap: "A", gap: 0.5, relief: "redondo" });
+  const sheet = [
+    ...flatPatternEntities(prof, { origin: { x: 0, y: -400 } }),
+    ...sectionEntities(prof, { origin: { x: 1200, y: -400 } }),
+    ...trayFlatEntities(tray, { origin: { x: 0, y: -1200 } }),
+    ...trayFlatEntities(tray2, { origin: { x: 700, y: -1200 } }),
+  ].map(id);
+  const ents = [...base, ...sheet];
+  const allLayers = [...layers, ...[...new Set(sheet.map((e) => e.layer))].filter((l) => !layers.some((x) => x.name === l)).map((name) => ({ ...DEFAULT_LAYER, name }))];
+  const doc = new CadDocument();
+  doc.commit("layers", allLayers.filter((l) => l.name !== "0").map((layer, index) => ({ kind: "layer-add" as const, layer, index: index + 1 })));
+  doc.commit("ents", ents.map((e) => ({ kind: "add" as const, e })));
+  const json = JSON.parse(serializeDocument(doc, "golden"));
+  json.savedAt = "2026-01-01T00:00:00.000Z";
+  const native = JSON.stringify(json);
+  const r12 = writeDxf({ layers: doc.layers, entities: doc.all() }, { version: "R12" });
+  const r2000 = writeDxf({ layers: doc.layers, entities: doc.all() }, { version: "R2000" });
+  const page = layoutPlot({ entities: doc.all(), layers: doc.layers }, { ...DEFAULT_PLOT, paper: "A3" });
+  const svg = plotToSvg(page);
+  const pdf = plotToPdf(page, { title: "golden", author: "AGTN" });
+  const h = (b: string | Uint8Array) => createHash("sha256").update(b).digest("hex");
+  writeFileSync(`${OUT}/desenho.agtncad`, native);
+  writeFileSync(`${OUT}/desenho_R12.dxf`, r12);
+  writeFileSync(`${OUT}/desenho_R2000.dxf`, r2000);
+  writeFileSync(`${OUT}/desenho_A3.svg`, svg);
+  writeFileSync(`${OUT}/desenho_A3.pdf`, pdf);
+  writeFileSync(`${OUT}/hashes.json`, JSON.stringify({ entidades: ents.length, camadas: doc.layers.length, agtncad: h(native), dxfR12: h(r12), dxfR2000: h(r2000), svg: h(svg), pdf: h(pdf), perfilDesenvolvido: prof.developedLength, bandejaBlank: tray.blank, bandeja2Blank: tray2.blank }, null, 1));
+});

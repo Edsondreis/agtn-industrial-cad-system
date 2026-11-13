@@ -232,6 +232,7 @@ export function profiles(s: Sketch): ProfileResult {
   const faces = closedLoops.filter((l) => l.area > tol * tol);
   const outers = closedLoops.filter((l) => l.area < -tol * tol);
   // furo direto: contorno externo de outro componente dentro da face e sem face intermediária
+  const boxes = new Map<Loop, { x0: number; y0: number; x1: number; y1: number }>();
   const holesOf = new Map<Loop, Loop[]>();
   const parentOf = new Map<Loop, Loop | null>();
   for (const o of outers) {
@@ -256,9 +257,29 @@ export function profiles(s: Sketch): ProfileResult {
   return { regions, openEnds };
 
   function sameComponent(a: Loop, b: Loop): boolean {
-    // compartilham algum vértice → mesmo componente
-    for (const p of a.poly) for (const q of b.poly) if (dist(p, q) < tol * 10) return true;
+    // compartilham algum vértice → mesmo componente. Pré-filtro EXATO (ETAPA 3, desempenho): um par de vértices a
+    // menos de tol·10 só existe se as caixas dos dois polígonos, alargadas de tol·10, se cruzam — fora disso a resposta
+    // já é "não", sem comparar os N×M vértices (era 8 s com 120 furos de 96 pontos).
+    const ba = boxOf(a);
+    const bb = boxOf(b);
+    const g = tol * 10;
+    if (ba.x0 - g > bb.x1 || bb.x0 - g > ba.x1 || ba.y0 - g > bb.y1 || bb.y0 - g > ba.y1) return false;
+    for (const p of a.poly) for (const q of b.poly) if (dist(p, q) < g) return true;
     return false;
+  }
+  function boxOf(l: Loop): { x0: number; y0: number; x1: number; y1: number } {
+    let b = boxes.get(l);
+    if (!b) {
+      b = { x0: Number.POSITIVE_INFINITY, y0: Number.POSITIVE_INFINITY, x1: Number.NEGATIVE_INFINITY, y1: Number.NEGATIVE_INFINITY };
+      for (const p of l.poly) {
+        if (p.x < b.x0) b.x0 = p.x;
+        if (p.x > b.x1) b.x1 = p.x;
+        if (p.y < b.y0) b.y0 = p.y;
+        if (p.y > b.y1) b.y1 = p.y;
+      }
+      boxes.set(l, b);
+    }
+    return b;
   }
 }
 

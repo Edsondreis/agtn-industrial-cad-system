@@ -1,0 +1,19 @@
+{
+ "entidades": 114,
+ "camadas": 11,
+ "agtncad": "67041877d5202a173baf8108c3a467139ee0502b49e57161ef659311f08aa651",
+ "dxfR12": "00bf09de1a605556e48413a81b8512c92608dddb1543b2547d4134e37bfce4a5",
+ "dxfR2000": "1266e242f7859f469ca48862c07e8ffd1dd102de8385820061bf7e5742c13670",
+ "svg": "7bf70e49203e64bafb66b39f336f54cacf01b303786dd3e82f729323dc1a506c",
+ "perfilDesenvolvido": 160.9849549892668,
+ "bandejaBlank": {
+  "w": 574.6599726378566,
+  "h": 559.6599726378566
+ },
+ "bandeja2Blank": {
+  "w": 489.9699099785337,
+  "h": 389.9699099785337
+ },
+ "pdfSemData": "fcf7fa1d5f5c0a18245c8318446ec26345e6fc3699510e99b3c5d1ba23c06237",
+ "origem": "gerado pelo código da main 23a2540 (v3.1.1) num worktree, 13/11/2026, com /tmp/golden/golden2d.test.ts (mesma entrada, ids fixos)"
+}
