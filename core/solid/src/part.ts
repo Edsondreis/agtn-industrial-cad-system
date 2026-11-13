@@ -1,7 +1,7 @@
 import { type Seg2, type Sketch, defaultRegions, entityOf, pathChain, pointOf, profiles } from "@agtn/sketch";
 import { JoinType, type OcctKernel, type ShapeHandle } from "occt-wasm";
 import type { AxisRef, BoolOp, EdgeRef, FaceRef, FeatId, Feature, PlaneRef } from "./features";
-import { validateFeature } from "./features";
+import { featureRefs, validateFeature } from "./features";
 import type { OcctSolidKernel } from "./occt";
 import { placementMatrix } from "./placement";
 import type { PrimitiveSpec } from "./primitives";
@@ -40,24 +40,47 @@ export function to2d(f: Frame, p: Vec3): { x: number; y: number } {
   return { x: dot(d, f.x), y: dot(d, f.y) };
 }
 
+/**
+ * Estado de uma operação após a regeneração:
+ * - `ok`: executada sobre dependências válidas;
+ * - `error`: falha própria (parâmetro, kernel, referência perdida/ambígua);
+ * - `dependency_error`: NÃO avaliada — depende de uma operação com erro (referência explícita ou o sólido
+ *   acumulado de uma operação anterior que falhou); nunca recebe "ok" sobre geometria desatualizada;
+ * - `suppressed`: suprimida pelo usuário, ou junto com uma operação suprimida da qual depende (`cause`);
+ * - `rolledback`: depois da barra de recuo (não avaliada).
+ */
 export interface FeatureStatus {
   readonly id: FeatId;
-  readonly state: "ok" | "error" | "suppressed" | "rolledback";
+  readonly state: "ok" | "error" | "dependency_error" | "suppressed" | "rolledback";
   readonly error?: string;
+  /** operação que causou o estado (dependência com erro ou supressão do pai) */
+  readonly cause?: FeatId;
+  /** aviso sem falha (ex.: união gerou sólidos separados) */
+  readonly warning?: string;
   readonly ms: number;
 }
 
 export interface PartResult {
-  /** sólido final (pertence ao cache — NÃO liberar) */
+  /** sólido final (pertence ao cache — NÃO liberar). Com `failed`, é o ÚLTIMO SÓLIDO VÁLIDO, antes da falha. */
   readonly shape: ShapeHandle | null;
   readonly status: readonly FeatureStatus[];
   /** quadros dos esboços (para a interface desenhar no plano certo) */
   readonly frames: Readonly<Record<FeatId, Frame>>;
+  /** primeira operação que quebrou a cadeia do sólido (o resultado é o sólido de antes dela) */
+  readonly failed: { readonly id: FeatId; readonly name: string; readonly error: string } | null;
 }
 
 type Anchor =
   | { readonly kind: "extrude"; readonly frame: Frame; readonly z0: number; readonly z1: number; readonly sketch: Sketch }
-  | { readonly kind: "prim"; readonly spec: PrimitiveSpec; readonly placement: Placement };
+  | { readonly kind: "prim"; readonly spec: PrimitiveSpec; readonly placement: Placement }
+  | {
+      readonly kind: "hole";
+      /** sentido do furo (para dentro do material) */
+      readonly z: Vec3;
+      readonly centers: readonly { readonly key: string; readonly o: Vec3 }[];
+      readonly d: number;
+      readonly cbore: { readonly d: number; readonly depth: number } | null;
+    };
 
 interface Entry {
   sig: string;
@@ -74,8 +97,10 @@ type Desc = { kind: "plane"; p: Vec3; n: Vec3 } | { kind: "cyl"; p: Vec3; axis: 
 
 export interface External {
   readonly sig: string;
-  /** sólido no sistema LOCAL desta peça (pertence a quem fornece) */
-  readonly shape: ShapeHandle;
+  /** sólido no sistema LOCAL desta peça (pertence a quem fornece); null quando o corpo está com erro */
+  readonly shape: ShapeHandle | null;
+  /** o corpo-ferramenta existe mas está com erro (a combinação fica com erro de dependência) */
+  readonly error?: string;
 }
 
 function fnv(s: string): string {
@@ -111,6 +136,7 @@ export class PartEvaluator {
     let prevSig = "";
     let result: ShapeHandle | null = null;
     let valid = 0; // entradas reaproveitáveis
+    let failed: PartResult["failed"] = null;
     const ids = new Set<string>();
     for (let i = 0; i < features.length; i++) {
       const f = features[i];
@@ -120,33 +146,35 @@ export class PartEvaluator {
         status.push({ id: f.id, state: "rolledback", ms: 0 });
         continue;
       }
-      const ext = f.t === "combine" ? f.tools.map((t) => opts.external?.(t)?.sig ?? "∅").join(",") : "";
+      const ext = f.t === "combine" ? f.tools.map((t) => { const e = opts.external?.(t); return e ? `${e.sig}${e.error ? "!" : ""}` : "∅"; }).join(",") : "";
       const sig = fnv(prevSig + "|" + JSON.stringify(f) + "|" + ext);
       prevSig = sig;
       const cached = entries[i];
-      if (cached && cached.sig === sig && valid === i) {
-        valid = i + 1;
-        result = cached.result;
-        if (cached.frame) frames[f.id] = cached.frame;
-        status.push(cached.status);
-        continue;
+      let entry: Entry;
+      if (cached && cached.sig === sig && valid === i) entry = cached;
+      else {
+        // a partir daqui tudo é recalculado (o estado de cada operação só depende das anteriores: a assinatura
+        // em cadeia garante que o cache nunca guarda um 'ok' calculado sobre outra versão da árvore)
+        this.releaseFrom(entries, i);
+        const t0 = performance.now();
+        entry = this.compute(f, i, features, entries, result, failed, opts.external);
+        entry.sig = sig;
+        entry.status = { ...entry.status, ms: performance.now() - t0 };
+        entries[i] = entry;
       }
-      // a partir daqui tudo é recalculado
-      this.releaseFrom(entries, i);
       valid = i + 1;
-      const t0 = performance.now();
-      const entry = this.compute(f, i, features, entries, result, opts.external);
-      entry.sig = sig;
-      entry.status = { ...entry.status, ms: performance.now() - t0 };
-      entries[i] = entry;
       result = entry.result;
       if (entry.frame) frames[f.id] = entry.frame;
       status.push(entry.status);
+      // falha (própria ou de dependência) de operação que mexe no sólido quebra a cadeia: o que vier depois e
+      // usar o sólido não pode ficar 'ok' (o sólido de entrada estaria desatualizado)
+      const st = entry.status.state;
+      if (!failed && f.t !== "sketch" && (st === "error" || st === "dependency_error")) failed = { id: f.id, name: f.name, error: entry.status.error ?? "erro" };
     }
     // entradas além do rollback continuam no cache (reaproveitadas se nada mudar antes delas)
     if (stop >= features.length) this.releaseFrom(entries, features.length);
     this.cache.set(partId, entries);
-    return { shape: result, status, frames };
+    return { shape: result, status, frames, failed };
   }
 
   /** Sólido no estado após a operação `index` (para editar com rollback). */
@@ -184,18 +212,55 @@ export class PartEvaluator {
 
   /* =========================================================================================== operações */
 
-  private compute(f: Feature, index: number, features: readonly Feature[], entries: Entry[], input: ShapeHandle | null, external?: (id: string) => External | null): Entry {
-    const pass = (state: FeatureStatus["state"], error?: string): Entry => ({
+  private compute(
+    f: Feature,
+    index: number,
+    features: readonly Feature[],
+    entries: Entry[],
+    input: ShapeHandle | null,
+    broken: PartResult["failed"],
+    external?: (id: string) => External | null,
+  ): Entry {
+    const pass = (state: FeatureStatus["state"], error?: string, cause?: FeatId): Entry => ({
       sig: "",
       result: input,
       ownsResult: false,
       tool: null,
       op: null,
-      status: { id: f.id, state, error, ms: 0 },
+      status: { id: f.id, state, error, cause, ms: 0 },
     });
     if (f.suppressed) return pass("suppressed");
-    const errs = validateFeature(f);
+    let errs: string[];
+    try {
+      errs = validateFeature(f);
+    } catch {
+      errs = [`Dados da operação ${f.name} estão incompletos ou corrompidos.`];
+    }
     if (errs.length) return pass("error", errs[0]);
+    // dependências explícitas (esboços, faces/arestas de origem, alvos): estado delas decide antes de executar
+    let refs: FeatId[] = [];
+    try {
+      refs = featureRefs(f);
+    } catch {
+      return pass("error", `Dados da operação ${f.name} estão incompletos ou corrompidos.`);
+    }
+    for (const rid of refs) {
+      const j = features.findIndex((x) => x.id === rid);
+      if (j < 0 || j >= index) continue; // inexistente/fora de ordem: a própria operação explica (erro)
+      const st = entries[j]?.status;
+      if (!st) continue;
+      if (st.state === "suppressed") return pass("suppressed", `Suprimida junto com ${features[j].name} (da qual depende).`, rid);
+      if (st.state === "error" || st.state === "dependency_error") return pass("dependency_error", `Não avaliada: depende de ${features[j].name}, que está com erro.`, rid);
+    }
+    if (f.t === "combine") {
+      for (const t of f.tools) {
+        const e = external?.(t);
+        if (e?.error) return pass("dependency_error", `Não avaliada: o corpo-ferramenta está com erro (${e.error}).`);
+      }
+    }
+    // cadeia do sólido quebrada antes: quem usa o sólido acumulado não pode ser avaliado sobre a versão velha
+    const usesSolid = f.t !== "sketch" || f.plane.t === "face";
+    if (broken && usesSolid) return pass("dependency_error", `Não avaliada: o sólido anterior está incompleto porque ${broken.name} falhou.`, broken.id);
     const tmp: ShapeHandle[] = [];
     const T = <H extends ShapeHandle>(h: H): H => {
       tmp.push(h);
@@ -207,8 +272,15 @@ export class PartEvaluator {
       const out = this.run(f, ctx, external);
       if (out.result !== null) keep.add(out.result);
       if (out.tool !== null) keep.add(out.tool);
-      if (out.result !== null && out.result !== input && !this.k.isValid(out.result)) {
-        throw new SolidError("KERNEL", "O resultado não é um sólido válido (geometria degenerada).");
+      let warning: string | undefined;
+      if (out.result !== null && out.result !== input) {
+        if (!this.k.isValid(out.result)) throw new SolidError("KERNEL", "O resultado não é um sólido válido (geometria degenerada).");
+        const v = this.k.getVolume(out.result);
+        if (!(v > 1e-9)) throw new SolidError("KERNEL", "O resultado não tem volume positivo (sólido invertido ou degenerado).");
+        const n = this.k.getSubShapes(out.result, "solid").map(T).length;
+        if (n > 1 && out.op === "join") warning = `A união resultou em ${n} sólidos separados (sem contato).`;
+        if (out.op === "cut" && input !== null && Math.abs(this.k.getVolume(input) - v) <= 1e-9 * Math.max(1, v))
+          warning = "O corte não removeu material — a ferramenta não toca a peça (sentido invertido?).";
       }
       return {
         sig: "",
@@ -218,7 +290,7 @@ export class PartEvaluator {
         op: out.op ?? null,
         frame: out.frame,
         anchor: out.anchor,
-        status: { id: f.id, state: "ok", ms: 0 },
+        status: { id: f.id, state: "ok", ms: 0, ...(warning ? { warning } : {}) },
       };
     } catch (e) {
       keep.clear();
@@ -317,9 +389,12 @@ export class PartEvaluator {
         const base = this.need(c.input, "furar");
         const { frame, sketch } = this.sketchOf(f.sketch, c);
         const centers: { x: number; y: number }[] = [];
+        const centerKeys: string[] = [];
         for (const e of Object.values(sketch.entities)) {
           if (e.t === "point") centers.push(pointOf(sketch, e.p)!);
           else if (e.t === "circle" && !e.cons) centers.push(pointOf(sketch, e.c)!);
+          else continue;
+          centerKeys.push(e.id);
         }
         if (!centers.length) throw new SolidError("INVALID_PARAMS", "O esboço do furo não tem pontos nem círculos (centros dos furos).");
         const z = f.reverse ? frame.n : mul(frame.n, -1); // fura para dentro do material
@@ -327,8 +402,10 @@ export class PartEvaluator {
         const y = cross(z, x);
         const L = f.through ? this.farDistance(base, frame) : f.depth;
         const parts: ShapeHandle[] = [];
-        for (const c2 of centers) {
+        const anchorCenters: { key: string; o: Vec3 }[] = [];
+        for (const [ci, c2] of centers.entries()) {
           const o = to3d(frame, c2);
+          anchorCenters.push({ key: centerKeys[ci], o });
           const m = [x.x, y.x, z.x, o.x, x.y, y.y, z.y, o.y, x.z, y.z, z.z, o.z];
           const put = (h: ShapeHandle) => T(k.transform(T(h), m));
           parts.push(put(k.makeCylinder(f.d / 2, L)));
@@ -339,7 +416,7 @@ export class PartEvaluator {
           }
         }
         const tool = parts.length === 1 ? parts[0] : T(this.single(k.fuseAll(parts), T));
-        return { result: this.apply(base, tool, "cut", T), tool, op: "cut" };
+        return { result: this.apply(base, tool, "cut", T), tool, op: "cut", anchor: { kind: "hole", z, centers: anchorCenters, d: f.d, cbore: f.cbore } };
       }
       case "mirror": {
         const base = this.need(c.input, "espelhar");
@@ -380,7 +457,7 @@ export class PartEvaluator {
         const base = this.need(c.input, "combinar");
         const tools = f.tools.map((id) => {
           const e = external?.(id);
-          if (!e) throw new SolidError("INVALID_PARAMS", "Corpo-ferramenta não encontrado ou com erro.");
+          if (!e || !e.shape) throw new SolidError("INVALID_PARAMS", "Corpo-ferramenta não encontrado no modelo (excluído?).");
           return e.shape;
         });
         const tool = tools.length === 1 ? T(k.copy(tools[0])) : T(this.single(k.fuseAll(tools), T));
@@ -422,9 +499,14 @@ export class PartEvaluator {
     return out;
   }
 
-  /** Composto com um único sólido vira o sólido. */
+  /**
+   * Composto com um único sólido vira o sólido. `h` é registrado como temporário: quando a função devolve o
+   * sólido interno, o composto de origem (ex.: resultado de fuseAll) era perdido sem liberar — vazamento de
+   * formas OCCT a cada regeneração (auditoria A06).
+   */
   private single(h: ShapeHandle, T: Ctx["T"]): ShapeHandle {
     const k = this.k;
+    T(h);
     if (k.getShapeType(h) !== "compound") return h;
     const solids = k.getSubShapes(h, "solid").map(T);
     if (solids.length === 1 && k.getSubShapes(solids[0], "face").map(T).length === k.getSubShapes(h, "face").map(T).length) return solids[0];
@@ -570,6 +652,15 @@ export class PartEvaluator {
       const r = ent.t === "circle" ? ent.r : Math.hypot(pointOf(a.sketch, ent.p1)!.x - pointOf(a.sketch, ent.c)!.x, pointOf(a.sketch, ent.p1)!.y - pointOf(a.sketch, ent.c)!.y);
       return { kind: "cyl", p: add(cc, mul(F.n, zm)), axis: F.n, r };
     }
+    if (a.kind === "hole") {
+      const [ckey, part] = ref.key.split(":");
+      const c0 = a.centers.find((c) => c.key === ckey);
+      if (ref.role !== "hole" || !c0) throw new SolidError("INVALID_PARAMS", `Referência perdida: o centro ${ckey} do furo ${src.name} foi apagado.`);
+      if (!part) return { kind: "cyl", p: c0.o, axis: a.z, r: a.d / 2 };
+      if (!a.cbore) throw new SolidError("INVALID_PARAMS", `Referência perdida: o rebaixo do furo ${src.name} foi retirado.`);
+      if (part === "cb") return { kind: "cyl", p: c0.o, axis: a.z, r: a.cbore.d / 2 };
+      return { kind: "plane", p: add(c0.o, mul(a.z, a.cbore.depth)), n: a.z };
+    }
     const m = placementMatrix(a.placement);
     const P = (x: number, y: number, z: number) => V(m[0] * x + m[1] * y + m[2] * z + m[3], m[4] * x + m[5] * y + m[6] * z + m[7], m[8] * x + m[9] * y + m[10] * z + m[11]);
     const D = (x: number, y: number, z: number) => unit(V(m[0] * x + m[1] * y + m[2] * z, m[4] * x + m[5] * y + m[6] * z, m[8] * x + m[9] * y + m[10] * z));
@@ -609,6 +700,11 @@ export class PartEvaluator {
       if (a.kind === "extrude") {
         out.push({ t: "anchor", feat: f.id, role: "end", key: "", seed }, { t: "anchor", feat: f.id, role: "start", key: "", seed });
         for (const ent of Object.values(a.sketch.entities)) if (!ent.cons && ent.t !== "point") out.push({ t: "anchor", feat: f.id, role: "side", key: ent.id, seed });
+      } else if (a.kind === "hole") {
+        for (const c0 of a.centers) {
+          out.push({ t: "anchor", feat: f.id, role: "hole", key: c0.key, seed });
+          if (a.cbore) out.push({ t: "anchor", feat: f.id, role: "hole", key: `${c0.key}:cb`, seed }, { t: "anchor", feat: f.id, role: "hole", key: `${c0.key}:cbf`, seed });
+        }
       } else {
         const keys = a.spec.kind === "box" ? ["+X", "-X", "+Y", "-Y", "+Z", "-Z"] : a.spec.kind === "cylinder" ? ["top", "bottom", "side"] : a.spec.kind === "tube" ? ["top", "bottom", "side", "inner"] : [];
         for (const key of keys) out.push({ t: "anchor", feat: f.id, role: "prim", key, seed });
@@ -645,23 +741,50 @@ export class PartEvaluator {
     return d;
   }
 
-  /** Resolve uma referência de face no sólido. Ambiguidade: a mais próxima do ponto-semente. Nenhuma: erro. */
+  /** Um ponto garantidamente DENTRO da face (centro do domínio UV, senão uma grade 5×5). */
+  private interiorPoint(face: ShapeHandle): Vec3 | null {
+    const k = this.k;
+    const b = k.uvBounds(face);
+    const tries: [number, number][] = [[0.5, 0.5]];
+    for (let i = 0; i < 5; i++) for (let j = 0; j < 5; j++) tries.push([(i + 0.5) / 5, (j + 0.5) / 5]);
+    for (const [fu, fv] of tries) {
+      const u = b.uMin + (b.uMax - b.uMin) * fu;
+      const v = b.vMin + (b.vMax - b.vMin) * fv;
+      if (k.classifyPointOnFace(face, u, v) === "in") return vec(k.pointOnSurface(face, u, v));
+    }
+    return null;
+  }
+
+  /**
+   * Resolve uma referência de face no sólido — sem "a mais parecida":
+   * 1. faces cuja superfície coincide com a esperada (plano/cilindro recalculado com os parâmetros atuais);
+   * 2. âncora com sólido próprio: só faces que estão na fronteira do sólido daquela operação (a face nasceu dela);
+   * 3. ainda mais de uma: vale a que contém o ponto-semente; nenhuma ou várias → erro de referência ambígua.
+   * Nenhuma candidata → "Referência perdida". Determinístico (não depende da ordem do OCCT).
+   */
   resolveFace(shape: ShapeHandle, ref: FaceRef, c: Ctx, what: string): ShapeHandle {
     const tol = 1e-6 * this.scaleOf(shape) + 1e-7;
     const d = this.descOf(ref, c);
     const faces = this.k.getSubShapes(shape, "face").map(c.T);
     let cand = faces.filter((f) => this.matches(f, d, tol));
-    const seed = ref.t === "anchor" ? (d.kind === "point" ? ref.seed : ref.seed) : ref.p;
+    const seed = ref.t === "anchor" ? ref.seed : ref.p;
     if (d.kind === "point") cand = cand.filter((f) => this.distTo(f, seed, c.T) < tol * 100);
     if (!cand.length) throw new SolidError("INVALID_PARAMS", `Referência perdida: a ${what} (${describeRef(ref, c)}) não existe mais no sólido.`);
-    if (cand.length === 1) return cand[0];
-    let best = cand[0];
-    let bd = Infinity;
-    for (const f of cand) {
-      const dd = this.distTo(f, seed, c.T);
-      if (dd < bd) [bd, best] = [dd, f];
+    if (cand.length > 1 && ref.t === "anchor") {
+      const i = c.features.findIndex((f) => f.id === ref.feat);
+      const tool = c.entries[i]?.tool ?? null;
+      if (tool !== null) {
+        const own = cand.filter((f) => {
+          const p = this.interiorPoint(f);
+          return p !== null && this.distTo(tool, p, c.T) < tol * 10;
+        });
+        if (own.length) cand = own;
+      }
     }
-    return best;
+    if (cand.length === 1) return cand[0];
+    const onSeed = cand.filter((f) => this.distTo(f, seed, c.T) < tol * 10);
+    if (onSeed.length === 1) return onSeed[0];
+    throw new SolidError("INVALID_PARAMS", `Referência ambígua: ${cand.length} faces servem para a ${what} (${describeRef(ref, c)}) — escolha de novo para não usar a face errada.`);
   }
 
   resolveEdge(shape: ShapeHandle, ref: EdgeRef, c: Ctx, what: string): ShapeHandle {
@@ -670,13 +793,10 @@ export class PartEvaluator {
     const shared = this.k.sharedEdges(fa, fb).map(c.T);
     if (!shared.length) throw new SolidError("INVALID_PARAMS", `Referência perdida: a ${what} deixou de existir (as faces vizinhas não se encontram mais).`);
     if (shared.length === 1) return shared[0];
-    let best = shared[0];
-    let bd = Infinity;
-    for (const e of shared) {
-      const dd = this.distTo(e, ref.seed, c.T);
-      if (dd < bd) [bd, best] = [dd, e];
-    }
-    return best;
+    const tol = 1e-6 * this.scaleOf(shape) + 1e-7;
+    const onSeed = shared.filter((e) => this.distTo(e, ref.seed, c.T) < tol * 10);
+    if (onSeed.length === 1) return onSeed[0];
+    throw new SolidError("INVALID_PARAMS", `Referência ambígua: as faces vizinhas da ${what} se encontram em ${shared.length} arestas — escolha de novo.`);
   }
 
   /* ======================================================================== identificação (seleção da interface) */
@@ -708,7 +828,8 @@ export class PartEvaluator {
 
   private faceRefFor(shape: ShapeHandle, face: ShapeHandle, c: Ctx): FaceRef {
     const k = this.k;
-    const center = vec(k.projectPointOnFace(face, k.getSurfaceCenterOfMass(face)));
+    // ponto-semente DENTRO da face (o centro de massa de um cilindro fica no eixo — fora da face)
+    const center = this.interiorPoint(face) ?? vec(k.getSurfaceCenterOfMass(face));
     for (const a of this.anchorsOf(c)) {
       const ref = { ...a, seed: center } as FaceRef;
       try {
@@ -769,7 +890,7 @@ function withoutEntity(s: Sketch, id: string): Sketch {
 function describeRef(ref: FaceRef, c: Ctx): string {
   if (ref.t === "seed") return ref.surf === "plane" ? "face plana" : ref.surf === "cylinder" ? `face cilíndrica R${Math.round((ref.r ?? 0) * 1000) / 1000}` : "face";
   const name = c.features.find((f) => f.id === ref.feat)?.name ?? "operação apagada";
-  const role = ref.role === "end" ? "topo" : ref.role === "start" ? "base" : ref.role === "side" ? `lateral de ${ref.key}` : `face ${ref.key}`;
+  const role = ref.role === "end" ? "topo" : ref.role === "start" ? "base" : ref.role === "side" ? `lateral de ${ref.key}` : ref.role === "hole" ? `parede do furo ${ref.key}` : `face ${ref.key}`;
   return `${role} de ${name}`;
 }
 

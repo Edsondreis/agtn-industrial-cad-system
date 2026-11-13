@@ -1,4 +1,4 @@
-import { type Constraint, type Id, type Sketch, type SEntity, BUILTIN_POINTS, CONSTRAINT_LABEL, entityOf } from "./types";
+import { type Constraint, type Id, type Sketch, type SEntity, BUILTIN_ENTITIES, BUILTIN_POINTS, CONSTRAINT_LABEL, constraintRefs, entityOf, entityPoints } from "./types";
 
 /**
  * Solver de restrições do esboço.
@@ -14,13 +14,14 @@ import { type Constraint, type Id, type Sketch, type SEntity, BUILTIN_POINTS, CO
  * - inconsistência quando não converge; conflitos = restrições cuja remoção permite convergir.
  */
 
-export type SketchStatus = "full" | "under" | "over" | "inconsistent" | "empty";
+export type SketchStatus = "full" | "under" | "over" | "inconsistent" | "unsolved" | "empty";
 
 export const STATUS_LABEL: Record<SketchStatus, string> = {
   full: "Totalmente definido",
   under: "Subdefinido",
   over: "Sobredefinido (restrição redundante)",
   inconsistent: "Inconsistente",
+  unsolved: "Não convergiu",
   empty: "Vazio",
 };
 
@@ -125,6 +126,9 @@ function build(s: Sketch, extra: readonly Constraint[] = []): System {
     const [bx, by] = l.b(x);
     return [bx - ax, by - ay];
   };
+  const X0 = Float64Array.from(x0);
+  /** lado escolhido pela geometria inicial (equações com módulo viram equações com sinal: deriváveis em 0) */
+  const side = (v: number) => (v < 0 ? -1 : 1);
 
   // implícito: as duas pontas de um arco estão no mesmo raio
   for (const e of Object.values(s.entities)) {
@@ -185,13 +189,15 @@ function build(s: Sketch, extra: readonly Constraint[] = []): System {
           break;
         }
         const val = c.t === "pointLineDistance" ? c.v : 0;
-        add(c.id, v, (x) => {
+        const cross = (x: Float64Array) => {
           const [dx, dy] = dir(l, x);
           const [ax, ay] = l.a(x);
           const [px, py] = p(x);
-          const cr = (dx * (py - ay) - dy * (px - ax)) / Math.max(hyp(dx, dy), 1e-12);
-          return c.t === "pointLineDistance" ? Math.abs(cr) - val : cr;
-        });
+          return (dx * (py - ay) - dy * (px - ax)) / Math.max(hyp(dx, dy), 1e-12);
+        };
+        // distância com sinal do lado inicial (|d| não é derivável em 0 → Jacobiano nulo e falso "redundante")
+        const sg = side(cross(X0));
+        add(c.id, v, (x) => (c.t === "pointLineDistance" ? sg * cross(x) - val : cross(x)));
         break;
       }
       case "pointOnCircle": {
@@ -243,11 +249,15 @@ function build(s: Sketch, extra: readonly Constraint[] = []): System {
           break;
         }
         const target = (c.v * Math.PI) / 180;
-        add(c.id, [...a.vars, ...b.vars], (x) => {
+        const theta = (x: Float64Array) => {
           const [ux, uy] = dir(a, x);
           const [vx, vy] = dir(b, x);
-          return Math.abs(Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy)) - target;
-        });
+          return Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy);
+        };
+        // ângulo com sinal (sentido da geometria inicial) e resíduo reduzido a (−π, π]: contínuo e derivável
+        // em 0° e 180° (|atan2| tinha derivada nula/descontínua ali)
+        const sg = side(theta(X0));
+        add(c.id, [...a.vars, ...b.vars], (x) => wrapPi(sg * theta(x) - target));
         break;
       }
       case "tangent": {
@@ -338,11 +348,18 @@ function build(s: Sketch, extra: readonly Constraint[] = []): System {
   return { n: x0.length, x0: Float64Array.from(x0), eqs, pointVar, radiusVar, errors };
 
   function addLineCircleTangent(cid: Id, l: NonNullable<ReturnType<typeof line>>, k: NonNullable<ReturnType<typeof circ>>) {
+    const crossAt = (x: Float64Array) => {
+      const [dx, dy] = dir(l, x);
+      const [ax, ay] = l.a(x);
+      const [cx, cy] = k.c(x);
+      return dx * (cy - ay) - dy * (cx - ax);
+    };
+    const sg = side(crossAt(X0));
     add(cid, [...l.vars, ...k.vars], (x) => {
       const [dx, dy] = dir(l, x);
       const [ax, ay] = l.a(x);
       const [cx, cy] = k.c(x);
-      return Math.abs(dx * (cy - ay) - dy * (cx - ax)) / Math.max(hyp(dx, dy), 1e-12) - k.r(x);
+      return sg * ((dx * (cy - ay) - dy * (cx - ax)) / Math.max(hyp(dx, dy), 1e-12)) - k.r(x);
     });
   }
 }
@@ -405,9 +422,24 @@ const maxAbs = (v: Float64Array) => {
   return m;
 };
 
-const TOL = 1e-9;
+function wrapPi(a: number): number {
+  const t = a % (2 * Math.PI);
+  return t > Math.PI ? t - 2 * Math.PI : t <= -Math.PI ? t + 2 * Math.PI : t;
+}
+
+/**
+ * Tolerância do resíduo: 1e-9 (mm/rad), mas nunca abaixo do que o double resolve na escala do desenho
+ * (8·ε·|x|max): em coordenadas de 1e7 mm o erro de arredondamento já passa de 1e-9.
+ */
+const TOL0 = 1e-9;
+const tolFor = (x: Float64Array) => {
+  let S = 1;
+  for (const v of x) S = Math.max(S, Math.abs(v));
+  return Math.max(TOL0, 8 * 2.220446049250313e-16 * S);
+};
 
 function newton(sys: System, x: Float64Array, maxIter = 60): { converged: boolean; iterations: number; residual: number } {
+  const TOL = tolFor(x);
   const m = sys.eqs.length;
   const n = sys.n;
   if (!m) return { converged: true, iterations: 0, residual: 0 };
@@ -464,7 +496,74 @@ function newton(sys: System, x: Float64Array, maxIter = 60): { converged: boolea
       break;
     }
   }
-  return { converged: err <= 1e-8, iterations: it, residual: err };
+  return { converged: err <= 10 * TOL, iterations: it, residual: err };
+}
+
+/**
+ * Newton + reinícios determinísticos: um ponto inicial degenerado (ex.: dois pontos coincidentes com cota de
+ * distância — o Jacobiano é nulo ali) não é inconsistência. Perturba as variáveis numa fração da escala do
+ * desenho com sementes fixas (resultado reproduzível) e tenta de novo.
+ */
+function newtonRobust(sys: System, x: Float64Array): ReturnType<typeof newton> & { restarts: number } {
+  const x0 = x.slice();
+  let r = newton(sys, x);
+  if (r.converged) return { ...r, restarts: 0 };
+  let S = 1;
+  for (const v of x0) S = Math.max(S, Math.abs(v));
+  let seed = 12345;
+  const rnd = () => ((seed = (Math.imul(seed, 1103515245) + 12345) >>> 0) / 4294967296) * 2 - 1;
+  for (let k = 1; k <= 3; k++) {
+    const amp = S * 1e-3 * k;
+    for (let j = 0; j < x.length; j++) x[j] = x0[j] + amp * rnd();
+    r = newton(sys, x);
+    if (r.converged) return { ...r, restarts: k };
+  }
+  x.set(x0);
+  return { ...newton(sys, x), restarts: 3 };
+}
+
+/** Mínimos quadrados (Gauss-Newton amortecido) a partir de x: |Jᵀ F| ≈ 0 com resíduo > tol ⇒ sem solução local. */
+function stationaryResidual(sys: System, x: Float64Array): { residual: number; grad: number } {
+  const m = sys.eqs.length;
+  const n = sys.n;
+  const F = new Float64Array(m);
+  const J = new Float64Array(m * n);
+  const y = x.slice();
+  let lam = 1e-3;
+  residuals(sys, y, F);
+  let f2 = F.reduce((s, v) => s + v * v, 0);
+  for (let it = 0; it < 80; it++) {
+    jacobian(sys, y, J);
+    const g = new Float64Array(n);
+    for (let i = 0; i < m; i++) for (let j = 0; j < n; j++) g[j] += J[i * n + j] * F[i];
+    const H = new Float64Array(n * n);
+    for (let i = 0; i < m; i++)
+      for (const a of sys.eqs[i].vars) for (const b of sys.eqs[i].vars) H[a * n + b] += J[i * n + a] * J[i * n + b];
+    let improved = false;
+    for (let tries = 0; tries < 8 && !improved; tries++) {
+      const A = H.slice();
+      for (let j = 0; j < n; j++) A[j * n + j] += lam * (1 + H[j * n + j]);
+      const d = solveDense(A, g, n);
+      if (!d) break;
+      const t = y.slice();
+      for (let j = 0; j < n; j++) t[j] -= d[j];
+      const Ft = new Float64Array(m);
+      residuals(sys, t, Ft);
+      const ft2 = Ft.reduce((s, v) => s + v * v, 0);
+      if (ft2 < f2) {
+        y.set(t);
+        F.set(Ft);
+        f2 = ft2;
+        lam = Math.max(lam / 3, 1e-12);
+        improved = true;
+      } else lam *= 4;
+    }
+    if (!improved) break;
+  }
+  jacobian(sys, y, J);
+  const g = new Float64Array(n);
+  for (let i = 0; i < m; i++) for (let j = 0; j < n; j++) g[j] += J[i * n + j] * F[i];
+  return { residual: Math.sqrt(f2), grad: Math.sqrt(g.reduce((s, v) => s + v * v, 0)) };
 }
 
 /** Posto, variáveis livres e restrições redundantes no ponto x. */
@@ -541,14 +640,129 @@ export function describeConstraint(s: Sketch, id: Id): string {
   return `${CONSTRAINT_LABEL[c.t]}${v} (${id})`;
 }
 
+/**
+ * Resolve o esboço por partes independentes (grupos de pontos ligados por entidades/restrições): cada grupo é
+ * um sistema menor — mesmo resultado matemático, muito mais rápido em esboços grandes, e os conflitos ficam
+ * localizados no grupo que falhou. Inconsistente/não convergido em qualquer grupo → nada é aplicado.
+ */
 export function solve(s: Sketch, opts: SolveOptions = {}): SolveResult {
+  const parts = partition(s, opts.extra ?? []);
+  if (parts.length <= 1) return solveOne(s, opts);
+  let points = { ...s.points };
+  let entities = { ...s.entities };
+  let dof = 0;
+  let iterations = 0;
+  let residual = 0;
+  const free = new Set<Id>();
+  const red: Id[] = [];
+  for (const part of parts) {
+    const r = solveOne(part.sketch, { ...opts, extra: part.extra });
+    if (r.status === "inconsistent" || r.status === "unsolved") return { ...r, sketch: s };
+    if (r.status === "empty") continue;
+    points = { ...points, ...r.sketch.points };
+    entities = { ...entities, ...r.sketch.entities };
+    dof += r.dof;
+    iterations = Math.max(iterations, r.iterations);
+    residual = Math.max(residual, r.residual);
+    r.freePoints.forEach((p) => free.add(p));
+    red.push(...r.redundant);
+  }
+  const status: SketchStatus = red.length ? "over" : dof === 0 ? "full" : "under";
+  const msg =
+    status === "over"
+      ? `Restrição redundante: ${red.map((c) => describeConstraint(s, c)).join(", ")} (já determinada pelas outras).`
+      : status === "full"
+        ? "Totalmente definido."
+        : `Subdefinido: ${dof} grau(s) de liberdade.`;
+  return result({ ...s, points, entities }, status, dof, free, red, [], iterations, residual, msg);
+}
+
+/** Grupos independentes: union-find sobre pontos (entidade une seus pontos; restrição une o que referencia). */
+function partition(s: Sketch, extra: readonly Constraint[]): { sketch: Sketch; extra: Constraint[] }[] {
+  const parent = new Map<Id, Id>();
+  const find = (a: Id): Id => {
+    let r = a;
+    while (parent.get(r) !== r) r = parent.get(r)!;
+    let x = a;
+    while (parent.get(x) !== r) {
+      const nx = parent.get(x)!;
+      parent.set(x, r);
+      x = nx;
+    }
+    return r;
+  };
+  const isFixed = (id: Id) => id in BUILTIN_POINTS || id in BUILTIN_ENTITIES;
+  for (const id of Object.keys(s.points)) parent.set(id, id);
+  const unite = (ids: Id[]) => {
+    const ok = ids.filter((i) => parent.has(i));
+    for (let i = 1; i < ok.length; i++) {
+      const a = find(ok[0]);
+      const b = find(ok[i]);
+      if (a !== b) parent.set(b, a);
+    }
+  };
+  const ptsOfRef = (id: Id): Id[] => {
+    if (isFixed(id)) return [];
+    if (s.points[id]) return [id];
+    const e = s.entities[id];
+    return e ? entityPoints(e) : ["__missing"];
+  };
+  for (const e of Object.values(s.entities)) unite(entityPoints(e));
+  const all = [...s.constraints, ...extra];
+  for (const c of all) {
+    const pts = constraintRefs(c).flatMap(ptsOfRef);
+    if (pts.includes("__missing")) return [{ sketch: s, extra: [...extra] }]; // referência quebrada: um sistema só reporta
+    unite(pts);
+  }
+  const groups = new Map<Id, { points: Set<Id>; entities: Set<Id>; cons: Constraint[]; extra: Constraint[] }>();
+  const g = (root: Id) => {
+    let x = groups.get(root);
+    if (!x) groups.set(root, (x = { points: new Set(), entities: new Set(), cons: [], extra: [] }));
+    return x;
+  };
+  for (const id of Object.keys(s.points)) g(find(id)).points.add(id);
+  for (const e of Object.values(s.entities)) {
+    const ps = entityPoints(e);
+    if (ps.length) g(find(ps[0])).entities.add(e.id);
+  }
+  const home = (c: Constraint) => {
+    const pts = constraintRefs(c).flatMap(ptsOfRef);
+    return pts.length ? find(pts[0]) : null;
+  };
+  for (const c of s.constraints) {
+    const h = home(c);
+    if (h === null) return [{ sketch: s, extra: [...extra] }]; // restrição só entre referências fixas: deixa o solver único avaliar
+    g(h).cons.push(c);
+  }
+  for (const c of extra) {
+    const h = home(c);
+    if (h !== null) g(h).extra.push(c);
+  }
+  const out: { sketch: Sketch; extra: Constraint[] }[] = [];
+  for (const grp of groups.values()) {
+    const points: Record<Id, Sketch["points"][string]> = {};
+    for (const id of grp.points) points[id] = s.points[id];
+    const entities: Record<Id, SEntity> = {};
+    for (const id of grp.entities) entities[id] = s.entities[id];
+    out.push({ sketch: { ...s, points, entities, constraints: grp.cons }, extra: grp.extra });
+  }
+  return out;
+}
+
+function solveOne(s: Sketch, opts: SolveOptions = {}): SolveResult {
   const sys = build(s, opts.extra);
   if (sys.errors.length) return fail(s, sys, sys.errors[0], []);
   if (!sys.n && !Object.keys(s.entities).length) return result(s, "empty", 0, new Set(), [], [], 0, 0, "Esboço vazio.");
   const x = sys.x0.slice();
-  const r = newton(sys, x);
+  const r = newtonRobust(sys, x);
   if (!r.converged) {
+    // Inconsistência comprovada: remover uma restrição torna o sistema solúvel, ou o mínimo dos quadrados é
+    // estacionário com resíduo — sem solução local. Caso contrário é falha NUMÉRICA de convergência.
     const conflicts = opts.skipConflictSearch ? [] : findConflicts(s, opts.extra);
+    const st = conflicts.length ? null : stationaryResidual(sys, x);
+    const proven = conflicts.length > 0 || (st !== null && st.residual > 1e3 * tolFor(x) && st.grad < 1e-6 * Math.max(1, st.residual));
+    if (!proven)
+      return result(s, "unsolved", 0, new Set(), [], [], r.iterations, r.residual, "O solver não convergiu a partir desta posição (falha numérica, não conflito comprovado) — aproxime a geometria da forma desejada e tente de novo.");
     const names = conflicts.length ? ` Em conflito: ${conflicts.map((c) => describeConstraint(s, c)).join(", ")}.` : "";
     return result(s, "inconsistent", 0, new Set(), [], conflicts, r.iterations, r.residual, `Restrições inconsistentes — não existe geometria que satisfaça todas.${names}`);
   }
@@ -584,7 +798,7 @@ function findConflicts(s: Sketch, extra?: readonly Constraint[]): Id[] {
     const sys = build(test, extra);
     if (sys.errors.length) continue;
     const x = sys.x0.slice();
-    if (newton(sys, x, 40).converged) out.push(c.id);
+    if (newtonRobust(sys, x).converged) out.push(c.id);
   }
   return out;
 }

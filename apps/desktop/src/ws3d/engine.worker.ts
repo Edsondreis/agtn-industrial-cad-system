@@ -64,7 +64,7 @@ const api: Omit<EngineApi, "init"> = {
     lastModel = model;
     const r = c.sync(model);
     const built = r.built.map((id) => geomOf(id, c.get(id)!));
-    return { built, removed: r.removed, errors: r.errors, ms: performance.now() - t0, features: r.features, frames: r.frames, empty: r.empty };
+    return { built, removed: r.removed, errors: r.errors, ms: performance.now() - t0, features: r.features, frames: r.frames, empty: r.empty, partial: r.partial };
   },
   identify({ body, kind, index, model }) {
     const m = model ?? lastModel;
@@ -83,8 +83,13 @@ const api: Omit<EngineApi, "init"> = {
       const res = previewParts!.evaluate(body, features, {
         rollback,
         external: (id) => {
+          const tb = model.nodes[id];
+          if (!tb) return null;
+          const bad = c.partialOf(id);
           const t = c.get(id);
-          if (t === undefined) return null;
+          // mesma regra da regeneração: ferramenta com erro não entra com o último sólido válido
+          if (bad) return { sig: `${t ?? "∅"}`, shape: null, error: `${tb.name} › ${bad.name} falhou` };
+          if (t === undefined) return { sig: "∅", shape: null, error: `${tb.name} não tem sólido` };
           const local = k.transform(t, inv);
           tmp.push(local);
           return { sig: String(t), shape: local as unknown as never };
@@ -96,7 +101,7 @@ const api: Omit<EngineApi, "init"> = {
         tmp.push(w);
         geom = geomOf(body, w);
       }
-      return { geom, status: res.status, frames: res.frames, ms: performance.now() - t0 };
+      return { geom, status: res.status, frames: res.frames, ms: performance.now() - t0, failed: res.failed };
     } finally {
       for (const t of tmp) k.release(t);
     }

@@ -55,6 +55,8 @@ export interface SyncReport {
   frames: Record<NodeId, Readonly<Record<string, Frame>>>;
   /** peças que ainda não têm sólido (só esboços) */
   empty: NodeId[];
+  /** peças com operação falhando: o sólido exibido é o último válido, ANTES desta operação */
+  partial: Record<NodeId, { readonly id: string; readonly name: string; readonly error: string }>;
 }
 
 /**
@@ -65,13 +67,14 @@ export interface SyncReport {
 export class BodyCache {
   private readonly items = new Map<string, { sig: string; ref: SolidRef }>();
   private readonly status = new Map<NodeId, readonly FeatureStatus[]>();
+  private readonly degraded = new Map<NodeId, { id: string; name: string; error: string }>();
   constructor(
     private readonly k: SolidKernel,
     readonly parts: PartEvaluator | null = null,
   ) {}
 
   sync(m: Model3D): SyncReport {
-    const rep: SyncReport = { built: [], removed: [], errors: {}, features: {}, frames: {}, empty: [] };
+    const rep: SyncReport = { built: [], removed: [], errors: {}, features: {}, frames: {}, empty: [], partial: {} };
     const all = bodies(m);
     const byId = new Map(all.map((b) => [b.id, b]));
     // ordem: ferramentas antes de quem as combina
@@ -109,7 +112,7 @@ export class BodyCache {
       if (cur?.sig === sig) continue;
       try {
         let ref: SolidRef | null;
-        if (b.source.type === "part") ref = this.buildPart(m, b, rep);
+        if (b.source.type === "part") ref = this.buildPart(m, b, rep, byId);
         else ref = buildBody(this.k, m, b);
         if (cur) this.k.release(cur.ref);
         if (ref === null) {
@@ -122,15 +125,19 @@ export class BodyCache {
         rep.built.push(b.id);
       } catch (e) {
         rep.errors[b.id] = (e as Error).message;
+        this.degraded.delete(b.id);
         this.drop(b.id, rep);
       }
     }
+    // estado "parcial" vale também para peças que não precisaram regenerar neste ciclo
+    for (const [id, f] of this.degraded) if (byId.has(id)) rep.partial[id] = f;
     for (const [id, it] of this.items) {
       if (alive.has(id)) continue;
       this.k.release(it.ref);
       this.items.delete(id);
       this.parts?.release(id);
       this.status.delete(id);
+      this.degraded.delete(id);
       rep.removed.push(id);
     }
     return rep;
@@ -144,7 +151,7 @@ export class BodyCache {
     rep.removed.push(id);
   }
 
-  private buildPart(m: Model3D, b: BodyNode, rep: SyncReport): SolidRef | null {
+  private buildPart(m: Model3D, b: BodyNode, rep: SyncReport, byId: ReadonlyMap<NodeId, BodyNode>): SolidRef | null {
     if (b.source.type !== "part") return null;
     if (!this.parts) throw new Error("Avaliador de peças indisponível.");
     const world = worldMatrix(m, b.id);
@@ -154,8 +161,13 @@ export class BodyCache {
       const res = this.parts.evaluate(b.id, b.source.features, {
         rollback: b.source.rollback,
         external: (id) => {
+          const tb = byId.get(id);
+          if (!tb) return null; // excluído do modelo: erro da própria combinação
+          const bad = this.degraded.get(id);
           const t = this.items.get(id);
-          if (!t) return null;
+          // ferramenta com erro: NÃO usa o último sólido válido dela (estaria desatualizado)
+          if (bad) return { sig: t?.sig ?? "∅", shape: null, error: `${tb.name} › ${bad.name} falhou` };
+          if (!t) return { sig: "∅", shape: null, error: rep.errors[id] ? `${tb.name}: ${rep.errors[id]}` : `${tb.name} não tem sólido` };
           const local = this.k.transform(t.ref, inv);
           tmp.push(local);
           return { sig: t.sig, shape: local as unknown as never };
@@ -164,6 +176,8 @@ export class BodyCache {
       rep.features[b.id] = res.status;
       rep.frames[b.id] = res.frames;
       this.status.set(b.id, res.status);
+      if (res.failed) this.degraded.set(b.id, res.failed);
+      else this.degraded.delete(b.id);
       if (res.shape === null) return null;
       return this.k.transform(res.shape as unknown as SolidRef, world);
     } finally {
@@ -173,6 +187,10 @@ export class BodyCache {
 
   get(id: string): SolidRef | undefined {
     return this.items.get(id)?.ref;
+  }
+  /** peça com operação falhando (o sólido em cache é o último válido) */
+  partialOf(id: NodeId): { id: string; name: string; error: string } | undefined {
+    return this.degraded.get(id);
   }
   featureStatus(id: NodeId): readonly FeatureStatus[] | undefined {
     return this.status.get(id);
@@ -185,5 +203,6 @@ export class BodyCache {
     this.items.clear();
     this.parts?.releaseAll();
     this.status.clear();
+    this.degraded.clear();
   }
 }

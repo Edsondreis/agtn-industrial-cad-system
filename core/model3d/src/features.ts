@@ -1,4 +1,4 @@
-import { type AxisRef, type EdgeRef, type FaceRef, type FeatId, type Feature, type FeatureDraft, FEATURE_PREFIX, IDENTITY, type PlaneRef, validateFeature } from "@agtn/solid";
+import { type FeatId, type Feature, type FeatureDraft, FEATURE_PREFIX, IDENTITY, featureRefs, validateFeature } from "@agtn/solid";
 import { type BodyNode, type Model3D, type NodeId, addBody } from "./model";
 
 /* Operações sobre a árvore de uma peça paramétrica (imutáveis; cada uma vira uma transação no documento). */
@@ -32,49 +32,7 @@ export function nextFeatureName(features: readonly Feature[], kind: Feature["t"]
 }
 
 /** Ids de operações que esta operação usa (esboços, alvos, faces/arestas de origem). */
-export function featureDeps(f: Feature): FeatId[] {
-  const out = new Set<FeatId>();
-  const face = (r: FaceRef) => r.t === "anchor" && out.add(r.feat);
-  const edge = (e: EdgeRef) => {
-    face(e.a);
-    face(e.b);
-  };
-  const plane = (p: PlaneRef) => p.t === "face" && face(p.face);
-  const axis = (a: AxisRef) => (a.t === "sketchLine" ? out.add(a.sketch) : a.t === "edge" ? edge(a.edge) : a.t === "face" ? face(a.face) : undefined);
-  switch (f.t) {
-    case "sketch":
-      plane(f.plane);
-      break;
-    case "extrude":
-    case "revolve":
-    case "hole":
-      out.add(f.sketch);
-      break;
-    case "sweep":
-      out.add(f.profile);
-      out.add(f.path);
-      break;
-    case "loft":
-      f.sections.forEach((s) => out.add(s));
-      break;
-    case "fillet":
-    case "chamfer":
-      f.edges.forEach(edge);
-      break;
-    case "shell":
-      f.faces.forEach(face);
-      break;
-    case "mirror":
-      plane(f.plane);
-      f.targets?.forEach((t) => out.add(t));
-      break;
-    case "pattern":
-      f.targets.forEach((t) => out.add(t));
-      axis(f.dir);
-      break;
-  }
-  return [...out];
-}
+export const featureDeps = featureRefs;
 
 /** Operações que dependem (direta ou indiretamente) de `id`. */
 export function dependentsOf(features: readonly Feature[], id: FeatId): FeatId[] {

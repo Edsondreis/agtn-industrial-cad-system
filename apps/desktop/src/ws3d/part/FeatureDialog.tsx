@@ -169,11 +169,16 @@ export function FeatureDialog(p: FeatureDialogProps) {
         .then((r) => {
           if (dead || !r) return;
           const me = r.status.find((s) => s.id === featId);
-          const later = r.status.filter((s) => s.id !== featId && s.state === "error" && !p.features.find((f) => f.id === s.id && f.suppressed));
+          const later = r.status.filter((s) => s.id !== featId && (s.state === "error" || s.state === "dependency_error") && !p.features.find((f) => f.id === s.id && f.suppressed));
+          const warns = [
+            me?.state === "dependency_error" ? `${me.error} Os parâmetros podem ser salvos; ela será avaliada quando a origem for corrigida.` : null,
+            me?.warning ?? null,
+            later.length ? `Operações posteriores com erro: ${later.map((s) => p.features.find((f) => f.id === s.id)?.name ?? s.id).join(", ")}` : null,
+          ].filter(Boolean);
           setState({
             busy: false,
             error: me?.state === "error" ? (me.error ?? "Falha na operação.") : null,
-            warn: later.length ? `Operações posteriores com erro: ${later.map((s) => p.features.find((f) => f.id === s.id)?.name ?? s.id).join(", ")}` : null,
+            warn: warns.length ? warns.join(" ") : null,
             ms: r.ms,
           });
         })

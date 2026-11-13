@@ -18,7 +18,7 @@ export type BoolOp = "new" | "join" | "cut" | "intersect";
  * Se a referência não puder ser resolvida, a operação falha com erro explícito (nunca troca de face).
  */
 export type FaceRef =
-  | { readonly t: "anchor"; readonly feat: FeatId; readonly role: "start" | "end" | "side" | "prim"; readonly key: string; readonly seed: Vec3 }
+  | { readonly t: "anchor"; readonly feat: FeatId; readonly role: "start" | "end" | "side" | "prim" | "hole"; readonly key: string; readonly seed: Vec3 }
   | { readonly t: "seed"; readonly surf: string; readonly p: Vec3; readonly n?: Vec3; readonly axis?: Vec3; readonly r?: number };
 
 /** Aresta = interseção de duas faces referenciadas (+ ponto para desempatar). */
@@ -189,4 +189,49 @@ export function validateFeature(f: FeatureDraft): string[] {
       break;
   }
   return e;
+}
+
+/** Ids de operações que esta operação usa (esboços, alvos, faces/arestas de origem). */
+export function featureRefs(f: Feature): FeatId[] {
+  const out = new Set<FeatId>();
+  const face = (r: FaceRef) => r.t === "anchor" && out.add(r.feat);
+  const edge = (e: EdgeRef) => {
+    face(e.a);
+    face(e.b);
+  };
+  const plane = (p: PlaneRef) => p.t === "face" && face(p.face);
+  const axis = (a: AxisRef) => (a.t === "sketchLine" ? out.add(a.sketch) : a.t === "edge" ? edge(a.edge) : a.t === "face" ? face(a.face) : undefined);
+  switch (f.t) {
+    case "sketch":
+      plane(f.plane);
+      break;
+    case "extrude":
+    case "revolve":
+    case "hole":
+      out.add(f.sketch);
+      break;
+    case "sweep":
+      out.add(f.profile);
+      out.add(f.path);
+      break;
+    case "loft":
+      f.sections.forEach((s) => out.add(s));
+      break;
+    case "fillet":
+    case "chamfer":
+      f.edges.forEach(edge);
+      break;
+    case "shell":
+      f.faces.forEach(face);
+      break;
+    case "mirror":
+      plane(f.plane);
+      f.targets?.forEach((t) => out.add(t));
+      break;
+    case "pattern":
+      f.targets.forEach((t) => out.add(t));
+      axis(f.dir);
+      break;
+  }
+  return [...out];
 }

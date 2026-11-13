@@ -146,7 +146,7 @@ export function SketchBar({ editor, name, onFinish, onCancel, onNormal }: { edit
             <b>{STATUS_LABEL[status]}</b>
             <span>{status === "under" ? `${st.solve.dof} grau(s) de liberdade` : status === "full" ? "pronto para extrusão" : st.solve.message}</span>
           </div>
-          <button className="btn primary" onClick={onFinish} disabled={status === "inconsistent"} data-testid="sketch-finish">
+          <button className="btn primary" onClick={onFinish} disabled={status === "inconsistent" || status === "unsolved"} data-testid="sketch-finish">
             Concluir esboço
           </button>
           <button className="btn" onClick={onCancel}>

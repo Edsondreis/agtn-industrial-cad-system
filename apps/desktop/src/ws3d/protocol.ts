@@ -29,6 +29,8 @@ export interface SyncResult {
   /** planos dos esboços (coordenadas locais da peça) */
   readonly frames: Record<NodeId, Readonly<Record<string, Frame>>>;
   readonly empty: NodeId[];
+  /** peças com operação falhando: o sólido exibido é o último válido, antes desta operação */
+  readonly partial: Record<NodeId, { readonly id: string; readonly name: string; readonly error: string }>;
 }
 
 export interface PreviewResult {
@@ -36,6 +38,8 @@ export interface PreviewResult {
   readonly status: readonly FeatureStatus[];
   readonly frames: Readonly<Record<string, Frame>>;
   readonly ms: number;
+  /** a prévia parou numa falha: a geometria é a do último sólido válido */
+  readonly failed: { readonly id: string; readonly name: string; readonly error: string } | null;
 }
 
 export interface EngineStats {

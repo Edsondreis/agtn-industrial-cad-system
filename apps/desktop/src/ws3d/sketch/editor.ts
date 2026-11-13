@@ -108,7 +108,7 @@ export class SketchEditor {
   constructor(initial: Sketch) {
     this.s = initial;
     this.res = solve(initial);
-    if (this.res.status !== "inconsistent") this.s = this.res.sketch;
+    if (this.res.status !== "inconsistent" && this.res.status !== "unsolved") this.s = this.res.sketch;
     if (Object.keys(initial.entities).length) this.tool = "select";
   }
 
@@ -146,7 +146,7 @@ export class SketchEditor {
   /** Aplica uma alteração e resolve. Inconsistente → desfaz e informa as restrições em conflito. */
   private commit(next: Sketch, note?: string): boolean {
     const r = solve(next);
-    if (r.status === "inconsistent") {
+    if (r.status === "inconsistent" || r.status === "unsolved") {
       this.error = r.message;
       this.emit();
       return false;
@@ -631,7 +631,7 @@ export class SketchEditor {
   dragTo(pointId: Id, to: Pt) {
     if (!this.dragBase) return;
     const r = drag(this.s, pointId, to);
-    if (r.status === "inconsistent") return;
+    if (r.status === "inconsistent" || r.status === "unsolved") return;
     this.s = r.sketch;
     this.res = r;
     this.emit();

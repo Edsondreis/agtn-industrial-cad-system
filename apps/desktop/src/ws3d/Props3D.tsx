@@ -44,7 +44,9 @@ export interface Props3DActions {
 }
 
 /** Painel de propriedades: corpo/conjunto selecionado, elemento topológico (geometria exata) ou medição. */
-export function Props3D({ model, snap, geom, act }: { model: Model3D; snap: Ws3dSnapshot; geom: (id: NodeId) => BodyGeom | undefined; act: Props3DActions }) {
+export type PartialOf = (id: NodeId) => { readonly name: string; readonly error: string } | undefined;
+
+export function Props3D({ model, snap, geom, act, partial }: { model: Model3D; snap: Ws3dSnapshot; geom: (id: NodeId) => BodyGeom | undefined; act: Props3DActions; partial?: PartialOf }) {
   const sel = snap.sel;
   if (snap.measuring || (sel.length === 2 && snap.measure)) return <MeasurePanel snap={snap} model={model} />;
   if (!sel.length) return <Summary model={model} geom={geom} />;
@@ -86,8 +88,24 @@ export function Props3D({ model, snap, geom, act }: { model: Model3D; snap: Ws3d
           </div>
         </section>
       )}
+      <PartialNote ids={n.kind === "body" ? [n.id] : subtree(model, n.id)} model={model} partial={partial} />
       <Physical ids={n.kind === "body" ? [n.id] : subtree(model, n.id)} model={model} geom={geom} />
     </div>
+  );
+}
+
+/** Peça com operação falhando: as medidas abaixo são do último sólido válido — dito explicitamente. */
+function PartialNote({ ids, model, partial }: { ids: NodeId[]; model: Model3D; partial?: PartialOf }) {
+  const bad = ids.map((id) => ({ id, p: partial?.(id) })).filter((x) => x.p);
+  if (!bad.length) return null;
+  return (
+    <section className="p3-partial" data-testid="partial-note">
+      {bad.map(({ id, p }) => (
+        <div key={id}>
+          <b>⚠ {model.nodes[id]?.name}: {p!.name} falhou.</b> Volume, área e massa abaixo são do último sólido válido (antes dela) — não do modelo completo.
+        </div>
+      ))}
+    </section>
   );
 }
 

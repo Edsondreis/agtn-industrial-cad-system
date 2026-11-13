@@ -103,7 +103,7 @@ export class SketchOverlay {
     const s = st.sketch;
     const free = st.solve.freePoints;
     const conflicts = new Set(st.solve.conflicts);
-    const bad = st.solve.status === "inconsistent";
+    const bad = st.solve.status === "inconsistent" || st.solve.status === "unsolved";
     const sel = new Set(st.sel);
     const hov = st.cursor?.entity ?? st.cursor?.point ?? null;
     const pos: number[] = [];

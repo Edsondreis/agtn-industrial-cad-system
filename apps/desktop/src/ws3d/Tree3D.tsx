@@ -222,7 +222,7 @@ export function Tree3D({
           className={`t3-row t3-feat ${state}${on ? " sel" : ""}`}
           style={{ paddingLeft: 6 + depth * 14 }}
           data-feat={f.name}
-          title={`${f.name} — ${FEATURE_LABEL[f.t]} · ${featureSummary(f)}${s?.error ? `\n⚠ ${s.error}` : ""}${state === "suppressed" ? "\n(suprimida)" : ""}${s && s.state === "ok" ? `\n${Math.round(s.ms)} ms` : ""}`}
+          title={`${f.name} — ${FEATURE_LABEL[f.t]} · ${featureSummary(f)}${s?.error ? `\n⚠ ${s.error}` : ""}${s?.warning ? `\n⚠ ${s.warning}` : ""}${state === "suppressed" && !s?.error ? "\n(suprimida)" : ""}${state === "rolledback" ? "\n(depois da barra de recuo — não avaliada)" : ""}${s && s.state === "ok" ? `\n${Math.round(s.ms)} ms` : ""}`}
           onClick={() => onFeature(body, f.id)}
           onDoubleClick={() => onFeatureAct(body, f.id, "edit")}
         >
@@ -231,9 +231,14 @@ export function Tree3D({
             <Icon name={featureIcon(f)} />
           </span>
           <span className="t3-name">{f.name}</span>
-          {state === "error" && (
-            <span className="t3-err" title={s?.error}>
+          {(state === "error" || state === "dependency_error") && (
+            <span className={`t3-err${state === "dependency_error" ? " dep" : ""}`} title={s?.error} data-state={state}>
               !
+            </span>
+          )}
+          {state === "ok" && s?.warning && (
+            <span className="t3-err warn" title={s.warning}>
+              ⚠
             </span>
           )}
           <button className="t3-act" title="Editar (duplo clique)" onClick={(e) => (e.stopPropagation(), onFeatureAct(body, f.id, "edit"))}>

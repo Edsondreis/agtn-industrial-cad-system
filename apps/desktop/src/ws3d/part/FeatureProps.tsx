@@ -27,7 +27,19 @@ export function FeatureProps({
   onDelete: (cascade: boolean) => void;
 }) {
   const deps = dependentsOf(features, feature.id).map((id) => features.find((f) => f.id === id)!);
-  const state = feature.suppressed ? "Suprimida" : rollback !== null && index >= rollback ? "Recuada (inativa)" : status?.state === "error" ? "Com erro" : "OK";
+  const state = feature.suppressed
+    ? "Suprimida"
+    : rollback !== null && index >= rollback
+      ? "Recuada (não avaliada)"
+      : status?.state === "error"
+        ? "Com erro"
+        : status?.state === "dependency_error"
+          ? "Não avaliada (dependência com erro)"
+          : status?.state === "suppressed"
+            ? "Suprimida (junto com a operação de origem)"
+            : status
+              ? "OK"
+              : "Aguardando regeneração";
   const sk = feature.t === "sketch" ? solve(feature.sketch, { skipConflictSearch: true }) : null;
   return (
     <div className="p3">
@@ -70,7 +82,8 @@ export function FeatureProps({
             </span>
           </div>
         )}
-        {status?.error && <div className="fp-err">{status.error}</div>}
+        {status?.error && <div className={`fp-err${status.state === "dependency_error" ? " dep" : status.state === "suppressed" ? " info" : ""}`}>{status.error}</div>}
+        {status?.warning && <div className="fp-err warn">{status.warning}</div>}
       </section>
       <section className="fp-acts">
         <button className="btn primary" onClick={() => onAct("edit")}>

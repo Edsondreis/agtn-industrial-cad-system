@@ -295,7 +295,9 @@ describe("demais operações com volumes conhecidos", () => {
 });
 
 describe("falhas, supressão, rollback e desempenho", () => {
-  it("arredondamento impossível: erro claro, sólido anterior preservado, operações seguintes continuam", () => {
+  // Auditoria FASE 3 (A01): este teste antes exigia o Ressalto "ok" sobre o sólido SEM o arredondamento que falhou —
+  // geometria desatualizada. Agora o Ressalto fica com erro de dependência e o resultado é o último sólido válido.
+  it("arredondamento impossível: erro claro, último sólido válido preservado, posteriores com erro de dependência", () => {
     const s1 = sk("E", rectSketch(20, 20).s);
     const e1 = F("Extrusão", ext(s1.id, 20));
     ev.evaluate("f1", [s1, e1]);
@@ -304,8 +306,10 @@ describe("falhas, supressão, rollback e desempenho", () => {
     const r = ev.evaluate("f1", [s1, e1, F("Arredondar", { t: "fillet", edges: [edge], r: 50 }), s3, F("Ressalto", ext(s3.id, 5, "join"))]);
     expect(r.status[2].state).toBe("error");
     expect(r.status[2].error).toMatch(/raio grande/i);
-    expect(r.status[4].state).toBe("ok");
-    expect(rel(vol(r), 8000 + PI * 9 * 5)).toBeLessThan(1e-9);
+    expect(r.status[3].state).toBe("ok"); // esboço em plano padrão não usa o sólido
+    expect(r.status[4].state).toBe("dependency_error");
+    expect(r.failed?.name).toBe("Arredondar");
+    expect(rel(vol(r), 8000)).toBeLessThan(1e-9);
   });
   it("perfil aberto, validação de parâmetros e corte sem sólido", () => {
     const open = sk("Aberto", addLine(emptySketch(), { x: 0, y: 0 }, { x: 10, y: 0 }).s);

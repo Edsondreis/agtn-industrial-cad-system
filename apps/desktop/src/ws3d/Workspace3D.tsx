@@ -53,7 +53,7 @@ import { type CamState, STD_VIEWS, type StdView, initialCam } from "./camera";
 import { engine } from "./engine";
 import { DEFAULT_SPECS, PrimitiveDialog } from "./PrimitiveDialog";
 import { Props3D } from "./Props3D";
-import type { EngineStats, TopoRefMsg } from "./protocol";
+import type { EngineStats, SyncResult, TopoRefMsg } from "./protocol";
 import { type DisplayMode, FILTER_LABEL, type PickFilter, type Sel, Ws3dStore } from "./store";
 import { Tree3D } from "./Tree3D";
 import { ViewCube } from "./ViewCube";
@@ -142,6 +142,8 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [dialog, setDialog] = useState<null | { kind: "create"; prim: PrimitiveKind } | { kind: "featPrim"; body: NodeId; feat: FeatId; spec: PrimitiveSpec }>(null);
   const [fstat, setFstat] = useState<Record<NodeId, readonly FeatureStatus[]>>({});
+  /** peças cuja árvore tem falha: o viewport mostra o último sólido válido — a interface diz isso */
+  const [partial, setPartial] = useState<SyncResult["partial"]>({});
   const [frames, setFrames] = useState<Record<NodeId, Readonly<Record<string, Frame>>>>({});
   const [fsel, setFsel] = useState<{ body: NodeId; id: FeatId } | null>(null);
   const [sk, setSk] = useState<SketchSess | null>(null);
@@ -240,6 +242,7 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
           for (const id of r.removed) delete next[id];
           return next;
         });
+        setPartial(r.partial);
         setFrames((prev) => {
           const next = { ...prev, ...r.frames };
           for (const id of r.removed) delete next[id];
@@ -964,6 +967,24 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
           <div className="v3-host" ref={host} />
           <ViewCube cam={cam} onDir={(d) => v?.viewDir(d)} onHome={() => v?.view("iso")} onRoll={(d) => v?.roll(d)} />
           {snap.measuring && <div className="v3-banner">MEDIR · clique em dois elementos · Esc sai</div>}
+          {!sk && !fd && Object.keys(partial).some((id) => display.nodes[id]?.visible !== false) && (
+            <div className="v3-partial" role="status" data-testid="partial-banner">
+              {Object.entries(partial)
+                .filter(([id]) => display.nodes[id])
+                .map(([id, f]) => (
+                  <button
+                    key={id}
+                    onClick={() => {
+                      store.pick({ t: "node", id }, false);
+                      setFsel({ body: id, id: f.id });
+                    }}
+                    title={f.error}
+                  >
+                    <Icon name="warn" /> <b>{display.nodes[id].name}</b> · {f.name} falhou — exibindo o último sólido válido; operações seguintes não avaliadas
+                  </button>
+                ))}
+            </div>
+          )}
           {sk && <DimInput editor={sk.editor} place={(p) => vp.current?.sketchScreen(p) ?? null} />}
           {fd && partSrc(model, fd.body) && (
             <FeatureDialog
@@ -1112,6 +1133,7 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
               model={model}
               snap={snap}
               geom={(id) => vp.current?.geom(id)}
+              partial={(id) => partial[id]}
               act={{
                 rename: (id, nm) => commit("Renomear", (m) => rename(m, id, nm)),
                 placement: (id, p) => commit("Mover", (m) => setPlacement(m, id, p)),

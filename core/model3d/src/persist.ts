@@ -61,6 +61,21 @@ export function parseModel3D(raw: unknown): ParseReport {
       } else if (src?.type === "part" && Array.isArray(src.features)) {
         const feats = (src.features as unknown[]).filter((f): f is Record<string, unknown> => !!f && typeof f === "object" && typeof (f as { id?: unknown }).id === "string" && typeof (f as { t?: unknown }).t === "string" && typeof (f as { name?: unknown }).name === "string");
         if (feats.length !== src.features.length) warnings.push(`"${n.name}": ${src.features.length - feats.length} operação(ões) ilegível(is) ignorada(s).`);
+        // ids duplicados (arquivo editado à mão/corrompido): a 2ª ocorrência ganha id novo; referências ficam na 1ª
+        const used = new Set<string>();
+        for (let i = 0; i < feats.length; i++) {
+          let fid = feats[i].id as string;
+          if (!used.has(fid)) {
+            used.add(fid);
+            continue;
+          }
+          let k2 = 2;
+          while (used.has(`${fid}~${k2}`)) k2++;
+          warnings.push(`"${n.name}": operação "${feats[i].name}" tinha id duplicado (${fid}) — renomeado para ${fid}~${k2}.`);
+          fid = `${fid}~${k2}`;
+          used.add(fid);
+          feats[i] = { ...feats[i], id: fid };
+        }
         const rb = typeof src.rollback === "number" && src.rollback >= 0 ? Math.min(src.rollback, feats.length) : null;
         source = { type: "part", features: feats as unknown as BodyNode["source"] extends { features: infer F } ? F : never, rollback: rb };
       } else if (src?.type === "brep" && typeof src.data === "string" && src.data.length > 0) {
