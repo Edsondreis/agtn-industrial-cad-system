@@ -142,6 +142,7 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [dialog, setDialog] = useState<null | { kind: "create"; prim: PrimitiveKind } | { kind: "featPrim"; body: NodeId; feat: FeatId; spec: PrimitiveSpec }>(null);
   const [fstat, setFstat] = useState<Record<NodeId, readonly FeatureStatus[]>>({});
+  const [frames, setFrames] = useState<Record<NodeId, Readonly<Record<string, Frame>>>>({});
   const [fsel, setFsel] = useState<{ body: NodeId; id: FeatId } | null>(null);
   const [sk, setSk] = useState<SketchSess | null>(null);
   const [fd, setFd] = useState<FeatSess | null>(null);
@@ -236,6 +237,11 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
         setErrors(r.errors);
         setFstat((prev) => {
           const next = { ...prev, ...r.features };
+          for (const id of r.removed) delete next[id];
+          return next;
+        });
+        setFrames((prev) => {
+          const next = { ...prev, ...r.frames };
           for (const id of r.removed) delete next[id];
           return next;
         });
@@ -475,7 +481,7 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
       store.pick({ t: "node", id: body }, false);
       setFsel({ body, id });
     }
-    if (bodies(getModel(doc)).length === 1) firstFit.current = true;
+    if (!s.body && bodies(getModel(doc)).length === 1) firstFit.current = true;
     toast(s.feat ? `${s.name} atualizado — a peça foi regenerada.` : `${s.name} concluído. Use Extrusão, Revolução ou Furo.`, "ok");
   };
 
@@ -975,6 +981,11 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
               preview={runPreview}
               onOk={featureOk}
               onCancel={closeFeature}
+              frameOf={(id) => {
+                const f = frames[fd.body]?.[id];
+                return f ? worldFrame(model, fd.body, f) : null;
+              }}
+              handle={(h) => vp.current?.setHandle(h)}
             />
           )}
           {planeAsk && (

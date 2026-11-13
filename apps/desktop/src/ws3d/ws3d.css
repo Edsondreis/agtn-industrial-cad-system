@@ -60,6 +60,12 @@
 .v3-empty b { color: var(--text-hi); letter-spacing: 2px; font-size: 13px; }
 .v3-empty div { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
 
+.v3-handle { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: auto; z-index: 4; }
+.v3-handle i { position: absolute; left: -11px; top: -11px; width: 22px; height: 22px; cursor: grab; transform-origin: 50% 50%; }
+.v3-handle i::before { content: ""; position: absolute; left: 3px; top: 3px; border-left: 16px solid #ffc857; border-top: 8px solid transparent; border-bottom: 8px solid transparent; filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8)); }
+.v3-handle.on i { cursor: grabbing; }
+.v3-handle span { position: absolute; left: 16px; top: -26px; padding: 2px 7px; border-radius: var(--r); background: rgba(16, 19, 23, 0.92); border: 1px solid #ffc857; color: #ffe2a3; font: 600 11.5px var(--mono); white-space: nowrap; pointer-events: none; }
+
 /* ------------------------------------------------------------ ViewCube */
 .vc { position: absolute; top: 12px; right: 12px; width: 150px; height: 150px; user-select: none; z-index: 3; }
 .vc-stage { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
@@ -198,12 +204,12 @@
 .sk-prompt i { font-style: normal; color: var(--text-faint); font-size: 10.5px; }
 
 /* ------------------------------------------------------------ painel de operação */
-.fd, .plane-ask { position: absolute; z-index: 5; left: 12px; top: 12px; width: 312px; max-height: calc(100% - 48px); display: flex; flex-direction: column; border-radius: var(--r-lg); background: rgba(27, 31, 37, 0.97); border: 1px solid var(--line-2); box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5); }
+.fd, .plane-ask { position: absolute; z-index: 5; left: 12px; top: 12px; width: 340px; max-height: calc(100% - 48px); display: flex; flex-direction: column; border-radius: var(--r-lg); background: rgba(27, 31, 37, 0.97); border: 1px solid var(--line-2); box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5); }
 .fd-h { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; border-bottom: 1px solid var(--line); }
 .fd-h > svg { width: 20px; height: 20px; color: var(--accent-hi); flex: none; }
 .fd-h b { font-size: 12.5px; letter-spacing: 0.3px; color: var(--text-hi); }
 .fd-b { padding: 10px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
-.fd-b .p3-row { grid-template-columns: 100px 1fr; }
+.fd-b .p3-row { grid-template-columns: 92px 1fr; }
 .fd-b .p3-row .v { text-align: left; }
 .fd-b .p3-row.edit input, .fd-b .p3-row.edit select { height: 26px; width: 100%; background: var(--field); border: 1px solid var(--line-2); border-radius: var(--r); padding: 0 6px; outline: none; font-family: var(--mono); color: var(--text-hi); }
 .fd-b .p3-row.edit input:focus, .fd-b .p3-row.edit select:focus { border-color: var(--accent); }
@@ -211,7 +217,7 @@
 .fd-check svg { width: 15px; height: 15px; color: var(--text-dim); }
 .fd-check em { color: var(--accent-hi); font-style: normal; font-family: var(--mono); }
 .fd-seg { display: inline-flex; width: 100%; border: 1px solid var(--line-2); border-radius: var(--r); overflow: hidden; background: var(--field); }
-.fd-seg button { flex: 1; height: 26px; border: none; background: none; color: var(--text-dim); font-size: 11px; cursor: pointer; padding: 0 4px; }
+.fd-seg button { flex: 1 1 auto; height: 26px; border: none; background: none; color: var(--text-dim); font-size: 10.5px; cursor: pointer; padding: 0 3px; white-space: nowrap; }
 .fd-seg button + button { border-left: 1px solid var(--line-2); }
 .fd-seg button:hover { color: var(--text-hi); background: var(--bg-3); }
 .fd-seg button.on { color: var(--text-hi); background: var(--accent-soft); box-shadow: inset 0 -2px 0 var(--accent); }

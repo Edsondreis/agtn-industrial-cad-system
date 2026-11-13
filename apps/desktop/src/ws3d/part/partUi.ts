@@ -100,11 +100,13 @@ export interface RegionInfo {
   area: number;
   holes: number;
   isDefault: boolean;
+  /** ponto interno (para o manipulador) */
+  interior: { x: number; y: number };
 }
 export function regionsOf(s: Sketch): { regions: RegionInfo[]; open: number } {
   const p = profiles(s);
   const def = new Set(defaultRegions(p));
-  return { regions: p.regions.map((r) => ({ index: r.index, area: r.area, holes: r.holes.length, isDefault: def.has(r.index) })), open: p.openEnds.length };
+  return { regions: p.regions.map((r) => ({ index: r.index, area: r.area, holes: r.holes.length, isDefault: def.has(r.index), interior: r.interior })), open: p.openEnds.length };
 }
 
 /** Linhas do esboço que servem de eixo (inclui os eixos X/Y do esboço). */

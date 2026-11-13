@@ -1,9 +1,10 @@
 import type { Model3D, NodeId } from "@agtn/model3d";
-import { type AxisRef, type EdgeRef, type FaceRef, type FeatId, type Feature, type FeatureDraft, type FeatureStatus, FEATURE_LABEL, type PlaneRef, type StdPlane, validateFeature } from "@agtn/solid";
+import { type AxisRef, type EdgeRef, type FaceRef, type FeatId, type Feature, type FeatureDraft, type FeatureStatus, type Frame, FEATURE_LABEL, type PlaneRef, type StdPlane, to3d, validateFeature } from "@agtn/solid";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NumField } from "../../ui/fields";
 import { Icon } from "../../ui/Icons";
 import type { Sel } from "../store";
+import type { DragHandle } from "../viewport";
 import { DRAFT_ID, PLANE_LABEL, axisLines, featureIcon, regionsOf, sketchesBefore, solidFeaturesBefore, withDraft } from "./partUi";
 
 export type PickSlot = "edges" | "faces" | "plane" | "dir" | null;
@@ -26,6 +27,9 @@ export interface FeatureDialogProps {
   preview: (features: Feature[]) => Promise<{ status: readonly FeatureStatus[]; ms: number } | null>;
   onOk: (draft: Draft, name: string) => string | null;
   onCancel: () => void;
+  /** plano do esboço no mundo (para o manipulador de profundidade) */
+  frameOf?: (sketch: FeatId) => Frame | null;
+  handle?: (h: DragHandle | null) => void;
 }
 
 const Row = ({ k, children, title }: { k: string; children: React.ReactNode; title?: string }) => (
@@ -122,6 +126,31 @@ export function FeatureDialog(p: FeatureDialogProps) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p.sel, slot]);
+
+  /* ------------------------------------------------ manipulador: seta de profundidade da extrusão */
+  useEffect(() => {
+    if (!p.handle) return;
+    if (d.t !== "extrude" || d.through) return p.handle(null);
+    const fr = p.frameOf?.(d.sketch);
+    const s = sketchById(d.sketch);
+    if (!fr || !s) return p.handle(null);
+    const info = regionsOf(s);
+    const reg = info.regions.find((r) => r.isDefault) ?? info.regions[0];
+    if (!reg) return p.handle(null);
+    const skf = sketches.find((x) => x.id === d.sketch);
+    const intoMaterial = d.op === "cut" && skf?.plane.t === "face";
+    const sign = d.reverse !== intoMaterial ? -1 : 1;
+    p.handle({
+      o: to3d(fr, reg.interior),
+      d: { x: fr.n.x * sign, y: fr.n.y * sign, z: fr.n.z * sign },
+      value: d.depth,
+      scale: d.mode === "symmetric" ? 0.5 : 1,
+      unit: "mm",
+      onChange: (v) => set<"extrude">({ depth: v }),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [d]);
+  useEffect(() => () => p.handle?.(null), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ------------------------------------------------ prévia real (debounced) */
   const errs = validateFeature(d);

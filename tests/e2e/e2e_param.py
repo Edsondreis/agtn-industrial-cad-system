@@ -135,7 +135,29 @@ async def main():
             check("esboço concluído cria Peça com Esboço_1 na árvore", True)
 
             # ---------------- 2. extrusão 20 mm
-            st = await feature(pg, "extrude", {"Profundidade": 20})
+            drag = {}
+
+            async def drag_handle():
+                h = pg.locator(".v3-handle i")
+                await h.wait_for(timeout=5000)
+                bb = await h.bounding_box()
+                x, y = bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2
+                await pg.mouse.move(x, y)
+                await pg.mouse.down()
+                await pg.mouse.move(x, y - 40, steps=6)
+                await pg.mouse.move(x, y - 80, steps=6)
+                await pg.mouse.up()
+                await pg.wait_for_timeout(400)
+                drag["v"] = await pg.locator('.fd .p3-row:has(.k:text-is("Profundidade")) input').input_value()
+                drag["lbl"] = await pg.inner_text(".v3-handle span")
+                await pg.screenshot(path=f"{OUT}/03a_manipulador.png")
+                inp = pg.locator('.fd .p3-row:has(.k:text-is("Profundidade")) input').first
+                await inp.fill("20")
+                await inp.press("Tab")
+
+            st = await feature(pg, "extrude", before_ok=drag_handle)
+            dv = float(drag["v"].replace(",", "."))
+            check("seta de profundidade: arrastar altera o campo e a prévia", dv > 10 and drag["lbl"].startswith(drag["v"]), f"10 → {drag['v']} ({drag['lbl']})")
             v = await wait_vol(pg, 192000)
             check("Extrusão_1: 120×80×20 = 192 000 mm³", v is not None and abs(v - 192000) < 0.5, f"{v} · {st}")
             await pg.keyboard.press("f")

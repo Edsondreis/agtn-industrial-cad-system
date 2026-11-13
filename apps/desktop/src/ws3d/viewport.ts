@@ -2,6 +2,10 @@ import { type Model3D, type NodeId, isShown, subtree } from "@agtn/model3d";
 import {
   AmbientLight,
   Box3,
+  BufferGeometry,
+  Float32BufferAttribute,
+  Line,
+  LineBasicMaterial,
   Color,
   DirectionalLight,
   HemisphereLight,
@@ -46,6 +50,18 @@ const DRAG_PX = 4;
 const EDGE_PX = 6;
 const VERTEX_PX = 9;
 
+/** Manipulador linear (ex.: profundidade da extrusão): seta arrastável ao longo de um eixo. */
+export interface DragHandle {
+  readonly o: { x: number; y: number; z: number };
+  /** direção unitária */
+  readonly d: { x: number; y: number; z: number };
+  readonly value: number;
+  /** distância no mundo = value × scale (simétrica: 0,5) */
+  readonly scale: number;
+  readonly unit: string;
+  onChange(v: number, done: boolean): void;
+}
+
 export interface PickHit {
   readonly sel: Sel | null;
   readonly point: Vector3 | null;
@@ -83,6 +99,7 @@ export class Viewport3D {
   private sketchOv: SketchOverlay | null = null;
   private sketchDrag: string | null = null;
   private preSketch: CamState | null = null;
+  private handle: { spec: DragHandle; line: Line; el: HTMLDivElement; dragging: boolean } | null = null;
   private preview: { body: NodeId; visual: BodyVisual; mode: "replace" | "ghost" } | null = null;
   frameMs = 0;
 
@@ -162,7 +179,8 @@ export class Viewport3D {
   }
   /** Enquadra tudo o que está visível (ou a seleção). */
   fit(selectionOnly = false) {
-    this.animateTo(this.fitted(this.cam, selectionOnly));
+    // durante uma animação de vista, enquadra na orientação de destino (não no meio do caminho)
+    this.animateTo(this.fitted(this.anim?.to ?? this.cam, selectionOnly));
   }
   private fitted(c: CamState, selectionOnly = false): CamState {
     const s = selectionOnly ? this.selectionSphere() : null;
@@ -387,6 +405,99 @@ export class Viewport3D {
     this.ray.setFromCamera(this.ndc(px, py), this.activeCamera());
     const p = ov.project(this.ray.ray);
     return p ? ov.hitTest(p) : null;
+  }
+
+  /* ------------------------------------------------------------------ manipulador */
+
+  /** Mostra/atualiza a seta arrastável (null remove). Durante o arrasto só o valor é atualizado. */
+  setHandle(spec: DragHandle | null) {
+    if (!spec) {
+      if (this.handle) {
+        this.scene.remove(this.handle.line);
+        this.handle.line.geometry.dispose();
+        (this.handle.line.material as LineBasicMaterial).dispose();
+        this.handle.el.remove();
+        this.handle = null;
+        this.dirty = true;
+      }
+      return;
+    }
+    if (!this.handle) {
+      const line = new Line(new BufferGeometry(), new LineBasicMaterial({ color: 0xffc857, depthTest: false, transparent: true }));
+      line.renderOrder = 10;
+      line.raycast = () => undefined;
+      this.scene.add(line);
+      const el = document.createElement("div");
+      el.className = "v3-handle";
+      el.title = "Arraste para alterar (Shift: passo de 0,1)";
+      el.innerHTML = `<i></i><span></span>`;
+      this.overlay.appendChild(el);
+      const h = { spec, line, el, dragging: false };
+      el.addEventListener("pointerdown", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        el.setPointerCapture(e.pointerId);
+        h.dragging = true;
+        el.classList.add("on");
+      });
+      el.addEventListener("pointermove", (e) => {
+        if (!h.dragging) return;
+        const v = this.handleValue(h.spec, this.local(e), e.shiftKey);
+        if (v === null || v === h.spec.value) return;
+        h.spec = { ...h.spec, value: v };
+        this.drawHandle();
+        h.spec.onChange(v, false);
+      });
+      const up = (e: PointerEvent) => {
+        if (!h.dragging) return;
+        h.dragging = false;
+        el.classList.remove("on");
+        if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+        h.spec.onChange(h.spec.value, true);
+      };
+      el.addEventListener("pointerup", up);
+      el.addEventListener("pointercancel", up);
+      this.handle = h;
+    } else if (!this.handle.dragging) this.handle.spec = spec;
+    else this.handle.spec = { ...spec, value: this.handle.spec.value };
+    this.drawHandle();
+  }
+  private drawHandle() {
+    const h = this.handle;
+    if (!h) return;
+    const { o, d, value, scale } = h.spec;
+    const L = value * scale;
+    h.line.geometry.setAttribute("position", new Float32BufferAttribute([o.x, o.y, o.z, o.x + d.x * L, o.y + d.y * L, o.z + d.z * L], 3));
+    h.line.geometry.computeBoundingSphere();
+    (h.el.querySelector("span") as HTMLSpanElement).textContent = `${String(Number(value.toFixed(3))).replace(".", ",")} ${h.spec.unit}`;
+    this.dirty = true;
+  }
+  private placeHandle() {
+    const h = this.handle;
+    if (!h) return;
+    const { o, d, value, scale } = h.spec;
+    const L = value * scale;
+    const tip = new Vector3(o.x + d.x * L, o.y + d.y * L, o.z + d.z * L);
+    const s = this.toScreen(tip);
+    const b = this.toScreen(new Vector3(o.x, o.y, o.z));
+    const ang = Math.atan2(s.y - b.y, s.x - b.x);
+    h.el.style.transform = `translate(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px)`;
+    (h.el.querySelector("i") as HTMLElement).style.transform = `rotate(${ang}rad)`;
+  }
+  /** Valor no eixo mais próximo do raio do cursor (aproximação de duas retas). */
+  private handleValue(spec: DragHandle, p: { x: number; y: number }, fine: boolean): number | null {
+    this.ray.setFromCamera(this.ndc(p.x, p.y), this.activeCamera());
+    const ro = this.ray.ray.origin;
+    const rd = this.ray.ray.direction;
+    const d = new Vector3(spec.d.x, spec.d.y, spec.d.z);
+    const w = new Vector3().subVectors(ro, new Vector3(spec.o.x, spec.o.y, spec.o.z));
+    const b = d.dot(rd);
+    const den = 1 - b * b;
+    if (den < 1e-6) return null; // eixo paralelo à vista
+    const t = (w.dot(d) - w.dot(rd) * b) / den;
+    const step = fine ? 0.1 : 1;
+    const v = Math.round(t / spec.scale / step) * step;
+    return Math.max(step, Number(v.toFixed(3)));
   }
 
   /* ------------------------------------------------------------------ prévia de operação */
@@ -682,6 +793,7 @@ export class Viewport3D {
     this.syncCamera();
     this.renderer.render(this.scene, this.activeCamera());
     this.sketchOv?.place((p) => this.toScreen(p));
+    this.placeHandle();
     for (const m of this.marks) {
       const s = this.toScreen(m.p);
       m.el.style.transform = `translate(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px)`;
@@ -698,6 +810,7 @@ export class Viewport3D {
     this.unsub();
     this.setSketch(null);
     this.setPreview(null, null);
+    this.setHandle(null);
     for (const id of [...this.bodies.keys()]) this.removeBody(id);
     for (const o of this.highlights) disposeOverlay(o);
     this.grid.dispose();
