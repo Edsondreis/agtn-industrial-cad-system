@@ -1,6 +1,20 @@
 # Changelog
 
-## Em desenvolvimento (branch `feature/agtn-3d-ia`, não publicado) — AGTN 3D, fundação
+## Em desenvolvimento (branch `feature/agtn-3d-ia`, não publicado) — AGTN 3D, modelagem paramétrica
+- **Peça paramétrica** com histórico no `.agtncad`: faixa **Modelar** com Esboço, Extrusão, Revolução, Varredura,
+  Loft, Furo (passante, rebaixo, escareado), Arredondar, Chanfro, Casca, Espelhar, Padrão linear/circular e
+  União/Corte/Interseção com outros corpos. Prévia real (OCCT) antes do OK; erro do kernel mostrado no painel.
+- **Esboço** em XY/XZ/YZ (com deslocamento) ou face plana: linha, retângulo, círculo, arco, ponto, aparar,
+  estender, offset (distância exata), construção; restrições (coincidente, H, V, paralela, perpendicular,
+  tangente, concêntrica, igual, ponto médio, fixo) e cotas (comprimento, distância X/Y/alinhada, raio,
+  diâmetro, ângulo, ponto–linha). Estado totalmente/sub/sobredefinido/inconsistente; conflito recusado com
+  o nome das restrições.
+- **Árvore de operações**: editar (duplo clique), recuar até aqui, suprimir, excluir com dependentes, renomear;
+  erros por operação ("Referência perdida: …" quando a face/aresta deixa de existir — nunca troca sozinha).
+- Seta arrastável para a profundidade da extrusão; vista volta à anterior ao sair do esboço.
+- Faixa 3D em abas **Modelar** / **Corpos** (primitivas, montagem, arquivo e vistas).
+
+## Em desenvolvimento — AGTN 3D, fundação
 - Nova área **3D** (aba 3D, Start Center → Modelo 3D, comando `3D`): motor B-Rep **OCCT 8** em WebAssembly num
   Web Worker; o `.wasm` vai como recurso separado do instalador (`occt/occt-wasm.wasm`), fora do `.exe`.
 - Viewport: órbita em torno do ponto clicado, pan (meio/direito), zoom no cursor, enquadrar (F / Shift+F),

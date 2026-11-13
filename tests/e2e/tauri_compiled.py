@@ -24,6 +24,7 @@ try:
     W.until(lambda x: x.find_elements(By.CSS_SELECTOR, ".st3-dot.ready") or x.find_elements(By.CSS_SELECTOR, ".st3-dot.error"))
     st = d.find_element(By.CSS_SELECTOR, ".st3").text.replace("\n", " ")
     check("motor OCCT carregado do recurso do instalador (read_engine + CSP wasm-unsafe-eval + worker)", "pronto em" in st, st[:90])
+    d.find_element(By.CSS_SELECTOR, '[data-tab="corpos"]').click()
     # criar chapa com furo: caixa + cilindro (dois corpos) via diálogo
     for prim, vals, nome in [("box", {"w": 500, "d": 300, "h": 10}, "CHAPA"), ("cylinder", {"r": 20, "h": 200}, "EIXO")]:
         d.find_element(By.CSS_SELECTOR, f'[data-prim="{prim}"]').click()

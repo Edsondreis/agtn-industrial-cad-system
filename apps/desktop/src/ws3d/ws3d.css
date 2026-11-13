@@ -270,7 +270,7 @@
 /* ------------------------------------------------------------ telas estreitas e monitor vertical (PC da CNC) */
 @media (max-width: 1560px) {
   .rb-grp { padding: 0 5px; }
-  .rb-btn { width: 44px; font-size: 10px; }
+  .rb-btn { width: auto; min-width: 44px; padding: 0 3px; font-size: 10px; }
   .rb-btn svg { width: 20px; height: 20px; }
   .rb-seg button, .rb-ibtn { width: 28px; }
   .rb-view { min-width: 38px; padding: 0 4px; }

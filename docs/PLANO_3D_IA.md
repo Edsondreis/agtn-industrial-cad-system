@@ -13,6 +13,13 @@ STEP de montagem), `core/model3d` (árvore, persistência, undo/redo, cache de r
 (`tests/e2e/e2e3d.py`), carga com 38 perfis (`tests/e2e/load3d.py`) e 5/5 no binário Tauri release instalado
 (`tests/e2e/tauri_compiled.py`, Linux/WebKitGTK). Build Windows pelo CI bloqueado por cobrança da conta GitHub.
 
+**FASE 3 concluída (12/11/2026, mesma branch):** esboço paramétrico com solver próprio (`core/sketch`), avaliador
+de operações com referências estáveis (`core/solid/src/part.ts`), árvore de histórico no documento
+(`core/model3d/src/features.ts`) e interface completa (modo esboço, painel de operação com prévia, árvore,
+manipulador). Evidências: 324 testes unitários, `tests/e2e/e2e_param.py` 25/25, `tests/e2e/e2e_param2.py` 22/22,
+regressão `e2e3d.py` 34/34. Detalhes e limitações em `docs/FASE3_RELATORIO.md`. Pendência mantida: validação
+no Windows real.
+
 ---
 
 ## 1. Estado atual (medido, não estimado)
