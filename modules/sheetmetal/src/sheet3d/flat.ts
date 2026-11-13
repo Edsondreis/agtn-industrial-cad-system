@@ -70,8 +70,22 @@ export function flatPattern(s: SheetSolved, extraInvalid: readonly string[] = []
     for (const h of f.holes) holes.push(mapLoop(h.loop, (p) => apply2(f.H, p)));
   }
   for (const b of s.bends) {
-    const r = [b.flatStart[0], b.flatEnd[0], b.flatEnd[1], b.flatStart[1]];
-    pieces.push(polyPiece(b.id, polyArea(r) >= 0 ? r : r.reverse()));
+    if (!b.cut) {
+      const r = [b.flatStart[0], b.flatEnd[0], b.flatEnd[1], b.flatStart[1]];
+      pieces.push(polyPiece(b.id, polyArea(r) >= 0 ? r : r.reverse()));
+      continue;
+    }
+    // recorte atravessando a faixa (2.4): só as fatias de material, no mesmo sistema (u ao longo, s através)
+    const A = b.flatStart[0];
+    const du = mul2(sub2(b.flatStart[1], A), 1 / b.L);
+    const ds = mul2(sub2(b.flatEnd[0], A), 1 / b.BA);
+    const P = (u: number, w: number) => add2(add2(A, mul2(du, u)), mul2(ds, w));
+    b.cut.slabs.forEach((q, i) =>
+      q.mat.forEach((m, j) => {
+        const r = [P(q.u0, m[0]), P(q.u1, m[0]), P(q.u1, m[1]), P(q.u0, m[1])];
+        pieces.push(polyPiece(`${b.id}§${i}.${j}`, polyArea(r) >= 0 ? r : r.reverse()));
+      }),
+    );
   }
   let size = 1;
   for (const p of pieces) for (const q of p.poly) size = Math.max(size, Math.abs(q.x), Math.abs(q.y));
@@ -85,7 +99,8 @@ export function flatPattern(s: SheetSolved, extraInvalid: readonly string[] = []
       if (overlaps(pieces[i], pieces[j], tol)) overlapping.push(`${labelOf(s, pieces[i].id)} × ${labelOf(s, pieces[j].id)}`);
   if (overlapping.length) reasons.push(`Sobreposição na planificação: ${overlapping.join(", ")}.`);
 
-  const loops = overlapping.length ? [] : boundary(pieces, tol);
+  // contorno externo primeiro (maior área, anti-horário); recortes internos que atravessam dobras depois (horários)
+  const loops = overlapping.length ? [] : boundary(pieces, tol).sort((a, b) => edgesArea(b) - edgesArea(a));
   const cut = loops.map((l) => l.map((e) => e.a));
   const cutBulges = loops.map((l) => l.map(edgeBulge));
   const cutArea = loops.reduce((a, l) => a + edgesArea(l), 0);
@@ -123,7 +138,7 @@ export function flatPattern(s: SheetSolved, extraInvalid: readonly string[] = []
   return { state: reasons.length ? "invalida" : "valida", reasons, cut, cutBulges, holes, bends, box, area: s.flatArea, cutLength };
 }
 
-const labelOf = (s: SheetSolved, id: string) => s.flanges.find((f) => f.id === id)?.label ?? `região de ${s.bends.find((b) => b.id === id)?.label ?? id}`;
+const labelOf = (s: SheetSolved, id: string) => s.flanges.find((f) => f.id === id)?.label ?? `região de ${s.bends.find((b) => b.id === id.split("§")[0])?.label ?? id}`;
 
 /* -------------------------------------------------------------------------------------- sobreposição */
 

@@ -122,6 +122,7 @@ const SHEET_OPS: [FeatureKind, string, string, string][] = [
   ["sheetRelief", "sheetRelief3d", "Alívio", "Alívio de dobra nas pontas das faixas que terminam dentro da aresta (retangular, oblongo, lágrima)"],
   ["sheetCorner", "sheetCorner3d", "Canto", "Fechamento de canto entre abas vizinhas: sobreposto, encosto ou esquadria, com folga"],
   ["sheetCut", "sheetCut3d", "Recorte", "Recorte / furo passante numa aba plana (esboço na face)"],
+  ["sheetFlatCut", "sheetCut3d", "Recorte plano", "Recorte desenhado na planificação (plano da base) que pode atravessar dobras: retangular/oblongo alinhado; lados na faixa paralelos ou perpendiculares à dobra"],
 ];
 
 const withSource = (m: Model3D, id: NodeId, source: PartSource): Model3D => ({ ...m, nodes: { ...m.nodes, [id]: { ...(m.nodes[id] as Extract<Model3D["nodes"][string], { kind: "body" }>), source } } });
@@ -542,7 +543,7 @@ export function Workspace3D({ ctl, onInsert }: { ctl: CadController; onInsert?: 
     if (initial.t === "pattern" && opts.circular) initial = { ...initial, kind: "circular", dir: { t: "axis", a: "Z" } };
     if ((kind === "extrude" || kind === "revolve" || kind === "hole") && !sketchesBefore(part.features, at).length) return toast(`${FEATURE_LABEL[kind]}: crie um esboço antes.`, "warn");
     if ((kind === "sweep" || kind === "loft") && sketchesBefore(part.features, at).length < 2) return toast(`${FEATURE_LABEL[kind]} precisa de dois esboços.`, "warn");
-    if ((kind === "sheetBase" || kind === "sheetBendLine" || kind === "sheetCut") && !sketchesBefore(part.features, at).length) return toast(`${FEATURE_LABEL[kind]}: crie um esboço antes.`, "warn");
+    if ((kind === "sheetBase" || kind === "sheetBendLine" || kind === "sheetCut" || kind === "sheetFlatCut") && !sketchesBefore(part.features, at).length) return toast(`${FEATURE_LABEL[kind]}: crie um esboço antes.`, "warn");
     if (kind.startsWith("sheet") && kind !== "sheetBase" && !sheetBaseBefore(part.features, at)) return toast(`${FEATURE_LABEL[kind]}: crie a base de chapa antes.`, "warn");
     prevFilter.current = store.snap.filter === "aresta" || store.snap.filter === "face" ? "auto" : store.snap.filter;
     setFsel(null);

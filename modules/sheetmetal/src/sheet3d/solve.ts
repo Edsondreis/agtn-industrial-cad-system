@@ -49,6 +49,7 @@ import type {
   SolvedHole,
 } from "./model";
 import { dimAbs, numAbs } from "./tolerance";
+import { type FlatCut, applyFlatCuts } from "./flatcut";
 import { edgeSeg, edgesArea, pointInEdges, sweepVia } from "./edges";
 import type { CornerKind, MaterialPosition, ReliefKind, SolvedCorner } from "./model";
 
@@ -137,6 +138,8 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
   const bends = new Map<string, WBend>();
   const order: string[] = []; // ids de dobra em ordem de criação
   /** pedidos de fechamento de canto (ETAPA 2.3), por id «a»+«b»; casados com os cantos detectados na fase 2 */
+  /** recortes na planificação (ETAPA 2.4): aplicados ao grafo resolvido, no fim */
+  const flatCuts: FlatCut[] = [];
   const cornerReq = new Map<string, { op: string; label: string; kind: CornerKind; gap: number; closer: "a" | "b"; a: string; b: string; used: boolean }>();
   flanges.set(base.id, {
     id: base.id,
@@ -303,6 +306,11 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
           list.push(b);
         }
         for (const b of list) b.relief = { op: op.id, label: op.label, kind: op.kind, gap: op.gap, ...(op.width !== undefined ? { width: op.width } : {}), ...(op.depth !== undefined ? { depth: op.depth } : {}) };
+        return;
+      }
+      case "recorte_plano": {
+        if (!op.loops.length) return void err("CUT_EMPTY", `${op.label}: o esboço não tem contorno fechado.`, { op: op.id });
+        loopKeys(op.loops).forEach((key, i) => flatCuts.push({ op: op.id, label: op.label, key, loop: op.loops[i] }));
         return;
       }
       case "canto": {
@@ -791,12 +799,32 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
   const rank = new Map<string, number>([[base.id, -1], ...order.map((id, i) => [id, i] as [string, number])]);
   outF.sort((a, b) => rank.get(a.id)! - rank.get(b.id)!);
   outB.sort((a, b) => rank.get(a.id)! - rank.get(b.id)!);
-  const volume = outF.reduce((v, f) => v + f.area * T, 0) + outB.reduce((v, b) => v + deg(b.deflectionDeg) * T * (b.R + T / 2) * b.L, 0);
-  const flatArea = outF.reduce((v, f) => v + f.area, 0) + outB.reduce((v, b) => v + b.BA * b.L, 0);
-  return { ok: true, issues, T, root: base.id, flanges: outF, bends: outB, volume, flatArea, corners: outC };
+  let FF: readonly SolvedFlange[] = outF;
+  let BB: readonly SolvedBend[] = outB;
+  if (flatCuts.length) {
+    const r = applyFlatCuts(flatCuts, outF, outB, err);
+    if (!r || issues.some((i) => i.level === "error")) return fail();
+    FF = r.flanges;
+    BB = r.bends;
+  }
+  const volume = FF.reduce((v, f) => v + f.area * T, 0) + BB.reduce((v, b) => v + bendVolume(b, T), 0);
+  const flatArea = FF.reduce((v, f) => v + f.area, 0) + BB.reduce((v, b) => v + bendFlatArea(b), 0);
+  return { ok: true, issues, T, root: base.id, flanges: FF, bends: BB, volume, flatArea, corners: outC };
 }
 
 /* ================================================================================================ */
+
+/** Volume da região de dobra: θ·T·(R + T/2)·L; com recorte (2.4), Σ fatias (Δu·Δs / (R + K·T))·T·(R + T/2). */
+export function bendVolume(b: SolvedBend, T: number): number {
+  if (!b.cut) return deg(b.deflectionDeg) * T * (b.R + T / 2) * b.L;
+  const k = (T * (b.R + T / 2)) / (b.R + b.K * T);
+  return b.cut.slabs.reduce((v, q) => v + q.mat.reduce((w, m) => w + (q.u1 - q.u0) * (m[1] - m[0]) * k, 0), 0);
+}
+/** Área planificada da região de dobra: BA·L; com recorte, Σ Δu·Δs das fatias de material. */
+export function bendFlatArea(b: SolvedBend): number {
+  if (!b.cut) return b.BA * b.L;
+  return b.cut.slabs.reduce((v, q) => v + q.mat.reduce((w, m) => w + (q.u1 - q.u0) * (m[1] - m[0]), 0), 0);
+}
 
 /** Chaves dos laços: a chave estável quando existe; repetida ou ausente → posição (ordem estável). */
 function loopKeys(loops: readonly Loop2[]): string[] {

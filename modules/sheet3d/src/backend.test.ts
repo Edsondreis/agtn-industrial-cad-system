@@ -196,4 +196,22 @@ describe("compatibilidade e ambiente", () => {
     const r3 = ev.evaluate("pr", [s, base("SR"), ab, { ...al, suppressed: true }]);
     expect(r3.status[2].warning).toMatch(/sem alívio/);
   });
+  it("recorte na planificação (sheetFlatCut): esboço no plano da base atravessando a dobra → sólido = fórmula", () => {
+    const r0 = rect(100, 50);
+    const s = sk(r0.s, 0, "SF");
+    const cutSk = F("Esboço", { t: "sketch", plane: { t: "std", plane: "XY", offset: 0 }, sketch: addRectangle(emptySketch(), { x: 40, y: -5 }, { x: 60, y: 10 }).s }, "SC");
+    const ab = F("Aba_1", { t: "sheetFlange", edges: [{ flange: "CH", edge: r0.lines[0] }], length: 30, deflectionDeg: 90, R: null, K: null, side: "cima", ref: "externa" }, "AF");
+    const fc = F("RecortePlano_1", { t: "sheetFlatCut", sketch: "SC" }, "FC");
+    const r = ev.evaluate("pfc", [s, base("SF"), ab, cutSk, fc]);
+    expect(states(r)).toEqual(["ok", "ok", "ok", "ok", "ok"]);
+    const sv = st(r).solved;
+    expect(sv.bends[0].cut).toBeDefined();
+    expect(rel(vol(r), sv.volume)).toBeLessThan(1e-9);
+    expect(flatPattern(sv).state).toBe("valida");
+    // oblíquo dentro da faixa → erro explícito no status
+    const obl = F("Esboço", { t: "sketch", plane: { t: "std", plane: "XY", offset: 0 }, sketch: addLine(addLine(addLine(emptySketch(), { x: 40, y: -5 }, { x: 60, y: -5 }).s, { x: 60, y: -5 }, { x: 45, y: 10 }).s, { x: 45, y: 10 }, { x: 40, y: -5 }).s }, "SO");
+    const r2 = ev.evaluate("pfc2", [s, base("SF"), ab, obl, F("RecortePlano_1", { t: "sheetFlatCut", sketch: "SO" }, "FO")]);
+    expect(r2.status[4].state).toBe("error");
+    expect(r2.status[4].error).toMatch(/oblíquo/);
+  });
 });

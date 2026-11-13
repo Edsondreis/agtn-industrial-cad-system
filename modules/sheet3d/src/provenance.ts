@@ -17,6 +17,8 @@ export type Surface = { readonly kind: "plane"; readonly p: V3; readonly n: V3 }
 export const isContactLabel = (label: string, s: SheetSolved): boolean => {
   const [owner, role] = splitLabel(label);
   if (role === "c0" || role === "c1") return s.bends.some((b) => b.id === owner);
+  // fatias de uma região de dobra recortada (2.4): planos u:i encostam na fatia vizinha (contato por construção)
+  if (role.startsWith("u:")) return s.bends.some((b) => b.id === owner && b.cut);
   if (role === "e:raiz") return s.flanges.some((f) => f.id === owner && f.parentBend);
   if (role.startsWith("e:")) {
     const key = role.slice(2);
@@ -36,7 +38,8 @@ export function splitLabel(label: string): [string, string] {
 export function expectedSurface(s: SheetSolved, label: string): Surface | null {
   const [owner, role] = splitLabel(label);
   // a dobra tem o mesmo id da aba-filha: o papel decide (A/B/e:/h: = aba; int/ext/c0/c1/l0/l1 = dobra)
-  const f = BEND_ROLES.has(role) ? undefined : s.flanges.find((x) => x.id === owner);
+  const bendRole = BEND_ROLES.has(role) || role.startsWith("u:") || role.startsWith("s:");
+  const f = bendRole ? undefined : s.flanges.find((x) => x.id === owner);
   const T = s.T;
   if (f) {
     const P = (x: number, y: number, z: number) => M.apply(f.G, M.v3(x, y, z));
@@ -64,13 +67,27 @@ export function expectedSurface(s: SheetSolved, label: string): Surface | null {
     }
     return null;
   }
-  const b = BEND_ROLES.has(role) ? s.bends.find((x) => x.id === owner) : undefined;
+  const b = bendRole ? s.bends.find((x) => x.id === owner) : undefined;
   if (!b) return null;
   const parent = s.flanges.find((x) => x.id === b.parent)!;
   const child = s.flanges.find((x) => x.id === b.child)!;
   const [A, B] = b.tangent;
   const d = M.unit2(M.sub2(B, A));
   const PP = (p: { x: number; y: number }, z = 0) => M.apply(parent.G, M.v3(p.x, p.y, z));
+  if (role.startsWith("u:") || role.startsWith("s:")) {
+    const i = Number(role.slice(2));
+    if (!b.cut || !Number.isInteger(i)) return null;
+    if (role[0] === "u") {
+      const u = b.cut.us[i];
+      if (u === undefined) return null;
+      return { kind: "plane", p: PP({ x: A.x + d.x * u, y: A.y + d.y * u }), n: M.applyDir(parent.G, M.v3(d.x, d.y, 0)) };
+    }
+    const w = b.cut.ss[i];
+    if (w === undefined) return null;
+    // plano radial em φ = s / (R + K·T): o plano de c0 girado em torno do eixo
+    const rot = M.rotation(b.axis.p, b.axis.dir, w / (b.R + b.K * T));
+    return { kind: "plane", p: b.axis.p, n: M.applyDir(rot, M.applyDir(parent.G, M.v3(d.y, -d.x, 0))) };
+  }
   switch (role) {
     case "int":
       return { kind: "cyl", p: b.axis.p, axis: b.axis.dir, r: b.R };

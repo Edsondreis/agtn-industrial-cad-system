@@ -181,7 +181,14 @@ export type SheetOp =
       readonly relief?: CornerRelief;
     }
   /** Recorte / furo passante numa aba plana (laços no sistema local da aba). */
-  | { readonly t: "recorte"; readonly id: string; readonly label: string; readonly flange: string; readonly loops: readonly Loop2[] };
+  | { readonly t: "recorte"; readonly id: string; readonly label: string; readonly flange: string; readonly loops: readonly Loop2[] }
+  /**
+   * Recorte na planificação (ETAPA 2.4): laços no sistema da planificação (= local da base) que podem atravessar
+   * faixas de dobra. Dentro de cada faixa só lados paralelos ou perpendiculares à linha de dobra (no 3D: setor
+   * [φ0, φ1] × [u0, u1] pela fibra neutra, φ = s / (R + K·T)); arcos e círculos dentro da faixa: bloqueados.
+   * O laço fica dentro do contorno da planificação (não toca a borda externa).
+   */
+  | { readonly t: "recorte_plano"; readonly id: string; readonly label: string; readonly loops: readonly Loop2[] };
 
 export interface SheetSpec {
   readonly base: SheetBaseSpec;
@@ -261,6 +268,11 @@ export interface SolvedBend {
   readonly delta: number;
   /** alívios aplicados (ETAPA 2.1b): tipo, largura e profundidade efetivas e as pontas aliviadas */
   readonly relief?: { readonly op: string; readonly kind: ReliefKind; readonly w: number; readonly d: number; readonly ends: readonly ("inicio" | "fim")[] };
+  /**
+   * recortes que atravessam a faixa (ETAPA 2.4): coordenadas u (ao longo da tangência, de A) e s (na planificação,
+   * de 0 na pai a BA na filha) e as faixas de material que sobram em cada intervalo de u
+   */
+  readonly cut?: { readonly ops: readonly string[]; readonly us: readonly number[]; readonly ss: readonly number[]; readonly slabs: readonly { readonly u0: number; readonly u1: number; readonly mat: readonly (readonly [number, number])[] }[] };
   /** planificação (sistema da base): início, linha (centro) e fim da região de dobra */
   readonly flatStart: readonly [V2, V2];
   readonly flatLine: readonly [V2, V2];

@@ -1,5 +1,5 @@
 export * from "./model";
-export { solveSheet, setbackFor, trimOutline, trimOutlinePieces, loopArea, contourProfile, type ContourSegment, type EdgePiece, type ReliefDims } from "./solve";
+export { solveSheet, bendVolume, bendFlatArea, setbackFor, trimOutline, trimOutlinePieces, loopArea, contourProfile, type ContourSegment, type EdgePiece, type ReliefDims } from "./solve";
 export { TOL, numAbs, dimAbs, interfVol, interfArea } from "./tolerance";
 export * as sheetMath from "./math";
 export type { V2 as SheetV2, V3 as SheetV3, Mat as SheetMat } from "./math";

@@ -536,6 +536,7 @@ export class PartEvaluator {
       case "sheetCut":
       case "sheetRelief":
       case "sheetCorner":
+      case "sheetFlatCut":
         return this.runSheet(f, c);
       case "combine": {
         const base = this.need(c.input, "combinar");

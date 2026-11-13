@@ -136,7 +136,8 @@ function buildWith(k: OcctKernel, s: SheetSolved, T: Reg, UB: number, tamper?: B
   const visit = (f: SolvedFlange) => {
     pieces.push(prism(f));
     for (const b of childBends(f.id)) {
-      pieces.push(sector(b));
+      if (b.cut) pieces.push(...sectors(b));
+      else pieces.push(sector(b));
       visit(flangeById.get(b.child)!);
     }
   };
@@ -187,6 +188,42 @@ function buildWith(k: OcctKernel, s: SheetSolved, T: Reg, UB: number, tamper?: B
     const evo = k.extrudeWithHistory(face, z.x, z.y, z.z, [k.hashCode(face, UB), ...eh], UB);
     const shape = T(evo.result);
     return finish(f.id, f.label, "aba", shape, labelsFrom(shape, evo, eh, built, `${f.id}/A`, `${f.id}/B`, f.label));
+  }
+  /**
+   * Região de dobra com recorte (ETAPA 2.4): uma revolução PARCIAL por fatia de material [u0, u1] × [s0, s1] da
+   * planificação, de φ0 = s0 / (R + K·T) a φ1 = s1 / (R + K·T) (fibra neutra). Faces novas: u:i (plano normal ao
+   * eixo em u_i, contato entre fatias ou parede do recorte) e s:j (plano radial em φ_j, parede do recorte).
+   */
+  function sectors(b: SolvedBend): Piece[] {
+    const cut = b.cut!;
+    const pf = flangeById.get(b.parent)!;
+    const [A, B] = b.tangent;
+    const d = M.unit2(M.sub2(B, A));
+    const up = b.side === "cima";
+    const z0 = `${b.id}/${up ? "ext" : "int"}`;
+    const zT = `${b.id}/${up ? "int" : "ext"}`;
+    const rho = b.R + b.K * s.T;
+    const near = (x: number, y: number) => Math.abs(x - y) <= 1e-12 * Math.max(1, Math.abs(y));
+    const uLab = (u: number, end: boolean) => (near(u, 0) && !end ? `${b.id}/l0` : near(u, b.L) && end ? `${b.id}/l1` : `${b.id}/u:${cut.us.findIndex((x) => near(x, u))}`);
+    const sLab = (w: number) => (near(w, 0) ? `${b.id}/c0` : near(w, b.BA) ? `${b.id}/c1` : `${b.id}/s:${cut.ss.findIndex((x) => near(x, w))}`);
+    const out: Piece[] = [];
+    cut.slabs.forEach((q, i) =>
+      q.mat.forEach(([s0, s1], j) => {
+        const rot = M.rotation(b.axis.p, b.axis.dir, s0 / rho);
+        const W = (u: number, z: number) => M.apply(rot, M.apply(pf.G, M.v3(A.x + d.x * u, A.y + d.y * u, z)));
+        const pts = [W(q.u0, 0), W(q.u1, 0), W(q.u1, s.T), W(q.u0, s.T)];
+        const labels = [z0, uLab(q.u1, true), zT, uLab(q.u0, false)];
+        const built: Built[] = pts.map((p, k2) => ({ label: labels[k2], ends: [p, pts[(k2 + 1) % 4]] }));
+        const face = T(k.makeFace(T(k.makeWire(pts.map((p, k2) => T(k.makeLineEdge(p, pts[(k2 + 1) % 4])))))));
+        const what = `${b.label} (fatia ${i + 1}.${j + 1})`;
+        const fe = faceEdgeLabels(face, built, what);
+        const eh = hashes(fe);
+        const evo = k.revolveWithHistory(face, { point: b.axis.p, direction: b.axis.dir }, (s1 - s0) / rho, [k.hashCode(face, UB), ...eh], UB);
+        const shape = T(evo.result);
+        out.push(finish(`${pid(b)}§${i}.${j}`, what, "dobra", shape, labelsFrom(shape, evo, eh, built, sLab(s0), sLab(s1), what)));
+      }),
+    );
+    return out;
   }
   function sector(b: SolvedBend): Piece {
     const pf = flangeById.get(b.parent)!;
@@ -240,7 +277,10 @@ function buildWith(k: OcctKernel, s: SheetSolved, T: Reg, UB: number, tamper?: B
     for (let j = i + 1; j < pieces.length; j++) {
       const p = pieces[i];
       const q = pieces[j];
-      if (neighbor.has(pair(p.id, q.id)) || !boxesTouch(p, q)) continue;
+      // fatias da mesma região de dobra (recorte 2.4) contam como a própria região
+      const bp = p.id.split("§")[0];
+      const bq = q.id.split("§")[0];
+      if (bp === bq || neighbor.has(pair(bp, bq)) || !boxesTouch(p, q)) continue;
       let v = 0;
       try {
         v = k.getVolume(T(k.common(p.shape, q.shape)));
@@ -248,7 +288,7 @@ function buildWith(k: OcctKernel, s: SheetSolved, T: Reg, UB: number, tamper?: B
         v = 0; // sem volume comum calculável: a conferência global de volume decide
       }
       if (v > interfVol(Math.min(p.vol, q.vol))) interf.push(`${p.kind === "dobra" ? "dobra " : ""}${p.label} × ${q.kind === "dobra" ? "dobra " : ""}${q.label}: ${fmt(v, 3)} mm³`);
-      else if (!sibling.has(pair(p.id, q.id)) && k.distanceBetween(p.shape, q.shape) <= TOL.contactDist) warnings.push(`Contato (sem sobreposição) entre ${p.label} e ${q.label}.`);
+      else if (!sibling.has(pair(bp, bq)) && k.distanceBetween(p.shape, q.shape) <= TOL.contactDist) warnings.push(`Contato (sem sobreposição) entre ${p.label} e ${q.label}.`);
     }
   if (interf.length) throw new SolidError("INVALID_PARAMS", `Interferência entre abas/dobras: ${interf.join("; ")}.`);
   const tChecks = performance.now();

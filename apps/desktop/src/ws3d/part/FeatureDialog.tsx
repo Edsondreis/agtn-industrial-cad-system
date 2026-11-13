@@ -398,6 +398,16 @@ export function FeatureDialog(p: FeatureDialogProps) {
         return <ReliefFields d={d} set={(x) => set<"sheetRelief">(x)} bends={p.sheet?.flat.bends ?? []} />;
       case "sheetCorner":
         return <CornerFields d={d} set={(x) => set<"sheetCorner">(x)} corners={p.sheet?.corners ?? []} />;
+      case "sheetFlatCut":
+        return (
+          <>
+            {sketchSelect(d.sketch, (v) => set<"sheetFlatCut">({ sketch: v }))}
+            <div className="fd-note">
+              Esboço no plano da base (veja em Planificado). O recorte pode atravessar dobras: dentro de cada faixa só lados paralelos ou perpendiculares à linha de dobra — no 3D o
+              corte segue a fibra neutra (φ = s / (R + K·T)), exato. Círculo ou arco dentro da faixa: bloqueado. Não pode tocar o contorno externo.
+            </div>
+          </>
+        );
       case "sheetCut":
         return (
           <>

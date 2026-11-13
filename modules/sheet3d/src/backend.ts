@@ -157,6 +157,16 @@ function opOf(f: Exclude<SheetFeature, { t: "sheetBase" }>, st: SheetState, ctx:
         ...(f.width !== null ? { width: f.width } : {}),
         ...(f.depth !== null ? { depth: f.depth } : {}),
       };
+    case "sheetFlatCut": {
+      // sistema da planificação = local da base
+      const { frame, sketch } = ctx.sketch(f.sketch);
+      const m = onFlange(st, st.solved.root, frame, f.name);
+      const p = profiles(sketch);
+      const outers = p.regions.filter((r) => r.depth === 0);
+      if (!outers.length) throw new SolidError("INVALID_PARAMS", `${f.name}: o esboço não tem contorno fechado.`);
+      if (outers.some((r) => r.holes.length)) throw new SolidError("INVALID_PARAMS", `${f.name}: recorte com ilha interna não é suportado.`);
+      return { t: "recorte_plano", id: f.id, label: f.name, loops: outers.map((r) => loopOf(r.outer.segs, m.map, m.sign)) };
+    }
     case "sheetCorner":
       return { t: "canto", id: f.id, label: f.name, corners: f.corners, kind: f.kind, gap: f.gap, closer: f.closer, relief: f.relief };
     case "sheetCut": {
