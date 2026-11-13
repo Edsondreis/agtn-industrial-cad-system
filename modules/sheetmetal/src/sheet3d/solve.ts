@@ -84,7 +84,11 @@ interface WBend {
   ref: SheetRef;
   /** dobra por linha: largura de molde da parte móvel na raiz (conferida na fase 2) */
   lineRaiz?: { x0: number; x1: number };
+  /** faixa parcial (ETAPA 2.1a): recuos na aresta de molde da pai; ausente = aresta inteira */
+  o0?: number;
+  o1?: number;
 }
+const isPartial = (b: WBend) => b.o0 !== undefined;
 
 const ABA_EDGES = ["raiz", "lado1", "ponta", "lado0"] as const;
 const fmt = (v: number, p = 3) => v.toFixed(p).replace(".", ",");
@@ -132,11 +136,13 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
   });
 
   const edgeKeys = (f: WFlange): string[] => (f.shape.kind === "aba" ? [...ABA_EDGES] : f.shape.outline.map((e) => e.key));
-  const bentAt = (fid: string, key: string): WBend | undefined => {
-    for (const b of bends.values()) if (b.parent === fid && b.edge === key) return b;
+  /** dobras numa aresta (várias só com faixas parciais, sem sobreposição) */
+  const bendsAt = (fid: string, key: string): WBend[] => {
+    const out: WBend[] = [];
+    for (const b of bends.values()) if (b.parent === fid && b.edge === key) out.push(b);
     const f = flanges.get(fid);
-    if (f?.parentBend && key === "raiz") return bends.get(f.parentBend);
-    return undefined;
+    if (f?.parentBend && key === "raiz") out.push(bends.get(f.parentBend)!);
+    return out;
   };
 
   const bendParams = (p: SheetBendParams, label: string, op: string): { theta: number; R: number; K: number; kSource: ValueSource } | null => {
@@ -161,7 +167,7 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
   };
 
   /** confere que a aresta existe, não é a raiz e está livre */
-  const checkEdge = (ref: EdgeRef, op: string, what: string): WFlange | null => {
+  const checkEdge = (ref: EdgeRef, op: string, what: string, partial = false): WFlange | null => {
     const f = flanges.get(ref.flange);
     if (!f) {
       err("REF_LOST", `${what}: referência perdida — a aba ${ref.flange} não existe mais.`, { op, flanges: [ref.flange] });
@@ -175,7 +181,7 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
       err("EDGE_ROOT", `${what}: a aresta escolhida é a ligação da ${f.label} com a aba-pai.`, { op, flanges: [f.id] });
       return null;
     }
-    const used = bentAt(f.id, ref.edge);
+    const used = bendsAt(f.id, ref.edge).find((b) => !partial || !isPartial(b));
     if (used) {
       err("EDGE_USED", `${what}: a aresta ${ref.edge} da ${f.label} já tem a dobra ${used.label}.`, { op, flanges: [f.id], bends: [used.id] });
       return null;
@@ -183,9 +189,9 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
     return f;
   };
 
-  const addChild = (parent: WFlange, edge: string, id: string, label: string, op: string, kind: WBend["kind"], length: number, bp: NonNullable<ReturnType<typeof bendParams>>, side: BendSide, ref: SheetRef) => {
+  const addChild = (parent: WFlange, edge: string, id: string, label: string, op: string, kind: WBend["kind"], length: number, bp: NonNullable<ReturnType<typeof bendParams>>, side: BendSide, ref: SheetRef, span?: { o0: number; o1: number }) => {
     flanges.set(id, { id, label, op, shape: { kind: "aba", length }, holes: [], parentBend: id });
-    bends.set(id, { id, label, op, kind, parent: parent.id, edge, child: id, ...bp, side, ref });
+    bends.set(id, { id, label, op, kind, parent: parent.id, edge, child: id, ...bp, side, ref, ...(span ? span : {}) });
     order.push(id);
   };
 
@@ -198,20 +204,24 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
         if (!(op.length > 0) || !Number.isFinite(op.length)) return void err("FLANGE_LEN", `${op.label}: comprimento deve ser maior que zero.`, { op: op.id });
         const bp = bendParams(op.bend, op.label, op.id);
         if (!bp) return;
+        const o0 = op.offsetStart ?? 0;
+        const o1 = op.offsetEnd ?? 0;
+        if (!(o0 >= 0) || !(o1 >= 0) || !Number.isFinite(o0) || !Number.isFinite(o1)) return void err("OFFSET", `${op.label}: recuos devem ser ≥ 0.`, { op: op.id });
+        const partial = o0 > 0 || o1 > 0;
         const seen = new Set<string>();
         const parents: WFlange[] = [];
         for (const e of op.edges) {
           const k = `${e.flange}/${e.edge}`;
           if (seen.has(k)) return void err("EDGE_DUP", `${op.label}: a aresta ${e.edge} foi escolhida duas vezes.`, { op: op.id });
           seen.add(k);
-          const f = checkEdge(e, op.id, op.label);
+          const f = checkEdge(e, op.id, op.label, partial);
           if (!f) return;
           parents.push(f);
         }
         if (nErr() > before) return;
         op.edges.forEach((e, i) => {
           const id = `${op.id}@${e.flange}/${e.idKey ?? e.edge}`;
-          addChild(parents[i], e.edge, id, op.edges.length > 1 ? `${op.label}.${i + 1}` : op.label, op.id, "aba", op.length, bp, op.side, op.ref);
+          addChild(parents[i], e.edge, id, op.edges.length > 1 ? `${op.label}.${i + 1}` : op.label, op.id, "aba", op.length, bp, op.side, op.ref, partial ? { o0, o1 } : undefined);
         });
         return;
       }
@@ -298,7 +308,7 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
       const de = unit2(sub2(e.b, e.a));
       if (Math.abs(dot2(de, u)) > 1e-9)
         return void err("LINE_OBLIQUE", `${op.label}: a aresta ${e.key} cruza a região de dobra em ângulo — na ETAPA 1 só arestas perpendiculares à linha de dobra.`, { op: op.id, flanges: [f.id] });
-      const used = bentAt(f.id, e.key);
+      const used = bendsAt(f.id, e.key)[0];
       if (used)
         return void err("LINE_BENT_EDGE", `${op.label}: a linha cruza a aresta ${e.key}, que já tem a dobra ${used.label}.`, { op: op.id, flanges: [f.id], bends: [used.id] });
     }
@@ -354,6 +364,7 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
   /* ------------------------------------------------------------------------------- fase 2: geometria */
   const outF: SolvedFlange[] = [];
   const outB: SolvedBend[] = [];
+  const reliefOf = (_bend: string): boolean => false;
   const childrenOf = (fid: string) => order.map((id) => bends.get(id)!).filter((b) => b.parent === fid);
   const pl = base.plane;
   const z0 = base.side === "baixo" ? -T : 0;
@@ -361,14 +372,43 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
 
   const visit = (fid: string, G: Mat, H: Mat, outline: OutlineEdge[]): boolean => {
     const f = flanges.get(fid)!;
-    const off = (key: string): number => {
-      const b = bentAt(fid, key);
-      return b ? setbackFor(b.ref, b.theta, b.R, T) : 0;
+    const sbOf = (b: WBend) => setbackFor(b.ref, b.theta, b.R, T);
+    // trechos de cada aresta: livre (recuo 0) ou faixa de uma dobra (recuo SB); faixas parciais em ordem
+    let overlapErr = false;
+    const pieces = (e: OutlineEdge): EdgePiece[] => {
+      const L = len2(sub2(e.b, e.a));
+      const bs = bendsAt(fid, e.key);
+      if (!bs.length) return [{ t0: 0, t1: L, off: 0, key: e.key }];
+      // a raiz da filha é sempre a faixa inteira (a largura da filha já é a da faixa)
+      const full = e.key === "raiz" && f.parentBend ? bends.get(f.parentBend)! : bs.find((b) => !isPartial(b));
+      if (full) return [{ t0: 0, t1: L, off: sbOf(full), key: e.key, bend: full.id }];
+      const spans = bs.map((b) => ({ b, t0: b.o0!, t1: L - b.o1! })).sort((p, q) => p.t0 - q.t0);
+      const out: EdgePiece[] = [];
+      let t = 0;
+      spans.forEach((sp, n) => {
+        if (sp.t1 - sp.t0 <= dimAbs(L)) {
+          err("SPAN_SHORT", `${sp.b.label}: os recuos (${fmt(sp.b.o0!)} + ${fmt(sp.b.o1!)} mm) não deixam faixa de dobra na aresta ${e.key} (${fmt(L)} mm).`, { op: sp.b.op, bends: [sp.b.id] });
+          overlapErr = true;
+          return;
+        }
+        if (sp.t0 < t - dimAbs(L)) {
+          err("SPAN_OVERLAP", `${sp.b.label}: a faixa de dobra se sobrepõe a outra dobra na aresta ${e.key}.`, { op: sp.b.op, bends: [sp.b.id] });
+          overlapErr = true;
+          return;
+        }
+        if (sp.t0 > t + dimAbs(L)) out.push({ t0: t, t1: sp.t0, off: 0, key: e.key });
+        out.push({ t0: sp.t0, t1: sp.t1, off: sbOf(sp.b), key: `${e.key}^${n + 1}`, bend: sp.b.id });
+        t = sp.t1;
+      });
+      if (t < L - dimAbs(L)) out.push({ t0: t, t1: L, off: 0, key: e.key });
+      return out;
     };
-    const flat = trimOutline(outline, off);
+    const flat = trimOutlinePieces(outline, pieces);
+    if (overlapErr) return false;
     if (!flat.ok) {
       const pb = f.parentBend ? bends.get(f.parentBend) : undefined;
-      const need = off("raiz") + off("ponta");
+      const sbAt = (k: string) => Math.max(0, ...bendsAt(fid, k).map(sbOf));
+      const need = sbAt("raiz") + sbAt("ponta");
       if (f.shape.kind === "aba" && pb && f.shape.length <= need + numAbs(need)) {
         err(
           "FLANGE_SHORT",
@@ -376,9 +416,11 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
           { op: f.op, flanges: [f.id] },
         );
       } else
-        err("FLANGE_SMALL", `${f.label}: a aresta ${flat.edge} some com os recuos das dobras vizinhas — a aba/base é pequena demais para os raios.`, { op: f.op, flanges: [f.id] });
+        err("FLANGE_SMALL", `${f.label}: a aresta ${flat.edge} some com os recuos das dobras vizinhas — a aba/base é pequena demais para os raios ou os recuos das faixas.`, { op: f.op, flanges: [f.id] });
       return false;
     }
+    // faixa que termina dentro da aresta: sem alívio, o material da pai encosta na dobra (risco de rasgo)
+    for (const b of childrenOf(fid)) if (isPartial(b) && !reliefOf(b.id)) warn("NO_RELIEF", `${b.label}: a dobra termina dentro da aresta — sem alívio de dobra há risco de rasgo no canto.`, { op: b.op, bends: [b.id] });
     const size = Math.max(1, ...flat.edges.map((e) => Math.max(Math.abs(e.a.x), Math.abs(e.a.y))));
     const tol = dimAbs(size);
     // furos dentro da região plana (sem tocar a borda nem a região de dobra)
@@ -402,7 +444,7 @@ export function solveSheet(spec: SheetSpec): SheetSolved {
     outF.push({ id: f.id, label: f.label, op: f.op, outline, flat: flat.edges, holes: f.holes, G, H, parentBend: f.parentBend, area });
 
     for (const b of childrenOf(fid)) {
-      const fe = flat.edges.find((e) => e.key === b.edge)!;
+      const fe = flat.edges.find((e) => e.bend === b.id)!;
       const A = fe.a;
       const B = fe.b;
       const Lb = len2(sub2(B, A));
@@ -500,6 +542,75 @@ function loopKeys(loops: readonly Loop2[]): string[] {
     seen.set(k, n);
     return n > 1 ? `${k}~${n}` : k;
   });
+}
+
+export interface EdgePiece {
+  /** trecho da aresta de molde [t0, t1] a partir de a */
+  t0: number;
+  t1: number;
+  /** recuo para dentro (SB da dobra; 0 = livre) */
+  off: number;
+  key: string;
+  bend?: string;
+}
+
+/**
+ * Região plana com faixas parciais (ETAPA 2.1a): cada aresta de molde é dividida em trechos com recuo próprio
+ * (livre = 0; faixa de dobra = SB). Retas deslocadas consecutivas se cruzam (vértice); paralelas com recuos
+ * diferentes ganham um DEGRAU perpendicular na fronteira do trecho (onde a dobra começa/termina dentro da
+ * aresta). Chaves: trecho livre = aresta; faixa n = «aresta»^n; degraus = «aresta»^n:p0 (entra) / :p1 (sai) ou
+ * «aresta A»>«aresta B» entre arestas colineares.
+ */
+export function trimOutlinePieces(outline: readonly OutlineEdge[], piecesOf: (e: OutlineEdge) => EdgePiece[]): { ok: true; edges: OutlineEdge[] } | { ok: false; edge: string } {
+  type Ln = { p: V2; d: V2; n: V2; off: number; key: string; bend?: string; m0: V2; m1: V2; edge: string };
+  const lines: Ln[] = [];
+  for (const e of outline) {
+    const d = unit2(sub2(e.b, e.a));
+    const n = right2(d);
+    for (const pc of piecesOf(e)) {
+      const m0 = add2(e.a, mul2(d, pc.t0));
+      const m1 = add2(e.a, mul2(d, pc.t1));
+      lines.push({ p: sub2(m0, mul2(n, pc.off)), d, n, off: pc.off, key: pc.key, ...(pc.bend ? { bend: pc.bend } : {}), m0, m1, edge: e.key });
+    }
+  }
+  const N = lines.length;
+  // vértices entre a reta j e a j+1 (1 ponto, ou 2 com o degrau)
+  const joints: { pts: V2[]; stepKey?: string }[] = [];
+  for (let j = 0; j < N; j++) {
+    const L0 = lines[j];
+    const L1 = lines[(j + 1) % N];
+    const x = lineX(L0.p, L0.d, L1.p, L1.d);
+    if (x) {
+      joints.push({ pts: [x] });
+      continue;
+    }
+    if (dot2(L0.d, L1.d) <= 0) return { ok: false, edge: L1.edge };
+    if (Math.abs(L0.off - L1.off) < 1e-12) {
+      joints.push({ pts: [sub2(L0.m1, mul2(L0.n, L0.off))] });
+      continue;
+    }
+    const sameEdge = L0.edge === L1.edge;
+    const stepKey = sameEdge ? (L1.bend ? `${L1.key}:p0` : `${L0.key}:p1`) : `${L0.edge}>${L1.edge}`;
+    joints.push({ pts: [sub2(L0.m1, mul2(L0.n, L0.off)), sub2(L1.m0, mul2(L1.n, L1.off))], stepKey });
+  }
+  const edges: OutlineEdge[] = [];
+  for (let j = 0; j < N; j++) {
+    const prev = joints[(j + N - 1) % N];
+    const next = joints[j];
+    const Lj = lines[j];
+    const a = prev.pts[prev.pts.length - 1];
+    const b = next.pts[0];
+    const de = sub2(b, a);
+    if (!(dot2(de, Lj.d) > 0) || len2(de) <= 1e-9 * Math.max(1, len2(sub2(Lj.m1, Lj.m0)))) return { ok: false, edge: Lj.edge };
+    edges.push({ key: Lj.key, a, b, ...(Lj.bend ? { bend: Lj.bend } : {}) });
+    if (next.pts.length === 2) {
+      if (len2(sub2(next.pts[1], next.pts[0])) <= 1e-12) return { ok: false, edge: Lj.edge };
+      edges.push({ key: next.stepKey!, a: next.pts[0], b: next.pts[1] });
+    }
+  }
+  const segs: Seg[] = edges.map((e) => lineSeg(e.a, e.b));
+  if (selfIntersections(segs, true, 1e-9).length) return { ok: false, edge: outline[0].key };
+  return { ok: true, edges };
 }
 
 /** Contorno recuado: cada aresta desloca `off(key)` para dentro; vértices = interseção das retas deslocadas. */

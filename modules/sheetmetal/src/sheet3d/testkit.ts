@@ -25,13 +25,14 @@ export function rectBase(A: number, B: number, d: Partial<SheetDefaults> = {}, s
   };
 }
 
-export function aba(id: string, edges: [string, string][], length: number, deflectionDeg: number, o: { side?: BendSide; ref?: SheetRef; R?: number; K?: number } = {}): SheetOp {
+export function aba(id: string, edges: [string, string][], length: number, deflectionDeg: number, o: { side?: BendSide; ref?: SheetRef; R?: number; K?: number; o0?: number; o1?: number } = {}): SheetOp {
   return {
     t: "aba",
     id,
     label: id,
     edges: edges.map(([flange, edge]) => ({ flange, edge })),
     length,
+    ...(o.o0 !== undefined || o.o1 !== undefined ? { offsetStart: o.o0 ?? 0, offsetEnd: o.o1 ?? 0 } : {}),
     bend: { deflectionDeg, ...(o.R !== undefined ? { R: o.R } : {}), ...(o.K !== undefined ? { K: o.K } : {}) },
     side: o.side ?? "cima",
     ref: o.ref ?? "externa",

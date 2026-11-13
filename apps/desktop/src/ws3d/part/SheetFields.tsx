@@ -136,6 +136,13 @@ export function FlangeFields({ d, set }: { d: Of<"sheetFlange">; set: (p: Partia
       <AngleField theta={d.deflectionDeg} set={(v) => set({ deflectionDeg: v })} />
       <SideRef side={d.side} refm={d.ref} set={(p) => set(p)} />
       <RKFields R={d.R} K={d.K} set={(p) => set(p as Partial<Of<"sheetFlange">>)} />
+      <Row k="Recuo início" title="Distância do início da aresta (canto de molde) até onde a dobra começa. 0 = aresta inteira.">
+        <Unit v={d.offsetStart ?? 0} set={(v) => set({ offsetStart: v })} min={0} field="offsetStart" />
+      </Row>
+      <Row k="Recuo fim" title="Distância do fim da aresta até onde a dobra termina. 0 = aresta inteira.">
+        <Unit v={d.offsetEnd ?? 0} set={(v) => set({ offsetEnd: v })} min={0} field="offsetEnd" />
+      </Row>
+      {(d.offsetStart ?? 0) + (d.offsetEnd ?? 0) > 0 && <div className="fd-note">Dobra parcial: sem alívio de dobra há risco de rasgo nas pontas da faixa.</div>}
     </>
   );
 }

@@ -20,6 +20,8 @@ export const isContactLabel = (label: string, s: SheetSolved): boolean => {
   if (role === "e:raiz") return s.flanges.some((f) => f.id === owner && f.parentBend);
   if (role.startsWith("e:")) {
     const key = role.slice(2);
+    // faixa parcial (k^n) e degraus (k^n:p0/p1, A>B): encostam na dobra por construção
+    if (key.includes("^") || key.includes(">")) return s.flanges.some((f) => f.id === owner);
     return s.bends.some((b) => b.parent === owner && b.edge === key);
   }
   return false;

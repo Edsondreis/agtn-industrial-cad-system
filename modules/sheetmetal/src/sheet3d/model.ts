@@ -58,6 +58,8 @@ export interface OutlineEdge {
   readonly key: string;
   readonly a: V2;
   readonly b: V2;
+  /** região plana: trecho da linha de tangência desta dobra (faixa parcial da ETAPA 2) */
+  readonly bend?: string;
 }
 
 export interface EdgeRef {
@@ -97,6 +99,12 @@ export type SheetOp =
       readonly edges: readonly EdgeRef[];
       /** comprimento da aba até o vértice virtual (na referência `ref`) */
       readonly length: number;
+      /**
+       * Recuos (ETAPA 2.1a), mm, medidos na aresta de molde da pai a partir do início (a) e do fim (b): a faixa de
+       * dobra vai de `offsetStart` a L − `offsetEnd`. Ausentes/zero = aresta inteira (canto a canto, ETAPA 1).
+       */
+      readonly offsetStart?: number;
+      readonly offsetEnd?: number;
       readonly bend: SheetBendParams;
       readonly side: BendSide;
       readonly ref: SheetRef;

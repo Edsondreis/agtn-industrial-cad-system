@@ -106,7 +106,7 @@ function bendOf(st: SheetState, deflectionDeg: number, R: number | null, K: numb
 function opOf(f: Exclude<SheetFeature, { t: "sheetBase" }>, st: SheetState, ctx: SheetCtx, warn: string[]): SheetOp {
   switch (f.t) {
     case "sheetFlange":
-      return { t: "aba", id: f.id, label: f.name, edges: f.edges.map((e) => recoverEdge(st, e, f.name, warn)), length: f.length, bend: bendOf(st, f.deflectionDeg, f.R, f.K), side: f.side, ref: f.ref };
+      return { t: "aba", id: f.id, label: f.name, edges: f.edges.map((e) => recoverEdge(st, e, f.name, warn)), offsetStart: f.offsetStart ?? 0, offsetEnd: f.offsetEnd ?? 0, length: f.length, bend: bendOf(st, f.deflectionDeg, f.R, f.K), side: f.side, ref: f.ref };
     case "sheetContour":
       return {
         t: "contorno",

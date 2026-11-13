@@ -150,6 +150,8 @@ const api: Omit<EngineApi, "init"> = {
       const r = edgeFromFaces(st.faceLabels[owners[0][1]] ?? [], st.faceLabels[owners[1][1]] ?? []);
       if (r === "ambigua") throw new SolidError("INVALID_PARAMS", "Aresta ambígua — escolha a aresta na borda da face da aba.");
       if (!r) throw new SolidError("INVALID_PARAMS", "Essa aresta não é borda de aba (escolha a aresta na ponta ou no lado de uma face plana da chapa).");
+      if (r.edge.includes("^") || r.edge.includes(">"))
+        throw new SolidError("INVALID_PARAMS", "Essa aresta é a linha de tangência ou o degrau de uma dobra parcial — escolha uma borda livre da aba.");
       const fl = st.solved.flanges.find((f) => f.id === r.flange)!;
       const ol = fl.outline.find((x) => x.key === r.edge);
       const bent = st.solved.bends.find((b) => b.parent === r.flange && b.edge === r.edge)?.label ?? null;

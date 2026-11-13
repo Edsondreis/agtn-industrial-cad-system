@@ -123,6 +123,9 @@ export type Feature = Base &
         readonly K: number | null;
         readonly side: SheetSide;
         readonly ref: SheetRef;
+        /** recuos da faixa de dobra a partir do início/fim da aresta (mm; ausente = aresta inteira) */
+        readonly offsetStart?: number;
+        readonly offsetEnd?: number;
       }
     /** flange de contorno: perfil aberto de seção constante (tabela de segmentos) ao longo de UMA aresta reta */
     | {
@@ -275,6 +278,7 @@ export function validateFeature(f: FeatureDraft): string[] {
       break;
     case "sheetFlange":
       pos(f.length, "Comprimento da aba");
+      if ((f.offsetStart !== undefined && !(f.offsetStart >= 0)) || (f.offsetEnd !== undefined && !(f.offsetEnd >= 0))) e.push("Recuos devem ser ≥ 0.");
       bendOk(f.deflectionDeg, f.R, f.K);
       if (!f.edges.length) e.push("Escolha pelo menos uma aresta.");
       break;
