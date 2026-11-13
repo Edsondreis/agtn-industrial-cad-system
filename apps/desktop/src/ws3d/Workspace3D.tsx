@@ -56,7 +56,8 @@ import { Props3D } from "./Props3D";
 import type { EngineStats, SheetInfo, SyncResult, TopoRefMsg } from "./protocol";
 import { type FlatPattern, flatEntities, flatToDxf, validateFlatDxf } from "@agtn/sheetgraph";
 import { FlatDxfDialog } from "./part/FlatDxfDialog";
-import type { Change } from "@agtn/document";
+import { type Change, serializeDocument } from "@agtn/document";
+import { dxfBytes } from "@agtn/dxf";
 import type { Entity } from "@agtn/geometry";
 import { sheetLayerChanges } from "./part/sheetUi";
 import { type DisplayMode, FILTER_LABEL, type PickFilter, type Sel, Ws3dStore } from "./store";
@@ -236,8 +237,14 @@ export function Workspace3D({ ctl, onInsert }: { ctl: CadController; onInsert?: 
         sketch: () => skRef.current?.editor ?? null,
         status: () => fstatRef.current,
         sheets: () => sheetsRef.current,
-        /** DXF da planificação gerado e conferido (mesmo caminho do diálogo "DXF chapa") */
-        flatDxf: (fp: FlatPattern, version: "R12" | "R2000" = "R2000") => validateFlatDxf(flatToDxf(fp, { version }), fp, { version }),
+        /** DXF da planificação gerado e conferido (mesmo caminho do diálogo "DXF chapa"); `text`/`bytes` = o que o
+         *  diálogo grava (homologação ETAPA 4: hash entre plataformas e gravação real pelo Rust) */
+        flatDxf: (fp: FlatPattern, version: "R12" | "R2000" = "R2000") => {
+          const text = flatToDxf(fp, { version });
+          return { ...validateFlatDxf(text, fp, { version }), text, bytes: dxfBytes(text) };
+        },
+        /** documento como o "Salvar" grava (homologação ETAPA 4: salvar/reabrir em caminho com acento) */
+        serialize: () => serializeDocument(doc),
       };
     return () => {
       off();

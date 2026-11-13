@@ -1,14 +1,19 @@
-<#
+﻿<#
 .SYNOPSIS
   FASE 4 · ETAPA 3 — Build e testes do AGTN Industrial CAD num Windows REAL (homologação W1).
 
 .DESCRIPTION
   Roda no PC Windows, sem alterar a main e sem publicar nada:
-    1. registra o ambiente (Windows, CPU, RAM, Node, Rust, WebView2, Visual Studio Build Tools);
-    2. baixa (ou atualiza) a branch feature/agtn-3d-ia numa pasta própria;
-    3. npm ci · typecheck · vitest · cargo test (com os DWG reais) · tauri build (instalador NSIS);
-    4. copia o instalador e grava log + resumo JSON em C:\AGTN_HOMOLOGACAO\<data-hora>\.
-  Nada é instalado nem desinstalado por este script; a instalação é o passo W2, feito depois.
+    1. registra o ambiente (Windows, CPU, RAM, GPU, tela, Node, Rust, WebView2, Visual Studio Build Tools);
+    2. baixa (ou atualiza) a branch feature/agtn-3d-ia numa pasta própria (finais de linha LF, como no repositório);
+    3. npm ci · typecheck · vitest · cargo test (com os DWG reais) · tauri build (instalador NSIS)   → W1;
+    4. copia o instalador e monta "pacote_validacao" (roda em qualquer PC, sem ferramentas de desenvolvimento);
+    5. (a menos de -SemValidar) roda validar_instalado.ps1: W2 instalação, W3 atualização (com
+       -InstaladorAnterior), W5 caminhos, W7 teste de fumaça no WebView2, P2 desempenho, W4 desinstalação.
+  Tudo fica em C:\AGTN_HOMOLOGACAO\<data-hora>\: homologacao.log, resumo.json, instalador, pacote_validacao,
+  instalado\ (log e resumo do validar_instalado + webview2\).
+
+  ATENÇÃO: revisado na ETAPA 4 sem execução num Windows real (o ambiente de desenvolvimento não tem Windows).
 
 .EXAMPLE
   Abra o PowerShell (não precisa ser administrador) e rode:
@@ -19,7 +24,9 @@
 param(
   [string]$Repo = "$env:USERPROFILE\agtn-homologacao\agtn-industrial-cad-system",
   [string]$Branch = "feature/agtn-3d-ia",
-  [string]$Out = "C:\AGTN_HOMOLOGACAO"
+  [string]$Out = "C:\AGTN_HOMOLOGACAO",
+  [string]$InstaladorAnterior = "",
+  [switch]$SemValidar
 )
 
 $ErrorActionPreference = "Continue"
@@ -34,6 +41,7 @@ function Ver($cmd, $arg = "--version") { try { (& $cmd $arg 2>&1 | Select-Object
 function Step($name, [scriptblock]$block) {
   Log "== $name"
   $t0 = Get-Date
+  $global:LASTEXITCODE = 0
   $out = & $block 2>&1
   $code = $LASTEXITCODE
   $out | ForEach-Object { Add-Content -Path $log -Value $_ -Encoding UTF8 }
@@ -54,8 +62,10 @@ foreach ($k in @("HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017
 $vs = $null
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 if (Test-Path $vswhere) { $vs = (& $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property displayName) }
+$gpu = @(Get-CimInstance Win32_VideoController | ForEach-Object { "$($_.Name) (driver $($_.DriverVersion), $($_.CurrentHorizontalResolution)x$($_.CurrentVerticalResolution))" })
 $summary.ambiente = [ordered]@{
   computador = $env:COMPUTERNAME
+  gpu = $gpu
   windows = "$($os.Caption) $($os.Version) (build $($os.BuildNumber))"
   cpu = $cpu.Name.Trim()
   nucleos = $cpu.NumberOfLogicalProcessors
@@ -84,7 +94,7 @@ if ($faltando.Count) {
 # ---------------------------------------------------------------- 2. código
 if (-not (Test-Path (Join-Path $Repo ".git"))) {
   New-Item -ItemType Directory -Force -Path (Split-Path $Repo) | Out-Null
-  Step "git clone" { git clone --branch $Branch https://github.com/Edsondreis/agtn-industrial-cad-system.git $Repo } | Out-Null
+  Step "git clone" { git -c core.autocrlf=false clone --branch $Branch https://github.com/Edsondreis/agtn-industrial-cad-system.git $Repo } | Out-Null
 } else {
   Step "git fetch + checkout" { git -C $Repo fetch origin; git -C $Repo checkout $Branch; git -C $Repo pull --ff-only origin $Branch } | Out-Null
 }
@@ -111,9 +121,31 @@ if ($nsis) {
 }
 $exe = "apps\desktop\src-tauri\target\release\agtn-cad.exe"
 if (Test-Path $exe) { $summary.exe_mb = [math]::Round((Get-Item $exe).Length / 1MB, 2) }
+
+# pacote de validação: roda em qualquer PC Windows (W6), só com PowerShell
+$pk = Join-Path $dir "pacote_validacao"
+New-Item -ItemType Directory -Force -Path (Join-Path $pk "smoke\fixtures") | Out-Null
+Copy-Item "scripts\windows\validar_instalado.ps1" $pk
+Copy-Item "scripts\windows\smoke\webview2_smoke.ps1", "scripts\windows\smoke\agtn_smoke.js", "scripts\windows\smoke\referencias.json" (Join-Path $pk "smoke")
+Copy-Item "modules\sheet3d\src\fixtures\*.agtncad" (Join-Path $pk "smoke\fixtures")
+Copy-Item "tests\regressao2d\v311_desenho.agtncad" (Join-Path $pk "smoke")
+if ($nsis) { Copy-Item $nsis.FullName $pk }
+Log "Pacote de validação: $pk"
 Pop-Location
 
+$summary.W1 = $(if ($ok -and $nsis) { "APROVADO" } else { "REPROVADO" })
+if (-not $SemValidar -and $nsis) {
+  Log "== validar_instalado.ps1 (W2–W7, P2)"
+  $va = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", (Join-Path $pk "validar_instalado.ps1"), "-Instalador", (Join-Path $pk $nsis.Name), "-Out", (Join-Path $dir "instalado"))
+  if ($InstaladorAnterior) { $va += @("-InstaladorAnterior", $InstaladorAnterior) }
+  & powershell @va
+  $summary.validacao_codigo = $LASTEXITCODE
+  $rj = Join-Path $dir "instalado\resumo_instalado.json"
+  if (Test-Path $rj) { $summary.validacao = ([IO.File]::ReadAllText($rj, [Text.Encoding]::UTF8) | ConvertFrom-Json).testes }
+}
+
 $summary.resultado = $(if ($ok -and $nsis) { "BUILD E TESTES OK" } else { "FALHOU — ver homologacao.log" })
-$summary | ConvertTo-Json -Depth 5 | Set-Content -Path (Join-Path $dir "resumo.json") -Encoding UTF8
+if ($summary.Contains("validacao_codigo")) { $summary.resultado += $(if ($summary.validacao_codigo -eq 0) { " · VALIDAÇÃO DO INSTALADO SEM REPROVAÇÃO (ver pendentes)" } else { " · VALIDAÇÃO DO INSTALADO COM REPROVAÇÃO" }) }
+$summary | ConvertTo-Json -Depth 8 | Set-Content -Path (Join-Path $dir "resumo.json") -Encoding UTF8
 Log "Resultado: $($summary.resultado)"
 Log "Pasta: $dir"

@@ -1,0 +1,7 @@
+# FASE 4 · ETAPA 4 — arquivos de referência comparados byte a byte (hash) nos testes: sem conversão de fim de linha
+# no checkout do Windows (Git for Windows usa core.autocrlf=true por padrão).
+*.agtncad -text
+*.dxf -text
+*.dwg binary
+scripts/windows/smoke/referencias.json -text
+tests/regressao2d/*.json -text

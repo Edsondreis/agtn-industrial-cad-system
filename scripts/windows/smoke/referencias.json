@@ -1,0 +1,104 @@
+{
+ "_origem": "modules/sheet3d/src/smokeref.test.ts (Node + occt-wasm 5.17.1); arquivos em modules/sheet3d/src/fixtures/",
+ "_tolerancia": {
+  "volumeRelativo": 1e-9,
+  "areaRelativa": 1e-9,
+  "comprimentoRelativo": 1e-9,
+  "dxf": "SHA-256 idêntico (mesmo .wasm, mesmo JS)"
+ },
+ "fase2_projeto_3d.agtncad": {
+  "sha256Arquivo": "eb177bb9959d0adcb2cb8888ef52510b9837c08e84ca4527e05d6b90cf1d7d6f",
+  "corpos": {
+   "CHAPA": {
+    "volume": 1500000,
+    "area": 315999.99999999994
+   },
+   "COLUNA": {
+    "volume": 782400,
+    "area": 235408
+   },
+   "TUBO_SUPORTE": {
+    "volume": 173168.4355168697,
+    "area": 89962.55235209916
+   }
+  }
+ },
+ "fase3_peca_parametrica.agtncad": {
+  "sha256Arquivo": "151db46169c5b9c9b4f2e1ec587cac6d762802aa836370e05193c964f6a09416",
+  "corpos": {
+   "Peça 1": {
+    "volume": 233609.51377451912,
+    "area": 33774.66807156733
+   }
+  }
+ },
+ "etapa1_chapa.agtncad": {
+  "sha256Arquivo": "0fe23bf54578f210057cc5105d92fccdd242584932406f470ed255832e8f4f7c",
+  "corpos": {
+   "Peça 1": {
+    "volume": 26027.433388230813,
+    "area": 26947.982055995435,
+    "chapa": {
+     "flatArea": 12947.743248390021,
+     "estado": "valida",
+     "blank": [
+      100,
+      129.4774324839002
+     ],
+     "corte": 458.9548649678004,
+     "dobras": 3,
+     "dxfSha256": {
+      "R2000": "ff657d333b14026cf29606ca8ed8c3ea5d51804afe32ff45771cc8cdb9877071",
+      "R12": "205235a11a468b0fa696dcca3302f6cca75fe478cdf840cc370705be03676751"
+     }
+    }
+   }
+  }
+ },
+ "etapa2_completo.agtncad": {
+  "sha256Arquivo": "4b27b3d9a7ab5d526c0961834ba2555663562ef7500d7829ea3440cbaf592191",
+  "corpos": {
+   "Peça 1": {
+    "volume": 19837.522264378968,
+    "area": 20906.100997157053,
+    "chapa": {
+     "flatArea": 9891.931929277966,
+     "estado": "valida",
+     "blank": [
+      136.49247749463342,
+      86.4924774946334
+     ],
+     "corte": 532.9698974745324,
+     "dobras": 2,
+     "dxfSha256": {
+      "R2000": "aa992550bb55a9a99897b38a1bc42eb251e809fd8dc837b95d14ad3f9bed089c",
+      "R12": "e7e90f212497cc6f57c5ee6e5e9670d8d2ec3e5ffa994d6851d05f56f445d735"
+     }
+    }
+   }
+  }
+ },
+ "grande_120furos.agtncad": {
+  "sha256Arquivo": "5c3b0d8949a4ccb2806a098b90107b7aa3c3b06c5ce106d55b4dd8517dc7d5b6",
+  "corpos": {
+   "Chapa grande 120 furos": {
+    "volume": 4537296.987404675,
+    "area": 4557523.280690776,
+    "chapa": {
+     "flatArea": 2267371.24779308,
+     "estado": "valida",
+     "blank": [
+      2092.984954989267,
+      1092.9849549892667
+     ],
+     "corte": 10107.868767403263,
+     "dobras": 4,
+     "dxfSha256": {
+      "R2000": "b17787182a53173411cbabce53a20cd19cf0ed3ef8907a4ac6f86880712c5428",
+      "R12": "a89db6e3c8e777b5e5a917bf35c437872dd02a700f92e58a9fca086ccae6e0f5"
+     }
+    }
+   }
+  }
+ }
+}
