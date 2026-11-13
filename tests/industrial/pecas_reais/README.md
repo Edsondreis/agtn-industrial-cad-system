@@ -13,9 +13,13 @@ Uma pasta por peça: `tests/industrial/pecas_reais/NN_nome_curto/`. Copie `_mode
 O teste `modules/sheet3d/src/industrial/realparts.test.ts` regenera cada `modelo.agtncad` (mesmo motor do app),
 gera a planificação e compara com `referencia.dxf`:
 
-- blank (largura × altura), área, comprimento de corte, número de contornos internos;
-- linhas de dobra (quantidade e posição);
-- vértices do contorno (quando a referência tem o mesmo desenho de cantos).
+- blank (largura × altura; aceita a referência girada 90°), área, comprimento de corte, número de contornos internos;
+- linhas de dobra (quantidade de trechos).
+
+Ainda NÃO compara automaticamente a posição de cada linha de dobra nem os vértices do contorno (a posição depende da
+origem do desenho de referência). Isso foi feito à mão só para a bandeja 710.0CUH25-01-03 (`realref.test.ts`, 20
+vértices a 1e-6 mm). Para peças reais com cantos e furos, a comparação ponto a ponto fica para quando chegarem os
+arquivos, com a origem combinada com a engenharia.
 
 O resultado vai para `tests/output/pecas_reais/comparativo.json` e `comparativo.md`.
 
