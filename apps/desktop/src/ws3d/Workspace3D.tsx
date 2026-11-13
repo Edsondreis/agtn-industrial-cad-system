@@ -54,7 +54,7 @@ import { engine } from "./engine";
 import { DEFAULT_SPECS, PrimitiveDialog } from "./PrimitiveDialog";
 import { Props3D } from "./Props3D";
 import type { EngineStats, SheetInfo, SyncResult, TopoRefMsg } from "./protocol";
-import { flatEntities } from "@agtn/sheetgraph";
+import { type FlatPattern, flatEntities, flatToDxf, validateFlatDxf } from "@agtn/sheetgraph";
 import { FlatDxfDialog } from "./part/FlatDxfDialog";
 import type { Change } from "@agtn/document";
 import type { Entity } from "@agtn/geometry";
@@ -236,6 +236,8 @@ export function Workspace3D({ ctl, onInsert }: { ctl: CadController; onInsert?: 
         sketch: () => skRef.current?.editor ?? null,
         status: () => fstatRef.current,
         sheets: () => sheetsRef.current,
+        /** DXF da planificação gerado e conferido (mesmo caminho do diálogo "DXF chapa") */
+        flatDxf: (fp: FlatPattern, version: "R12" | "R2000" = "R2000") => validateFlatDxf(flatToDxf(fp, { version }), fp, { version }),
       };
     return () => {
       off();

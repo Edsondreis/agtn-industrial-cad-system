@@ -121,7 +121,7 @@ export function BaseFields({ d, set }: { d: Of<"sheetBase">; set: (p: Partial<Of
         </label>
         {d.K !== null && <Unit v={d.K} set={(v) => set({ K: v })} unit="" min={0} field="K" />}
       </Row>
-      <SideRef side={d.side} refm={d.ref} set={(p) => set(p)} sideLabel="Material" />
+      <SideRef side={d.side} refm={d.ref} set={(p) => set(p)} sideLabel="Lado da espessura" />
       <div className="fd-note">Contorno fechado só de retas; círculos/contornos internos viram furos. Medidas até o vértice virtual (referência acima).</div>
     </>
   );
