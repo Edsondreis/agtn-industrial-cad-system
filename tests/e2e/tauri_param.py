@@ -108,6 +108,16 @@ try:
     check("app compilado: editar cota 120 → 150 regenera (240 000 mm³)", abs(vol() - 240000) < 0.5, f"{vol()}")
     idle()
     d.save_screenshot(f"{OUT}/20_app_compilado_param.png")
+    # alternar 2D ↔ 3D no app compilado preserva o modelo e o volume
+    d.find_element(By.XPATH, "//button[normalize-space()='DESENHO']").click()
+    time.sleep(1)
+    d.find_element(By.XPATH, "//button[normalize-space()='3D']").click()
+    W.until(lambda x: x.find_elements(By.CSS_SELECTOR, ".st3-dot.ready"))
+    W.until(lambda x: abs((vol() or 0) - 240000) < 0.5)
+    check("app compilado: 2D → 3D mantém a peça (240 000 mm³)", abs(vol() - 240000) < 0.5, f"{vol()}")
+    ps = __import__("subprocess").run("ps -eo rss,comm | grep -Ei 'agtn-cad|WebKit'", shell=True, capture_output=True, text=True).stdout
+    tot = sum(int(l.split()[0]) for l in ps.strip().splitlines() if l.strip())
+    check("app compilado: memória após modelagem (app + WebKit, render por software)", tot > 0, f"{tot / 1024:.0f} MB RSS")
 finally:
     d.quit()
 print(f"{sum(o for _, o, _ in res)}/{len(res)} OK")

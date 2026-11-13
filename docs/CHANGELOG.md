@@ -1,6 +1,18 @@
 # Changelog
 
-## Em desenvolvimento (branch `feature/agtn-3d-ia`, não publicado) — AGTN 3D, modelagem paramétrica
+## Em desenvolvimento (branch `feature/agtn-3d-ia`, não publicado) — Auditoria da FASE 3
+- Operação depois de uma falha não fica mais "ok" sobre o sólido antigo: estado **"não avaliada (dependência
+  com erro)"**; dependente de operação suprimida é suprimido junto; faixa no viewport e nota nas propriedades
+  quando o sólido exibido é o último válido.
+- Referências de face/aresta não trocam de entidade em silêncio (faces coplanares): "Referência ambígua"
+  quando não há escolha segura; bordas de furo podem ser escolhidas e acompanham o furo movido.
+- Esboço: ângulos de 0°/180° e distância ponto–linha sem falso "sobredefinido"; "Não convergiu" separado de
+  "Inconsistente"; esboços grandes ~50× mais rápidos.
+- Corrigido vazamento de formas do motor a cada regeneração; arquivo com ids duplicados ou campos ausentes
+  abre com aviso em vez de perder o corpo.
+- Avisos: união que gera sólidos separados e corte que não remove material.
+
+## Em desenvolvimento — AGTN 3D, modelagem paramétrica
 - **Peça paramétrica** com histórico no `.agtncad`: faixa **Modelar** com Esboço, Extrusão, Revolução, Varredura,
   Loft, Furo (passante, rebaixo, escareado), Arredondar, Chanfro, Casca, Espelhar, Padrão linear/circular e
   União/Corte/Interseção com outros corpos. Prévia real (OCCT) antes do OK; erro do kernel mostrado no painel.

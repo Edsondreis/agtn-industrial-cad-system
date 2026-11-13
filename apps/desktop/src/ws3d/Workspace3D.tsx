@@ -943,7 +943,10 @@ export function Workspace3D({ ctl }: { ctl: CadController }) {
             sel={snap.sel}
             hover={snap.hover}
             errors={errors}
-            onSelect={(id, add) => store.pick({ t: "node", id }, add)}
+            onSelect={(id, add) => {
+              setFsel(null); // clicar no corpo mostra o corpo (não a última operação)
+              store.pick({ t: "node", id }, add);
+            }}
             onHover={(id) => store.set({ hover: id ? { t: "node", id } : null })}
             onRename={(id, nm) => commit("Renomear", (m) => rename(m, id, nm))}
             onVisible={(id, vis) => commit(vis ? "Exibir" : "Ocultar", (m) => setVisible(m, [id], vis))}

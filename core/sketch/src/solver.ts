@@ -705,7 +705,8 @@ function partition(s: Sketch, extra: readonly Constraint[]): { sketch: Sketch; e
     if (isFixed(id)) return [];
     if (s.points[id]) return [id];
     const e = s.entities[id];
-    return e ? entityPoints(e) : ["__missing"];
+    // pontos fixos (origem) não unem grupos nem têm variáveis
+    return e ? entityPoints(e).filter((p) => parent.has(p)) : ["__missing"];
   };
   for (const e of Object.values(s.entities)) unite(entityPoints(e));
   const all = [...s.constraints, ...extra];
@@ -722,8 +723,9 @@ function partition(s: Sketch, extra: readonly Constraint[]): { sketch: Sketch; e
   };
   for (const id of Object.keys(s.points)) g(find(id)).points.add(id);
   for (const e of Object.values(s.entities)) {
-    const ps = entityPoints(e);
-    if (ps.length) g(find(ps[0])).entities.add(e.id);
+    const ps = entityPoints(e).filter((p) => parent.has(p));
+    if (!ps.length) return [{ sketch: s, extra: [...extra] }]; // entidade só com pontos fixos: um sistema só
+    g(find(ps[0])).entities.add(e.id);
   }
   const home = (c: Constraint) => {
     const pts = constraintRefs(c).flatMap(ptsOfRef);

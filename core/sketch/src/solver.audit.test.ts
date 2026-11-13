@@ -31,6 +31,19 @@ function rect(x0: number, y0: number, w: number, h: number, start = 0.9) {
 }
 
 describe("auditoria do solver — diagnóstico", () => {
+  it("entidades presas na origem em grupos separados (partição não pode tratar a origem como variável)", () => {
+    const a = addLine(emptySketch(), "O", { x: 60, y: 1 });
+    const b = addLine(a.s, "O", { x: 1, y: 40 });
+    let s = C(b.s, { t: "horizontal", l: a.id });
+    s = C(s, { t: "vertical", l: b.id });
+    s = C(s, { t: "length", l: a.id, v: 60 });
+    const r = solve(s);
+    expect(r.status).toBe("under");
+    expect(r.dof).toBe(1); // a: 0 GL; b: só o comprimento livre
+    near(P(r.sketch, line(r.sketch, a.id).p2).y, 0);
+    near(P(r.sketch, line(r.sketch, b.id).p2).x, 0);
+  });
+
   it("esboço totalmente livre: linha solta = 4 GL, sem restrições", () => {
     const r = solve(addLine(emptySketch(), { x: 1, y: 2 }, { x: 5, y: 7 }).s);
     expect(r.status).toBe("under");

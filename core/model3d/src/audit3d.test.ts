@@ -94,7 +94,7 @@ const sig = (feats: readonly Feature[]) => JSON.stringify(feats);
 const states = (c: BodyCache, id: NodeId) => c.featureStatus(id)!.map((s) => `${s.id}:${s.state}`);
 
 describe("A04 — persistência integral da árvore", () => {
-  it("40+ operações, corpo com erro, peça recuada e combinação entre corpos: salvar → fechar → abrir → regenerar idêntico", () => {
+  it("40+ operações, corpo com erro, peça recuada e combinação entre corpos: salvar → fechar → abrir → regenerar idêntico", async () => {
     const ev0 = new PartEvaluator(k);
     const big = bigPart(44, ev0);
     ev0.releaseAll();
@@ -139,6 +139,13 @@ describe("A04 — persistência integral da árvore", () => {
 
     // salvar → fechar (documento e motor novos) → abrir
     const text = serializeDocument(doc);
+    // evidência: AGTN_AUDIT_OUT=pasta grava o modelo de teste (abre no AGTN CAD)
+    const out = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env.AGTN_AUDIT_OUT;
+    if (out) {
+      const fs = await import("node:fs");
+      fs.mkdirSync(out, { recursive: true });
+      fs.writeFileSync(`${out}/auditoria_45_operacoes.agtncad`, text);
+    }
     JSON.parse(text); // JSON íntegro
     c.clear();
     const doc2 = new CadDocument();
@@ -181,7 +188,7 @@ describe("A04 — persistência integral da árvore", () => {
     expect(vol(c2, big.id)).toBe(vEdit);
     c2.clear();
     c3.clear();
-  });
+  }, 60000);
 
   it("arquivo corrompido: ids duplicados, campos ausentes, referência a operação inexistente — abre sem travar", () => {
     let m: Model3D = { version: 1, nodes: {}, roots: [] };

@@ -238,6 +238,114 @@ describe("A02 — referências topológicas", () => {
   });
 });
 
+/**
+ * Edição paramétrica com referência guardada: o resultado tem que ser OU "ok" igual ao de uma escolha nova da
+ * MESMA entidade na geometria editada, OU erro explícito de referência. Nunca "ok" com outra entidade.
+ */
+function sameOrExplicit(id: string, after: Feature[], refAt: number, op: (ref: never) => Feature, kind: "face" | "edge", probe: { x: number; y: number; z: number } | null, oldOp: Feature) {
+  const r = ev.evaluate(id, [...after, oldOp]);
+  const st = r.status.at(-1)!;
+  if (st.state !== "ok") {
+    expect(st.error).toMatch(/Referência (perdida|ambígua)/);
+    return "erro explícito";
+  }
+  expect(probe).not.toBeNull();
+  const e2 = new PartEvaluator(k);
+  e2.evaluate("fresh", after);
+  const idx = near(kind, e2.shapeAt("fresh", refAt)!, probe!);
+  const ref = kind === "face" ? e2.identifyFace("fresh", after, refAt, idx) : e2.identifyEdge("fresh", after, refAt, idx);
+  const fresh = e2.evaluate("fresh", [...after, op(ref as never)]);
+  expect(fresh.status.at(-1)!.state).toBe("ok");
+  expect(rel(vol(r), vol(fresh))).toBeLessThan(1e-9);
+  e2.releaseAll();
+  return "acompanhou";
+}
+
+describe("A02 — cenários de edição com referência guardada", () => {
+  it("largura/altura do esboço, profundidade e raio anterior: a aresta acompanha", () => {
+    const { s1, e1, edge } = plate("c1");
+    const fil = F("R5", { t: "fillet", edges: [edge], r: 5 });
+    const ch = F("Chanfro", { t: "chamfer", edges: [ev.identifyEdge("c1", [s1, e1], 1, near("edge", ev.shapeAt("c1", 1)!, { x: 50, y: 60, z: 20 }))], d: 1 });
+    const out: string[] = [];
+    // 1) esboço 100×60 → 140×90 (a aresta (100,60) vai para (140,90))
+    const s1b = { ...s1, sketch: rectAt(0, 0, 140, 90) } as Feature;
+    out.push(sameOrExplicit("c1", [s1b, e1], 1, (r) => ({ ...fil, edges: [r] }) as Feature, "edge", { x: 140, y: 90, z: 10 }, fil));
+    // 2) profundidade 20 → 35
+    const e1b = { ...e1, depth: 35 } as Feature;
+    out.push(sameOrExplicit("c1", [s1, e1b], 1, (r) => ({ ...fil, edges: [r] }) as Feature, "edge", { x: 100, y: 60, z: 17 }, fil));
+    // 3) raio do arredondamento anterior 5 → 8: o chanfro (aresta superior traseira) acompanha
+    const r5 = ev.evaluate("c1", [s1, e1, fil, ch]);
+    expect(states(r5)).toEqual(["ok", "ok", "ok", "ok"]);
+    const v5 = vol(r5);
+    const r8 = ev.evaluate("c1", [s1, e1, { ...fil, r: 8 } as Feature, ch]);
+    expect(states(r8)).toEqual(["ok", "ok", "ok", "ok"]);
+    expect(vol(r8)).toBeLessThan(v5);
+    expect(out).toEqual(["acompanhou", "acompanhou"]);
+  });
+
+  it("espelho com plano mudado: aresta da cópia espelhada não troca para a original", () => {
+    const { s1, e1 } = plate("c2");
+    const mir = F("Espelho", { t: "mirror", plane: { t: "std", plane: "YZ", offset: 0 }, targets: null });
+    const feats = [s1, e1, mir];
+    const r = ev.evaluate("c2", feats);
+    expect(rel(vol(r), 240000)).toBeLessThan(1e-12);
+    const e = ev.identifyEdge("c2", feats, 2, near("edge", r.shape!, { x: -100, y: 60, z: 10 }));
+    const fil = F("R3", { t: "fillet", edges: [e], r: 3 });
+    expect(ev.evaluate("c2", [...feats, fil]).status.at(-1)!.state).toBe("ok");
+    // plano YZ deslocado −30: a cópia vai para x ∈ [−160, −60]
+    const mir2 = { ...mir, plane: { t: "std", plane: "YZ", offset: -30 } } as Feature;
+    const res = sameOrExplicit("c2", [s1, e1, mir2], 2, (x) => ({ ...fil, edges: [x] }) as Feature, "edge", { x: -160, y: 60, z: 10 }, fil);
+    expect(["acompanhou", "erro explícito"]).toContain(res);
+  });
+
+  it("revolução, varredura e loft com perfil/caminho/seções mudados: segue a mesma face ou erro explícito", () => {
+    // revolução: anel r 40..60, h 20 → casca abrindo o topo; perfil vira r 40..70
+    const ring = (r1: number) => rectAt(40, 0, r1 - 40, 20);
+    const sR = F("Perfil", { t: "sketch", plane: { t: "std", plane: "XZ", offset: 0 }, sketch: ring(60) });
+    const rev = F("Revolução", { t: "revolve", sketch: sR.id, regions: null, axis: "AY", angle: 360, op: "new" });
+    let r = ev.evaluate("c3", [sR, rev]);
+    expect(rel(vol(r), PI * (3600 - 1600) * 20)).toBeLessThan(1e-9);
+    const top = ev.identifyFace("c3", [sR, rev], 1, near("face", r.shape!, { x: 50, y: 0, z: 20 }));
+    const sh = F("Casca", { t: "shell", faces: [top], thickness: 2 });
+    expect(ev.evaluate("c3", [sR, rev, sh]).status.at(-1)!.state).toBe("ok");
+    const out = [sameOrExplicit("c3", [{ ...sR, sketch: ring(70) } as Feature, rev], 1, (f) => ({ ...sh, faces: [f] }) as Feature, "face", { x: 55, y: 0, z: 20 }, sh)];
+    // varredura: círculo Ø10 ao longo de linha de 100 → caminho de 150
+    const path = (L: number) => addLine(emptySketch(), { x: 0, y: 0 }, { x: 0, y: L }).s;
+    const sP = F("Caminho", { t: "sketch", plane: { t: "std", plane: "XY", offset: 0 }, sketch: path(100) });
+    const sC = F("Seção", { t: "sketch", plane: { t: "std", plane: "XZ", offset: 0 }, sketch: addCircle(emptySketch(), { x: 0, y: 0 }, 5).s });
+    const sw = F("Varredura", { t: "sweep", profile: sC.id, path: sP.id, op: "new" });
+    r = ev.evaluate("c4", [sP, sC, sw]);
+    expect(rel(vol(r), PI * 25 * 100)).toBeLessThan(1e-6);
+    const endF = ev.identifyFace("c4", [sP, sC, sw], 2, near("face", r.shape!, { x: 0, y: 100, z: 0 }));
+    const sh2 = F("Casca", { t: "shell", faces: [endF], thickness: 1 });
+    out.push(sameOrExplicit("c4", [{ ...sP, sketch: path(150) } as Feature, sC, sw], 2, (f) => ({ ...sh2, faces: [f] }) as Feature, "face", { x: 0, y: 150, z: 0 }, sh2));
+    // loft: quadrado 40 → 20 a 50 mm; seção superior vira 30
+    const sq = (a: number) => rectAt(-a / 2, -a / 2, a, a);
+    const l1 = F("S1", { t: "sketch", plane: { t: "std", plane: "XY", offset: 0 }, sketch: sq(40) });
+    const l2 = F("S2", { t: "sketch", plane: { t: "std", plane: "XY", offset: 50 }, sketch: sq(20) });
+    const lo = F("Loft", { t: "loft", sections: [l1.id, l2.id], ruled: true, op: "new" });
+    r = ev.evaluate("c5", [l1, l2, lo]);
+    expect(rel(vol(r), (50 / 3) * (1600 + 400 + 800))).toBeLessThan(1e-9);
+    const topL = ev.identifyFace("c5", [l1, l2, lo], 2, near("face", r.shape!, { x: 0, y: 0, z: 50 }));
+    const sh3 = F("Casca", { t: "shell", faces: [topL], thickness: 1 });
+    out.push(sameOrExplicit("c5", [l1, { ...l2, sketch: sq(30) } as Feature, lo], 2, (f) => ({ ...sh3, faces: [f] }) as Feature, "face", { x: 0, y: 0, z: 50 }, sh3));
+    console.info("referências após edição (revolução, varredura, loft):", out.join(" · "));
+  });
+
+  it("inserir e remover operações anteriores que não geram a entidade: a referência continua", () => {
+    const { s1, e1, edge } = plate("c6");
+    const fil = F("R5", { t: "fillet", edges: [edge], r: 5 });
+    const v0 = vol(ev.evaluate("c6", [s1, e1, fil]));
+    const sH = sk("Rasgo", rectAt(20, 20, 20, 10), { t: "std", plane: "XY", offset: 20 });
+    const cut = F("Rasgo", ext(sH.id, 5, "cut", { reverse: true }));
+    const r1 = ev.evaluate("c6", [s1, e1, sH, cut, fil]);
+    expect(states(r1)).toEqual(["ok", "ok", "ok", "ok", "ok"]);
+    expect(rel(vol(r1), v0 - 20 * 10 * 5)).toBeLessThan(1e-9);
+    const r2 = ev.evaluate("c6", [s1, e1, fil]);
+    expect(rel(vol(r2), v0)).toBeLessThan(1e-12);
+  });
+});
+
 describe("A05 — validade dos resultados OCCT", () => {
   it("cada operação: sólido válido, volume/área com fórmula, 1 sólido", () => {
     const s1 = sk("Base", rectAt(0, 0, 100, 50));

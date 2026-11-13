@@ -763,4 +763,22 @@ mod tests {
         assert_eq!(fs::read(&p).unwrap(), b"2");
         let _ = fs::remove_dir_all(dir);
     }
+
+    /// Auditoria FASE 3 (A04): queda no meio do salvamento deixa só o temporário pela metade —
+    /// o arquivo original continua íntegro e o próximo salvamento funciona.
+    #[test]
+    fn interrupted_save_keeps_original() {
+        let dir = std::env::temp_dir().join("agtn-cad-test-int");
+        let p = dir.join("peca.agtncad");
+        let original = b"{\"format\":\"agtncad\",\"extras\":{\"agtn3d\":{}}}";
+        write_atomic(&p, original).unwrap();
+        // simula o processo morto depois de escrever parte do temporário e antes do rename
+        let tmp = dir.join(".peca.agtncad.agtn-tmp");
+        fs::write(&tmp, b"{\"format\":\"agtn").unwrap();
+        assert_eq!(fs::read(&p).unwrap(), original);
+        write_atomic(&p, b"{\"novo\":1}").unwrap();
+        assert_eq!(fs::read(&p).unwrap(), b"{\"novo\":1}");
+        assert!(!tmp.exists());
+        let _ = fs::remove_dir_all(dir);
+    }
 }

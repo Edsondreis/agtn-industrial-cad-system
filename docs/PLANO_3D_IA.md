@@ -20,6 +20,11 @@ manipulador). Evidências: 324 testes unitários, `tests/e2e/e2e_param.py` 25/25
 regressão `e2e3d.py` 34/34. Detalhes e limitações em `docs/FASE3_RELATORIO.md`. Pendência mantida: validação
 no Windows real.
 
+**Auditoria da FASE 3 (13/11/2026):** aprovada com ressalvas (Windows real pendente). 17 problemas
+registrados e corrigidos com teste de regressão (3 críticos: operação "ok" sobre sólido desatualizado, base
+falha virando sólido isolado, referência trocando de face em silêncio). 360 testes TS, 15 Rust, e2e 25 + 22 +
+15 + 34, Tauri Linux 5 + 5. Detalhes: `docs/AUDITORIA_FASE3.md`.
+
 ---
 
 ## 1. Estado atual (medido, não estimado)

@@ -91,6 +91,8 @@ interface Entry {
   frame?: Frame;
   anchor?: Anchor;
   status: FeatureStatus;
+  /** volume do resultado (calculado uma vez; serve de entrada para a operação seguinte) */
+  vol?: number;
 }
 
 type Desc = { kind: "plane"; p: Vec3; n: Vec3 } | { kind: "cyl"; p: Vec3; axis: Vec3; r: number } | { kind: "point"; p: Vec3 };
@@ -137,6 +139,7 @@ export class PartEvaluator {
     let result: ShapeHandle | null = null;
     let valid = 0; // entradas reaproveitáveis
     let failed: PartResult["failed"] = null;
+    let resultVol: number | undefined;
     const ids = new Set<string>();
     for (let i = 0; i < features.length; i++) {
       const f = features[i];
@@ -157,13 +160,14 @@ export class PartEvaluator {
         // em cadeia garante que o cache nunca guarda um 'ok' calculado sobre outra versão da árvore)
         this.releaseFrom(entries, i);
         const t0 = performance.now();
-        entry = this.compute(f, i, features, entries, result, failed, opts.external);
+        entry = this.compute(f, i, features, entries, result, failed, opts.external, resultVol);
         entry.sig = sig;
         entry.status = { ...entry.status, ms: performance.now() - t0 };
         entries[i] = entry;
       }
       valid = i + 1;
       result = entry.result;
+      resultVol = entry.vol ?? (entry.result === null ? undefined : resultVol);
       if (entry.frame) frames[f.id] = entry.frame;
       status.push(entry.status);
       // falha (própria ou de dependência) de operação que mexe no sólido quebra a cadeia: o que vier depois e
@@ -220,6 +224,7 @@ export class PartEvaluator {
     input: ShapeHandle | null,
     broken: PartResult["failed"],
     external?: (id: string) => External | null,
+    inputVol?: number,
   ): Entry {
     const pass = (state: FeatureStatus["state"], error?: string, cause?: FeatId): Entry => ({
       sig: "",
@@ -273,13 +278,14 @@ export class PartEvaluator {
       if (out.result !== null) keep.add(out.result);
       if (out.tool !== null) keep.add(out.tool);
       let warning: string | undefined;
+      let v: number | undefined;
       if (out.result !== null && out.result !== input) {
         if (!this.k.isValid(out.result)) throw new SolidError("KERNEL", "O resultado não é um sólido válido (geometria degenerada).");
-        const v = this.k.getVolume(out.result);
+        v = this.k.getVolume(out.result);
         if (!(v > 1e-9)) throw new SolidError("KERNEL", "O resultado não tem volume positivo (sólido invertido ou degenerado).");
         const n = this.k.getSubShapes(out.result, "solid").map(T).length;
         if (n > 1 && out.op === "join") warning = `A união resultou em ${n} sólidos separados (sem contato).`;
-        if (out.op === "cut" && input !== null && Math.abs(this.k.getVolume(input) - v) <= 1e-9 * Math.max(1, v))
+        if (out.op === "cut" && input !== null && Math.abs((inputVol ?? this.k.getVolume(input)) - v) <= 1e-9 * Math.max(1, v))
           warning = "O corte não removeu material — a ferramenta não toca a peça (sentido invertido?).";
       }
       return {
@@ -291,6 +297,7 @@ export class PartEvaluator {
         frame: out.frame,
         anchor: out.anchor,
         status: { id: f.id, state: "ok", ms: 0, ...(warning ? { warning } : {}) },
+        vol: v ?? inputVol,
       };
     } catch (e) {
       keep.clear();
