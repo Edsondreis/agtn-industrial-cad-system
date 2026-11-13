@@ -169,6 +169,10 @@ por cobrança da conta. Continuam pendentes:
 ## F. Git
 
 - Branch: `feature/agtn-3d-ia`.
-- Commits: `c7c4378` (correções e testes principais) e o commit final desta auditoria (relatório, interface e
-  testes de fechamento).
+- Commits: `c7c4378` (correções e testes principais) e `6998e72` (fechamento: relatório, interface e
+  testes de fechamento). 28 arquivos alterados desde `fe4c7f3` (+1 998 / −138 linhas): `core/solid/src/part.ts`,
+  `features.ts`; `core/sketch/src/solver.ts`; `core/model3d/src/evaluate.ts`, `persist.ts`, `features.ts`;
+  `apps/desktop/src/ws3d/` (Workspace3D, Tree3D, Props3D, protocol, engine.worker, part/*, sketch/*, ws3d.css);
+  `src-tauri/src/lib.rs` (só teste); testes e documentação.
+- Status final: árvore limpa, tudo enviado para `origin/feature/agtn-3d-ia`.
 - `main` não alterada: `origin/main` = `23a2540` (v3.1.1). Sem merge, sem cherry-pick.
