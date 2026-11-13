@@ -27,16 +27,16 @@ const bodyOf = (doc: { extras: { agtn3d: unknown } }) => {
   expect(JSON.parse(JSON.stringify(rep.model))).toEqual(doc.extras.agtn3d); // abrir e salvar = idêntico
   const b = Object.values(rep.model.nodes).find((n) => n.kind === "body")!;
   if (b.kind !== "body" || b.source.type !== "part") throw new Error("fixture");
-  return b;
+  return { id: b.id, features: b.source.features as readonly Feature[] };
 };
 
 describe("arquivos .agtncad das ETAPAS 1 e 2", () => {
   it("ETAPA 1 (gravado pela base e463834): abre idêntico; volume 26027,433388 e planificação 129,477432 de quando foi gravado", () => {
     const b = bodyOf(load("etapa1_chapa.agtncad"));
     // o arquivo da ETAPA 1 não tem ids de segmento no flange de contorno (2.0) nem recuos/posição (2.1a/2.2)
-    const contour = b.source.features.find((f) => f.t === "sheetContour") as unknown as { segments: { id?: string }[] };
+    const contour = b.features.find((f) => f.t === "sheetContour") as unknown as { segments: { id?: string }[] };
     expect(contour.segments.every((s) => s.id === undefined)).toBe(true);
-    const r = ev.evaluate(b.id, b.source.features as readonly Feature[]);
+    const r = ev.evaluate(b.id, b.features as readonly Feature[]);
     expect(r.status.map((s) => s.state)).toEqual(["ok", "ok", "ok", "ok"]);
     const sv = (r.sheet!.state as SheetState).solved;
     expect(Math.abs(K.raw.getVolume(r.shape!) - 26027.433388230813)).toBeLessThan(1e-9 * 26027);
@@ -45,8 +45,8 @@ describe("arquivos .agtncad das ETAPAS 1 e 2", () => {
   });
   it("ETAPA 2 completo: abre idêntico e regenera com o mesmo volume e a mesma área plana", () => {
     const b = bodyOf(load("etapa2_completo.agtncad"));
-    expect(b.source.features.map((f) => f.t)).toEqual(["sketch", "sheetBase", "sheetFlange", "sheetCorner", "sketch", "sheetFlatCut", "sheetUnfold", "sheetRefold"]);
-    const r = ev.evaluate(b.id, b.source.features as readonly Feature[]);
+    expect(b.features.map((f) => f.t)).toEqual(["sketch", "sheetBase", "sheetFlange", "sheetCorner", "sketch", "sheetFlatCut", "sheetUnfold", "sheetRefold"]);
+    const r = ev.evaluate(b.id, b.features as readonly Feature[]);
     expect(r.status.every((s) => s.state === "ok")).toBe(true);
     const sv = (r.sheet!.state as SheetState).solved;
     expect(Math.abs(K.raw.getVolume(r.shape!) - 19837.522264378968)).toBeLessThan(1e-9 * 19837);
