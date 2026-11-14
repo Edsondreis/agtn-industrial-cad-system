@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { runInNewContext } from "node:vm";
+import { fileURLToPath } from "node:url";
 
 /**
  * FASE 4 · ETAPA 4 — scripts de homologação do Windows (scripts/windows). Não roda PowerShell (o ambiente de
@@ -10,7 +11,8 @@ import { runInNewContext } from "node:vm";
  *    Regra: todo .ps1 com caractere não-ASCII tem BOM UTF-8.
  *  - o JavaScript injetado no app compila; as referências cobrem todos os projetos que o script abre.
  */
-const ROOT = new URL("../../../", import.meta.url).pathname;
+// fileURLToPath: no Windows, URL.pathname vira "/D:/..." e o caminho quebra (achado na ETAPA 6)
+const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const walk = (d: string): string[] => readdirSync(d).flatMap((n) => (statSync(join(d, n)).isDirectory() ? walk(join(d, n)) : [join(d, n)]));
 const ps1 = walk(join(ROOT, "scripts/windows")).filter((f) => f.endsWith(".ps1"));
 

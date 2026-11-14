@@ -70,5 +70,6 @@ describe("desempenho ETAPA 2", () => {
     writeFileSync("tests/output/perf_etapa2.json", JSON.stringify(rows, null, 1));
     process.stderr.write(`PERF ${JSON.stringify(rows)}\n`);
     for (const r of rows) expect(r.solidoOCCT as number).toBeLessThan(20000);
-  });
+    // o limite é o de cima (20 s por caso); os 5 s padrão do vitest estouravam num PC Windows mais lento (ETAPA 6)
+  }, 120_000);
 });

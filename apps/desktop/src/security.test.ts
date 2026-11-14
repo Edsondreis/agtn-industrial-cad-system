@@ -1,13 +1,15 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { findDynamicCode } from "../../../core/solid/src/occt-csp-patch";
+import { fileURLToPath } from "node:url";
 
 /**
  * FASE 4 · ETAPA 5 — bateria de segurança (estática). O que roda no navegador/WebView está em
  * tests/e2e/csp_chromium_smoke.py (modo estrito) e scripts/windows/smoke (WebView2).
  *  1. CSP ativa e mínima;  5. permissões Tauri sem excesso;  6. sem origem externa;  4. build sem geração de código.
  */
-const ROOT = new URL("../../../", import.meta.url).pathname;
+// fileURLToPath: no Windows, URL.pathname vira "/D:/..." e o caminho quebra (achado na ETAPA 6)
+const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const conf = JSON.parse(readFileSync(join(ROOT, "apps/desktop/src-tauri/tauri.conf.json"), "utf8"));
 const csp: string = conf.app.security.csp;
 const dir = Object.fromEntries(

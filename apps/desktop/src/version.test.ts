@@ -1,12 +1,14 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 /**
  * FASE 4 · ETAPA 5 (F-08): a versão aparece em 5 lugares e o GitHub Actions publica uma Release automática quando
  * `v<versão do tauri.conf.json>` ainda não existe. Este teste NÃO muda a versão: garante que os 5 lugares concordam
  * e que existe a nota de versão que a publicação usaria (docs/release-notes/v<versão>.md).
  */
-const ROOT = new URL("../../../", import.meta.url).pathname;
+// fileURLToPath: no Windows, URL.pathname vira "/D:/..." e o caminho quebra (achado na ETAPA 6)
+const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const j = (p: string) => JSON.parse(readFileSync(join(ROOT, p), "utf8"));
 const tauri = j("apps/desktop/src-tauri/tauri.conf.json").version as string;
 
