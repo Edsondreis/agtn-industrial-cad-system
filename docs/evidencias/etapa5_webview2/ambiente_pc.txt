@@ -1,0 +1,59 @@
+AGTN diag 14/11/2026 19:01:46,75 
+== whoami  
+desktop-p4d6iou\luiza
+== ver  
+
+Microsoft Windows [versão 10.0.26200.9711]
+== git  
+INFORMAÇÕES: não foi possível localizar arquivos para o(s) padrão(ões) especificado(s).
+'git' não é reconhecido como um comando interno
+ou externo, um programa operável ou um arquivo em lotes.
+== node  
+INFORMAÇÕES: não foi possível localizar arquivos para o(s) padrão(ões) especificado(s).
+'node' não é reconhecido como um comando interno
+ou externo, um programa operável ou um arquivo em lotes.
+== npm  
+'npm' não é reconhecido como um comando interno
+ou externo, um programa operável ou um arquivo em lotes.
+== cargo  
+INFORMAÇÕES: não foi possível localizar arquivos para o(s) padrão(ões) especificado(s).
+'cargo' não é reconhecido como um comando interno
+ou externo, um programa operável ou um arquivo em lotes.
+'rustc' não é reconhecido como um comando interno
+ou externo, um programa operável ou um arquivo em lotes.
+'rustup' não é reconhecido como um comando interno
+ou externo, um programa operável ou um arquivo em lotes.
+== python  
+C:\Users\Luiza\AppData\Local\Microsoft\WindowsApps\python.exe
+== pwsh  
+INFORMAÇÕES: não foi possível localizar arquivos para o(s) padrão(ões) especificado(s).
+== vswhere  
+O sistema não pode encontrar o caminho especificado.
+== webview2  
+
+HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}
+    pv    REG_SZ    157.0.4341.46
+
+ERRO: O sistema não pôde localizar a chave do Registro ou valor especificado.
+== agtn instalado  
+
+Fim da pesquisa: 0 correspondência(s) encontrada(s).
+
+Fim da pesquisa: 0 correspondência(s) encontrada(s).
+== psversion  
+5.1.26100.9711
+
+        Scope ExecutionPolicy
+        ----- ---------------
+MachinePolicy       Undefined
+   UserPolicy       Undefined
+      Process       Undefined
+  CurrentUser       Undefined
+ LocalMachine       Undefined
+
+
+
+7,94575500488281
+AMD Ryzen 5 3500X 6-Core Processor             
+4,08087539672852
+== FIM 

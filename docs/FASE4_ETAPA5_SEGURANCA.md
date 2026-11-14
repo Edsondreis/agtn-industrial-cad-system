@@ -32,10 +32,16 @@ connect-src 'self' ipc: http://ipc.localhost; object-src 'none'; base-uri 'self'
 | Restrição | O que quebra |
 |---|---|
 | sem `'wasm-unsafe-eval'` | o motor (comprovado no caso `semwasmcsp`) |
-| sem `style-src 'unsafe-inline'` | a interface (estilos em linha do React/three, presentes desde a v3.1.1). Remover exigiria mudar a UI 2D: fora do escopo e contra a regra de não mexer no 2D |
+| sem `style-src 'unsafe-inline'` | ~~a interface~~ **Revisto em 14/11 (WebView2 real):** no app Tauri esse `'unsafe-inline'` já é ignorado, porque o Tauri põe um nonce no `style-src`. O app passou 228/228 assim, depois da F-10. Os estilos do React entram por CSSOM. A remoção fica proposta para a próxima etapa, com nova rodada no WebView2 |
 | sem `img-src blob: data:` | miniaturas/imagens geradas |
 
-## Windows / WebView2 (preparado, não executado)
+## Windows / WebView2 — executado em 14/11/2026 (`FASE4_ETAPA5_WEBVIEW2_EXECUCAO.md`)
+
+- **228/228**: Windows 11, WebView2 157.0.4341.46, executável portátil GNU.
+- S9/S9-cdp limpos, depois da **F-10** (o `style=` do logo da abertura era bloqueado pela CSP com nonce; corrigido e coberto por `security.test.ts`).
+- S11: **o worker não recebe CSP no WebView2** (igual ao Linux). A F-05 garante que o motor não depende disso.
+
+Instrumento:
 
 `scripts/windows/smoke/webview2_smoke.ps1` roda no app instalado, sem Node. Verificações:
 - S1–S9: abre, WASM, OCCT, sólido, booleana, planificação, DXF com hash, DWG, persistência, CSP;

@@ -1,0 +1,188 @@
+﻿[
+    {
+        "t":  "19:18:14.624",
+        "sessao":  null,
+        "metodo":  "Runtime.executionContextCreated",
+        "params":  {
+                       "context":  {
+                                       "id":  2,
+                                       "origin":  "http://tauri.localhost",
+                                       "name":  "",
+                                       "uniqueId":  "-1188272498483030999.7174443751088201929",
+                                       "auxData":  {
+                                                       "isDefault":  true,
+                                                       "type":  "default",
+                                                       "frameId":  "075810B70B7C6781B78D933345771E66"
+                                                   }
+                                   }
+                   }
+    },
+    {
+        "t":  "19:18:14.644",
+        "sessao":  null,
+        "metodo":  "Log.entryAdded",
+        "params":  {
+                       "entry":  {
+                                     "source":  "security",
+                                     "level":  "error",
+                                     "text":  "Applying inline style violates the following Content Security Policy directive \u0027style-src \u0027self\u0027 \u0027unsafe-inline\u0027 \u0027nonce-10538564869851719600\u0027\u0027. Note that \u0027unsafe-inline\u0027 is ignored if either a hash or nonce value is present in the source list. The action has been blocked.",
+                                     "timestamp":  1794694694422.019,
+                                     "url":  "http://tauri.localhost/",
+                                     "lineNumber":  11
+                                 }
+                   }
+    },
+    {
+        "t":  "19:18:14.711",
+        "sessao":  null,
+        "metodo":  "Page.frameStartedNavigating",
+        "params":  {
+                       "frameId":  "075810B70B7C6781B78D933345771E66",
+                       "url":  "http://tauri.localhost/",
+                       "loaderId":  "BADE7CC3614F223D4D12E75004B94DB0",
+                       "navigationType":  "reloadBypassingCache"
+                   }
+    },
+    {
+        "t":  "19:18:14.714",
+        "sessao":  null,
+        "metodo":  "Page.frameStartedLoading",
+        "params":  {
+                       "frameId":  "075810B70B7C6781B78D933345771E66"
+                   }
+    },
+    {
+        "t":  "19:18:15.011",
+        "sessao":  null,
+        "metodo":  "Runtime.executionContextsCleared",
+        "params":  {
+
+                   }
+    },
+    {
+        "t":  "19:18:15.013",
+        "sessao":  null,
+        "metodo":  "Page.frameNavigated",
+        "params":  {
+                       "frame":  {
+                                     "id":  "075810B70B7C6781B78D933345771E66",
+                                     "loaderId":  "BADE7CC3614F223D4D12E75004B94DB0",
+                                     "url":  "http://tauri.localhost/",
+                                     "domainAndRegistry":  "tauri.localhost",
+                                     "securityOrigin":  "http://tauri.localhost",
+                                     "securityOriginDetails":  {
+                                                                   "isLocalhost":  true
+                                                               },
+                                     "mimeType":  "text/html",
+                                     "adFrameStatus":  {
+                                                           "adFrameType":  "none"
+                                                       },
+                                     "secureContextType":  "SecureLocalhost",
+                                     "crossOriginIsolatedContextType":  "NotIsolated",
+                                     "gatedAPIFeatures":  [
+
+                                                          ]
+                                 },
+                       "type":  "Navigation"
+                   }
+    },
+    {
+        "t":  "19:18:15.020",
+        "sessao":  null,
+        "metodo":  "Runtime.executionContextCreated",
+        "params":  {
+                       "context":  {
+                                       "id":  3,
+                                       "origin":  "http://tauri.localhost",
+                                       "name":  "",
+                                       "uniqueId":  "-8003106659721836417.8641801020674401374",
+                                       "auxData":  {
+                                                       "isDefault":  true,
+                                                       "type":  "default",
+                                                       "frameId":  "075810B70B7C6781B78D933345771E66"
+                                                   }
+                                   }
+                   }
+    },
+    {
+        "t":  "19:18:15.032",
+        "sessao":  null,
+        "metodo":  "Log.entryAdded",
+        "params":  {
+                       "entry":  {
+                                     "source":  "security",
+                                     "level":  "error",
+                                     "text":  "Applying inline style violates the following Content Security Policy directive \u0027style-src \u0027self\u0027 \u0027unsafe-inline\u0027 \u0027nonce-15332781463111973327\u0027\u0027. Note that \u0027unsafe-inline\u0027 is ignored if either a hash or nonce value is present in the source list. The action has been blocked.",
+                                     "timestamp":  1794694694718.6389,
+                                     "url":  "http://tauri.localhost/",
+                                     "lineNumber":  11
+                                 }
+                   }
+    },
+    {
+        "t":  "19:18:15.039",
+        "sessao":  null,
+        "metodo":  "Page.domContentEventFired",
+        "params":  {
+                       "timestamp":  1289.610872
+                   }
+    },
+    {
+        "t":  "19:18:15.041",
+        "sessao":  null,
+        "metodo":  "Page.loadEventFired",
+        "params":  {
+                       "timestamp":  1289.611561
+                   }
+    },
+    {
+        "t":  "19:18:15.061",
+        "sessao":  null,
+        "metodo":  "Page.frameStoppedLoading",
+        "params":  {
+                       "frameId":  "075810B70B7C6781B78D933345771E66"
+                   }
+    },
+    {
+        "t":  "19:18:15.706",
+        "sessao":  null,
+        "metodo":  "Target.attachedToTarget",
+        "params":  {
+                       "sessionId":  "7B8EDCBA1CD816D0B90A56176B1ADCA9",
+                       "targetInfo":  {
+                                          "targetId":  "179FCB1C4002FF4C94F77138A069F0FC",
+                                          "type":  "worker",
+                                          "title":  "agtn-motor-3d",
+                                          "url":  "http://tauri.localhost/assets/engine.worker-B8FrtAMX.js",
+                                          "attached":  true,
+                                          "parentId":  "075810B70B7C6781B78D933345771E66",
+                                          "canAccessOpener":  false,
+                                          "parentFrameId":  "075810B70B7C6781B78D933345771E66",
+                                          "browserContextId":  "6FF4FC9BBD6FFD338782BBCE2A9CAB2A",
+                                          "pid":  16380
+                                      },
+                       "waitingForDebugger":  false
+                   }
+    },
+    {
+        "t":  "19:18:15.714",
+        "sessao":  "7B8EDCBA1CD816D0B90A56176B1ADCA9",
+        "metodo":  "Runtime.executionContextCreated",
+        "params":  {
+                       "context":  {
+                                       "id":  1,
+                                       "origin":  "http://tauri.localhost/assets/engine.worker-B8FrtAMX.js",
+                                       "name":  "agtn-motor-3d",
+                                       "uniqueId":  "-4118255894891374012.-2367895852375085209"
+                                   }
+                   }
+    },
+    {
+        "t":  "19:18:15.726",
+        "sessao":  "7B8EDCBA1CD816D0B90A56176B1ADCA9",
+        "metodo":  "Inspector.workerScriptLoaded",
+        "params":  {
+
+                   }
+    }
+]

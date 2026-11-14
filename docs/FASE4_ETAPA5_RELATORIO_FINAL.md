@@ -9,7 +9,7 @@ Sem merge, sem publicação, sem Release. **Homologação continua PENDENTE** (W
 - Ele inicia e funciona com a CSP aplicada inclusive ao worker, sem `'unsafe-eval'`. Esse é o cenário que falhava na ETAPA 4: 20/30 antes, 66/66 agora (3 rodadas).
 - O mesmo vale com o V8 proibindo geração de código: a suíte inteira passa (628 testes).
 
-**Ressalva obrigatória:** a prova foi feita em Linux (Node, Chromium, WebKitGTK compilado). No WebView2 real ainda não rodou. A homologação Windows continua pendente.
+**Atualização 14/11/2026:** executado no **WebView2 real** (Windows 11, WebView2 157.0.4341.46): **228/228** depois da correção F-10 (`FASE4_ETAPA5_WEBVIEW2_EXECUCAO.md`). Foi usado um executável portátil compilado em cruzado (GNU), não o instalador oficial MSVC. A homologação Windows continua pendente (W1–W4, W6, D3–D5, I2).
 
 ## 1. Causa raiz
 
@@ -98,20 +98,26 @@ Nenhum mensurável (`FASE4_ETAPA5_DESEMPENHO.md`):
 
 ## 8. Situação do WebView2
 
-**Não testado** (não há Windows nesta sessão). Preparado:
+**Executado em 14/11/2026 no PC do Edson: 228/228 (3 repetições × 6 projetos)**, depois da F-10. Detalhes, ressalvas e medidas em `FASE4_ETAPA5_WEBVIEW2_EXECUCAO.md`.
+
+- **S11:** o Tauri 2.12.5 também **não** aplica a CSP ao worker no WebView2, igual ao Linux. A correção F-05 vale como garantia para qualquer plataforma.
+- **F-10** (achado só no WebView2, pré-existente na v3.1.1): o nonce que o Tauri põe no `style-src` anula o `'unsafe-inline'` e bloqueia o `style=` do logo da abertura. Corrigido movendo o estilo para o `<style>`, com teste novo.
+- Ressalva: executável `x86_64-pc-windows-gnu` portátil, sem instalador. O build MSVC e o NSIS ainda não foram exercitados.
+
+Instrumentos (preparados antes):
 - `webview2_smoke.ps1` com S1–S11:
   - mostra o código do diagnóstico se o motor falhar;
   - pergunta ao worker, no WebView2, se a CSP é aplicada a ele;
 - `validar_instalado.ps1` e `homologacao.ps1` (ETAPA 4), agora com o novo teste de fumaça;
 - passo manual no GitHub Actions (sem publicar), se a cobrança for resolvida.
 
-**Não declaro compatibilidade com o WebView2.**
+**WebView2 157 funciona com o app (motor 3D, CSP, IPC, gravação de arquivos). A compatibilidade do instalador oficial ainda não está demonstrada.**
 
 ## 9. Riscos remanescentes
 
 | Risco | Gravidade | Situação |
 |---|---|---|
-| WebView2 real não executado | ALTA (homologação) | instrumentos prontos; depende do PC da AGTN |
+| Instalador oficial (MSVC/NSIS) não exercitado no Windows | ALTA (homologação) | o WebView2 real já foi aprovado com o executável GNU portátil (228/228); faltam W1–W4 |
 | Atualização do occt-wasm | MÉDIA | o build para (SHA-256) e obriga a revisar; procedimento em `FASE4_ETAPA5_MOTOR_3D.md` |
 | Correção mantida pela AGTN (não pelo autor do occt-wasm) | BAIXA | 1 arquivo, testes de equivalência, de execução e controles negativos; pedir `EMBIND_AOT` ao mantenedor |
 | `MEMORY`/`COMMUNICATION` sem teste de ponta a ponta | BAIXA | classificação coberta por teste unitário com mensagens reais |
@@ -178,4 +184,4 @@ Branch `feature/agtn-3d-ia`, sobre `c32f309` (ETAPA 4). A `main` não foi tocada
 | Regressão passa | sim |
 | Sem perda de funcionalidade | sim |
 | Documentado | 8 documentos `FASE4_ETAPA5_*` |
-| WebView2 real | **PENDENTE** (obrigatório para homologação) |
+| WebView2 real | **APROVADO 228/228** com executável portátil GNU; instalador oficial PENDENTE |

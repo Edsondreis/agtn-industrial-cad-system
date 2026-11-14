@@ -9,3 +9,4 @@ tests/output/
 apps/desktop/src-tauri/gen/schemas/
 *.local
 __pycache__/
+dist_windows_gnu/
