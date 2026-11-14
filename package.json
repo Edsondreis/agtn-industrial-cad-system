@@ -16,7 +16,8 @@
     "dev": "npm run dev -w @agtn/desktop",
     "build": "npm run build -w @agtn/desktop",
     "tauri": "npm run tauri -w @agtn/desktop --",
-    "validate:dxf": "python3 tests/dxf/validate_with_ezdxf.py"
+    "validate:dxf": "python3 tests/dxf/validate_with_ezdxf.py",
+    "test:sem-eval": "node scripts/test-sem-eval.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

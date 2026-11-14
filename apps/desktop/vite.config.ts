@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
 import { createReadStream, readFileSync, statSync } from "node:fs";
 import type { Connect, Plugin } from "vite";
+import { patchOcctGlue } from "../../core/solid/src/occt-csp-patch";
 
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 const pkg = JSON.parse(readFileSync(r("./package.json"), "utf-8")) as { version: string };
@@ -25,10 +26,12 @@ function occtWasmDev(): Plugin {
     enforce: "pre",
     // o glue do Emscripten referencia o .wasm por `new URL(...)`, o que faria o Vite copiá-lo para o `dist`
     // (e o Tauri o embutiria no .exe). O binário sempre chega por `init({ wasm })`, então a referência é anulada.
+    // F-05 (ETAPA 5): o embind do glue gera código com Function(...) — proibido pela CSP. patchOcctGlue troca os dois
+    // geradores por closures equivalentes (= -sDYNAMIC_EXECUTION=0) e PARA o build se o glue não for o da 5.17.1.
     transform(code, id) {
       if (!id.includes("occt-wasm/dist/occt-wasm.js")) return null;
-      const out = code.replace('new URL("occt-wasm.wasm",import.meta.url).href', '"occt-wasm.wasm"');
-      if (out === code) this.error("occt-wasm: referência ao .wasm não encontrada — revise o plugin agtn-occt-wasm.");
+      const out = patchOcctGlue(code).replace('new URL("occt-wasm.wasm",import.meta.url).href', '"occt-wasm.wasm"');
+      if (!out.includes('"occt-wasm.wasm"') || out.includes('new URL("occt-wasm.wasm"')) this.error("occt-wasm: referência ao .wasm não encontrada — revise o plugin agtn-occt-wasm.");
       return { code: out, map: null };
     },
     configureServer: (s) => void s.middlewares.use(mw),
@@ -40,6 +43,8 @@ function occtWasmDev(): Plugin {
 export default defineConfig({
   plugins: [react(), occtWasmDev()],
   worker: { format: "es", plugins: () => [occtWasmDev()] },
+  // o occt-wasm não pode ser pré-empacotado pelo esbuild no `vite dev`: o pré-empacotamento pula o transform acima
+  optimizeDeps: { exclude: ["occt-wasm"] },
   clearScreen: false,
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   resolve: {

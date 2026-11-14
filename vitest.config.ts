@@ -1,9 +1,21 @@
 import { defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
+import type { Plugin } from "vite";
+import { patchOcctGlue } from "./core/solid/src/occt-csp-patch";
 
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
+/** F-05 (ETAPA 5): os testes usam o MESMO glue do OCCT que o app (sem geração de código). */
+const occtCsp = (): Plugin => ({
+  name: "agtn-occt-csp",
+  enforce: "pre",
+  transform(code, id) {
+    return id.includes("occt-wasm/dist/occt-wasm.js") ? { code: patchOcctGlue(code), map: null } : null;
+  },
+});
+
 export default defineConfig({
+  plugins: [occtCsp()],
   resolve: {
     alias: {
       "@agtn/geometry": r("./core/geometry/src/index.ts"),
@@ -22,6 +34,8 @@ export default defineConfig({
   },
   test: {
     globals: true,
+    // o occt-wasm passa pelo Vite (e pelo plugin acima) em vez de ser carregado direto pelo Node
+    server: { deps: { inline: [/occt-wasm/] } },
     include: [
       "core/*/src/**/*.test.ts",
       "modules/*/src/**/*.test.ts",

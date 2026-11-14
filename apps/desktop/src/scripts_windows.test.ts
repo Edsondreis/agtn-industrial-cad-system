@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { runInNewContext } from "node:vm";
 
 /**
  * FASE 4 · ETAPA 4 — scripts de homologação do Windows (scripts/windows). Não roda PowerShell (o ambiente de
@@ -28,8 +29,9 @@ describe("scripts de homologação do Windows", () => {
     });
   it("agtn_smoke.js compila e define window.__agtnSmoke", () => {
     const src = readFileSync(join(ROOT, "scripts/windows/smoke/agtn_smoke.js"), "utf8");
+    // vm (e não Function/eval): o teste também roda com --disallow-code-generation-from-strings
     const w: Record<string, unknown> = {};
-    new Function("window", src)(w);
+    runInNewContext(src, { window: w });
     expect(typeof w.__agtnSmoke).toBe("function");
   });
   it("referencias.json cobre os projetos abertos pelo webview2_smoke.ps1, e eles existem", () => {
