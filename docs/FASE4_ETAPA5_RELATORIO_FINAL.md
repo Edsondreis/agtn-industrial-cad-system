@@ -1,7 +1,7 @@
 # FASE 4 · ETAPA 5 — Relatório final: estabilização do motor 3D, CSP e WebView2
 
 Data: 13/11/2026 · Branch `feature/agtn-3d-ia` · `main` = `23a2540` (v3.1.1), **não alterada**.
-Sem merge, sem publicação, sem Release. **Homologação continua PENDENTE** (WebView2 real não executado).
+Sem merge, sem publicação, sem Release. **Homologação continua PENDENTE** (WebView2 real executado em 14/11 com executável portátil; instalador oficial não exercitado).
 
 ## Veredito: **F-05 RESOLVIDO TECNICAMENTE**
 
@@ -122,7 +122,7 @@ Instrumentos (preparados antes):
 | Correção mantida pela AGTN (não pelo autor do occt-wasm) | BAIXA | 1 arquivo, testes de equivalência, de execução e controles negativos; pedir `EMBIND_AOT` ao mantenedor |
 | `MEMORY`/`COMMUNICATION` sem teste de ponta a ponta | BAIXA | classificação coberta por teste unitário com mensagens reais |
 | **F-08: publicação automática** | ALTA (processo) | ver §10; nada foi alterado |
-| PowerShell nunca executado | MÉDIA | scripts revisados; o transporte CDP só se prova no Windows |
+| `homologacao.ps1` e `validar_instalado.ps1` nunca executados | MÉDIA | o `webview2_smoke.ps1` (PowerShell 5.1 + CDP) **rodou** no Windows em 14/11; os outros dois dependem de ferramentas/instalador |
 
 ## 10. Versão e publicação (F-08) — proposta para decisão do Edson
 
@@ -166,16 +166,19 @@ Branch `feature/agtn-3d-ia`, sobre `c32f309` (ETAPA 4). A `main` não foi tocada
 | `de4972c` | F-05: correção do glue no build, testes de execução sem eval, `test:sem-eval`, CSP mais restrita |
 | `1f7ca6a` | F-06: diagnóstico do motor 3D, recuperação, rótulos de falha de operação |
 | `eb4532a` | instrumentos: `engine_fail.py`, S10, F-09, S11 no WebView2, `security.test`, `version.test` |
-| `442fb45` | estes 8 documentos `FASE4_ETAPA5_*` (+ correção de 1 linha deste relatório no commit seguinte) |
+| `442fb45` | estes 8 documentos `FASE4_ETAPA5_*` |
+| `58df155` | correção de 1 linha deste relatório |
+| `8914429` | F-10: estilo do logo da abertura fora do atributo `style=` (achado no WebView2) |
+| `f77dfe9` | execução no WebView2 real (228/228), evidências e `scripts/build_windows_gnu.sh` |
 
 ## Critérios de aceitação da etapa
 
 | Critério | Situação |
 |---|---|
-| F-05 resolvido ou formalmente dependência externa | **resolvido tecnicamente** (falta só a confirmação no WebView2) |
+| F-05 resolvido ou formalmente dependência externa | **resolvido tecnicamente**; motor 3D confirmado no WebView2 real (228/228) |
 | F-06 corrigido | sim |
 | CSP ativa | sim, mais restrita |
-| Motor 3D funcionando com a política proposta | sim (Node, Chromium estrito, WebKitGTK compilado) |
+| Motor 3D funcionando com a política proposta | sim (Node, Chromium estrito, WebKitGTK compilado, WebView2 157 no Windows 11) |
 | OCCT inicializa | sim |
 | Sólidos corretos | sim (volumes a 1e-9) |
 | Booleanas | sim |
