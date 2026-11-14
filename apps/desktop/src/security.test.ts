@@ -48,6 +48,10 @@ describe("CSP de produção (tauri.conf.json)", () => {
   it("style-src 'unsafe-inline' é a única exceção de inline (estilos do React/three; não executa código)", () => {
     expect(dir["style-src"]).toEqual(["'self'", "'unsafe-inline'"]);
   });
+  it("index.html sem atributo style=\"\" (F-10: o Tauri põe nonce no style-src e o WebView2 passa a ignorar 'unsafe-inline')", () => {
+    const html = readFileSync(join(ROOT, "apps/desktop/index.html"), "utf8");
+    expect(html).not.toMatch(/\sstyle\s*=/i);
+  });
 });
 
 describe("permissões do Tauri (capabilities/default.json)", () => {

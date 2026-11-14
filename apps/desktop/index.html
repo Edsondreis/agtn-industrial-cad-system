@@ -8,6 +8,8 @@
       html, body { margin: 0; height: 100%; background: #0f1114; }
       #splash { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column;
         background: #0f1114; color: #e6e9ee; font-family: "Segoe UI", system-ui, sans-serif; z-index: 9999; transition: opacity .25s; }
+      /* sem atributo de estilo no HTML: o Tauri põe nonce no style-src e o WebView2 bloqueia estilo inline (F-10) */
+      #splash img { width: 240px; margin-bottom: 16px; }
       #splash .mark { font-size: 15px; font-weight: 600; letter-spacing: 5px; color: #d9dee5; }
       #splash .mark span { color: #4b93ea; }
       #splash .sub { margin-top: 6px; font-size: 12px; letter-spacing: 3px; color: #8a94a3; text-transform: uppercase; }
@@ -17,7 +19,7 @@
     </style>
   </head>
   <body>
-    <div id="splash"><img src="/brand/agtn-logo-dark.svg" alt="AGTN" style="width:240px;margin-bottom:16px" /><div class="mark">INDUSTRIAL <span>CAD</span></div><div class="sub">Iniciando</div><div class="bar"></div></div>
+    <div id="splash"><img src="/brand/agtn-logo-dark.svg" alt="AGTN" /><div class="mark">INDUSTRIAL <span>CAD</span></div><div class="sub">Iniciando</div><div class="bar"></div></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
