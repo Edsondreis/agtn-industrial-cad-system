@@ -107,4 +107,12 @@ export interface EngineRequest<K extends EngineOp = EngineOp> {
 }
 export type EngineResponse =
   | { readonly id: number; readonly ok: true; readonly result: unknown }
-  | { readonly id: number; readonly ok: false; readonly error: string; readonly details?: readonly string[] };
+  | {
+      readonly id: number;
+      readonly ok: false;
+      readonly error: string;
+      readonly details?: readonly string[];
+      /** nome do erro original (F-06) e etapa ("init" na inicialização do OCCT) */
+      readonly errorName?: string;
+      readonly stage?: "init" | "sync";
+    };

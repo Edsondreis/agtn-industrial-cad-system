@@ -55,6 +55,10 @@
 .v3-banner { position: absolute; top: 10px; left: 50%; translate: -50% 0; padding: 4px 12px; border-radius: 12px; background: rgba(255, 200, 87, 0.14); border: 1px solid rgba(255, 200, 87, 0.5); color: #ffe2a3; font-size: 11px; letter-spacing: 1px; font-weight: 600; pointer-events: none; }
 .v3-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--text-dim); pointer-events: none; }
 .v3-center.err { color: var(--err); pointer-events: auto; text-align: center; padding: 24px; }
+/* F-06 (ETAPA 5): diagnóstico do motor 3D */
+.v3-center.err .note { color: var(--text-dim); max-width: 560px; }
+.v3-diag-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+.v3-diag { max-width: min(760px, 92%); max-height: 40%; overflow: auto; text-align: left; white-space: pre-wrap; word-break: break-word; font: 11px/1.45 ui-monospace, Consolas, monospace; color: var(--text); background: rgba(0, 0, 0, 0.35); border: 1px solid var(--border, #444); border-radius: 6px; padding: 10px 12px; user-select: text; }
 .v3-empty { position: absolute; left: 50%; top: 50%; translate: -50% -50%; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 26px 30px; border: 1px dashed var(--line-3); border-radius: var(--r-lg); background: rgba(20, 23, 27, 0.72); color: var(--text-dim); text-align: center; }
 .v3-empty > svg { width: 44px; height: 44px; color: var(--accent-hi); }
 .v3-empty b { color: var(--text-hi); letter-spacing: 2px; font-size: 13px; }

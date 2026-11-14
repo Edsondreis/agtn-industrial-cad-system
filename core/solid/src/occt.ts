@@ -79,7 +79,9 @@ export class OcctSolidKernel implements SolidKernel {
     try {
       return new OcctSolidKernel(await OcctKernel.init(opts));
     } catch (e) {
-      throw new SolidError("NOT_READY", "Não foi possível iniciar o motor 3D (OCCT).", [String((e as Error)?.message ?? e)]);
+      // F-06: guarda o nome do erro original (EvalError = CSP, CompileError = .wasm inválido, RangeError = memória)
+      const err = e as Error;
+      throw new SolidError("NOT_READY", "Não foi possível iniciar o motor 3D (OCCT).", [err?.name && err?.message ? `${err.name}: ${err.message}` : String(err?.message ?? e)]);
     }
   }
 

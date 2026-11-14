@@ -50,7 +50,8 @@ import { baseName, pickAndRead, pickSavePath, writeBytes, writeText } from "../p
 import { Icon } from "../ui/Icons";
 import { toast } from "../ui/toast";
 import { type CamState, STD_VIEWS, type StdView, initialCam } from "./camera";
-import { engine } from "./engine";
+import { type EngineDiagnostic, classifyEngineFailure, classifyOperationFailure, diagnosticText } from "./diagnostics";
+import { EngineError, engine } from "./engine";
 import { DEFAULT_SPECS, PrimitiveDialog } from "./PrimitiveDialog";
 import { Props3D } from "./Props3D";
 import type { EngineStats, SheetInfo, SyncResult, TopoRefMsg } from "./protocol";
@@ -94,7 +95,7 @@ const FILTERS: [PickFilter, string][] = [
   ["vertice", "vertex"],
 ];
 
-type EngineState = { s: "off" } | { s: "loading" } | { s: "ready"; kernel: string; ms: number } | { s: "error"; msg: string };
+type EngineState = { s: "off" } | { s: "loading" } | { s: "ready"; kernel: string; ms: number } | { s: "error"; diag: EngineDiagnostic };
 
 /** Esboço em edição: plano, editor e a peça de destino (null = nova peça ao concluir). */
 interface SketchSess {
@@ -245,6 +246,16 @@ export function Workspace3D({ ctl, onInsert }: { ctl: CadController; onInsert?: 
         },
         /** documento como o "Salvar" grava (homologação ETAPA 4: salvar/reabrir em caminho com acento) */
         serialize: () => serializeDocument(doc),
+        /** ETAPA 5: ida e volta interface ↔ worker (operação leve "stats"), mediana de n chamadas, em ms */
+        pingMs: async (n = 30) => {
+          const t: number[] = [];
+          for (let i = 0; i < n; i++) {
+            const t0 = performance.now();
+            await engine().call("stats", {});
+            t.push(performance.now() - t0);
+          }
+          return t.sort((a, b) => a - b)[Math.floor(n / 2)];
+        },
       };
     return () => {
       off();
@@ -254,15 +265,31 @@ export function Workspace3D({ ctl, onInsert }: { ctl: CadController; onInsert?: 
   }, [store]);
 
   /* ------------------------------------------------ motor */
-  useEffect(() => {
-    let dead = false;
+  const [diagOpen, setDiagOpen] = useState(false);
+  const engDead = useRef(false);
+  const startEngine = useCallback(() => {
     setEng({ s: "loading" });
+    setDiagOpen(false);
     engine()
       .start()
-      .then((r) => !dead && setEng({ s: "ready", kernel: r.kernel, ms: engine().initMs }))
-      .catch((e: Error) => !dead && setEng({ s: "error", msg: e.message }));
+      .then((r) => !engDead.current && setEng({ s: "ready", kernel: r.kernel, ms: engine().initMs }))
+      .catch((e: Error) => {
+        // F-06: classifica (WASM, worker, CSP, OCCT, memória, comunicação) e guarda o erro original para o suporte
+        const diag = e instanceof EngineError ? e.diagnostic : classifyEngineFailure("init", { name: e?.name, message: e?.message ?? String(e) });
+        console.error("[AGTN] motor 3D:", diagnosticText(diag));
+        (window as unknown as { __agtnEngineDiag?: EngineDiagnostic }).__agtnEngineDiag = diag;
+        if (!engDead.current) setEng({ s: "error", diag });
+      });
+  }, []);
+  const retryEngine = () => {
+    engine().dispose();
+    startEngine();
+  };
+  useEffect(() => {
+    engDead.current = false;
+    startEngine();
     return () => {
-      dead = true;
+      engDead.current = true;
       // fora da área 3D o motor é liberado após 2 min (memória para o 2D/CNC); voltar reinicia em ~0,5 s
       const ms = Number(localStorage.getItem("agtn.engineIdleMs")) || 120_000;
       engine().releaseLater(ms);
@@ -315,21 +342,29 @@ export function Workspace3D({ ctl, onInsert }: { ctl: CadController; onInsert?: 
             const key = `${bid}:${st.id}:${st.error ?? ""}`;
             if (st.state === "error" && !featErrs.current.has(key)) {
               featErrs.current.add(key);
-              toast(`${latest.nodes[bid]?.name ?? "Peça"} › ${feats.find((f) => f.id === st.id)?.name ?? st.id}: ${st.error}`, "error");
+              const feat = feats.find((f) => f.id === st.id);
+              const kind = classifyOperationFailure(feat as { t?: string; op?: string } | undefined);
+              toast(`${kind.rotulo} — ${latest.nodes[bid]?.name ?? "Peça"} › ${feat?.name ?? st.id}: ${st.error}`, "error");
             }
           }
         }
         setSyncMs(r.ms);
         setGeomRev((x) => x + 1);
         const errs = Object.entries(r.errors);
-        if (errs.length) toast(`${latest.nodes[errs[0][0]]?.name ?? "Corpo"}: ${errs[0][1]}`, "error");
+        if (errs.length) toast(`Falha ao gerar o sólido — ${latest.nodes[errs[0][0]]?.name ?? "Corpo"}: ${errs[0][1]}`, "error");
         if (firstFit.current && v.hasBodies()) {
           firstFit.current = false;
           v.fit();
         }
         void engine().call("stats", {}).then(setStats).catch(() => undefined);
       })
-      .catch((e: Error) => toast(`Motor 3D: ${e.message}`, "error"));
+      .catch((e: Error) => {
+        // a regeneração inteira falhou (não uma operação): motor caiu, memória, comunicação → diagnóstico
+        const diag = e instanceof EngineError ? classifyEngineFailure(e.stage === "init" ? "sync" : e.stage, { name: e.origName, message: e.message, details: e.details }) : classifyEngineFailure("sync", { name: e?.name, message: e?.message ?? String(e) });
+        console.error("[AGTN] motor 3D:", diagnosticText(diag));
+        (window as unknown as { __agtnEngineDiag?: EngineDiagnostic }).__agtnEngineDiag = diag;
+        toast(`${diag.titulo} ${diag.mensagem} (${diag.code})`, "error");
+      });
   }, [display, eng.s, doc]);
 
   // seleção → informação exata / medição (sempre pelo kernel)
@@ -631,7 +666,7 @@ export function Workspace3D({ ctl, onInsert }: { ctl: CadController; onInsert?: 
     if (!info) return exitFlat();
     if (info.flat.state !== "valida") {
       exitFlat();
-      if (!quiet) toast(`Planificação inválida: ${info.flat.reasons.join(" ")}`, "error");
+      if (!quiet) toast(`Falha na planificação: ${info.flat.reasons.join(" ")}`, "error");
       return;
     }
     try {
@@ -640,7 +675,7 @@ export function Workspace3D({ ctl, onInsert }: { ctl: CadController; onInsert?: 
       setFlatView(b);
     } catch (e) {
       exitFlat();
-      toast(`Planificação: ${(e as Error).message}`, "error");
+      toast(`Falha na planificação: ${(e as Error).message}`, "error");
     }
   };
   const toggleFlat = () => {
@@ -848,7 +883,7 @@ export function Workspace3D({ ctl, onInsert }: { ctl: CadController; onInsert?: 
   const nodeSelected = snap.sel.some((s) => s.t === "node");
   const v = vp.current;
   const engineLabel =
-    eng.s === "ready" ? `${eng.kernel} · pronto em ${Math.round(eng.ms)} ms` : eng.s === "loading" ? "Iniciando motor 3D…" : eng.s === "error" ? "Motor 3D com erro" : "—";
+    eng.s === "ready" ? `${eng.kernel} · pronto em ${Math.round(eng.ms)} ms` : eng.s === "loading" ? "Iniciando motor 3D…" : eng.s === "error" ? `Motor 3D com erro (${eng.diag.code})` : "—";
 
   return (
     <div className="ws3d">
@@ -1242,10 +1277,34 @@ export function Workspace3D({ ctl, onInsert }: { ctl: CadController; onInsert?: 
             </div>
           )}
           {eng.s === "error" && (
-            <div className="v3-center err">
-              <b>Não foi possível iniciar o motor 3D.</b>
-              <span>{eng.msg}</span>
-              <span className="note">O desenho 2D continua funcionando normalmente.</span>
+            <div className="v3-center err" role="alert" data-diag-code={eng.diag.code}>
+              <b>{eng.diag.titulo}</b>
+              <span>{eng.diag.mensagem}</span>
+              <span className="note">O desenho 2D permanece disponível.</span>
+              <span className="note">{eng.diag.acao}</span>
+              <div className="v3-diag-btns">
+                <button type="button" className="btn" onClick={retryEngine} data-act="engine-retry">
+                  Tentar novamente
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  data-act="engine-copy"
+                  onClick={() => {
+                    const t = diagnosticText(eng.diag);
+                    void navigator.clipboard?.writeText(t).then(
+                      () => toast("Diagnóstico copiado.", "info"),
+                      () => toast("Não foi possível copiar; abra os detalhes técnicos.", "warn"),
+                    );
+                  }}
+                >
+                  Copiar diagnóstico
+                </button>
+                <button type="button" className="btn" aria-expanded={diagOpen} onClick={() => setDiagOpen((x) => !x)} data-act="engine-details">
+                  Detalhes técnicos
+                </button>
+              </div>
+              {diagOpen && <pre className="v3-diag">{diagnosticText(eng.diag)}</pre>}
             </div>
           )}
           {eng.s === "ready" && !bodies(model).length && !sk && !planeAsk && !fd && (

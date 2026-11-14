@@ -334,7 +334,7 @@ self.onmessage = async (ev: MessageEvent<EngineRequest>) => {
     return;
   } catch (e) {
     const err = e as Error & { details?: string[] };
-    res = { id, ok: false, error: err.message || String(e), details: err.details };
+    res = { id, ok: false, error: err.message || String(e), details: err.details, errorName: err.name, stage: op === "init" ? "init" : "sync" };
   }
   self.postMessage(res);
 };

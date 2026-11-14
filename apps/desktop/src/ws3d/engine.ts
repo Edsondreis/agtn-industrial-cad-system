@@ -1,20 +1,40 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { Model3D } from "@agtn/model3d";
 import { isTauri } from "../platform/platform";
+import { type EngineDiagnostic, type EngineStage, classifyEngineFailure } from "./diagnostics";
 import type { EngineApi, EngineOp, EngineRequest, EngineResponse, SyncResult } from "./protocol";
 
 export class EngineError extends Error {
-  constructor(message: string, readonly details: readonly string[] = []) {
+  constructor(
+    message: string,
+    readonly details: readonly string[] = [],
+    /** etapa em que falhou (F-06): leitura do .wasm, worker, inicialização do OCCT, comunicação */
+    readonly stage: EngineStage = "init",
+    /** nome do erro original (EvalError, CompileError, RangeError…) */
+    readonly origName?: string,
+  ) {
     super(message);
+  }
+  get diagnostic(): EngineDiagnostic {
+    return classifyEngineFailure(this.stage, { name: this.origName, message: this.message, details: this.details });
   }
 }
 
+/** Tempo máximo para o worker responder à inicialização (o OCCT leva ~0,5–1,5 s; 90 s = travado). */
+const INIT_TIMEOUT_MS = 90_000;
+const errText = (e: unknown) => (e instanceof Error ? `${e.name}: ${e.message}` : String(e));
+
 /** Lê o binário do motor: recurso do instalador (Tauri) ou middleware do Vite (navegador). */
 async function loadWasm(): Promise<ArrayBuffer> {
-  if (isTauri()) return invoke<ArrayBuffer>("read_engine", { name: "occt-wasm.wasm" });
-  const r = await fetch("/__engine/occt-wasm.wasm");
-  if (!r.ok) throw new EngineError(`Motor 3D não encontrado (${r.status}).`);
-  return r.arrayBuffer();
+  try {
+    if (isTauri()) return await invoke<ArrayBuffer>("read_engine", { name: "occt-wasm.wasm" });
+    const r = await fetch("/__engine/occt-wasm.wasm");
+    if (!r.ok) throw new EngineError(`Motor 3D não encontrado (HTTP ${r.status}).`, [], "wasm");
+    return await r.arrayBuffer();
+  } catch (e) {
+    if (e instanceof EngineError) throw e;
+    throw new EngineError("Não foi possível ler o arquivo do motor 3D (occt-wasm.wasm).", [errText(e)], "wasm", (e as Error)?.name);
+  }
 }
 
 /**
@@ -31,6 +51,7 @@ export class Engine {
   private nextFull = false;
   private nextWaiters: { ok: (v: SyncResult | null) => void; fail: (e: Error) => void }[] = [];
   initMs = 0;
+  wasmLoadMs = 0;
   wasmBytesOnDisk = 0;
 
   private idleTimer = 0;
@@ -53,17 +74,44 @@ export class Engine {
         const t0 = performance.now();
         const wasm = await loadWasm();
         this.wasmBytesOnDisk = wasm.byteLength;
-        this.worker = new Worker(new URL("./engine.worker.ts", import.meta.url), { type: "module", name: "agtn-motor-3d" });
+        this.wasmLoadMs = performance.now() - t0;
+        let initDone = false;
+        try {
+          this.worker = new Worker(new URL("./engine.worker.ts", import.meta.url), { type: "module", name: "agtn-motor-3d" });
+        } catch (e) {
+          throw new EngineError("O worker do motor 3D não pôde ser criado.", [errText(e)], "worker", (e as Error)?.name);
+        }
         this.worker.onmessage = (ev: MessageEvent<EngineResponse>) => this.onMessage(ev.data);
+        // erro do worker ANTES de responder à inicialização = o worker não iniciou (script, módulo, CSP do worker);
+        // depois = o worker caiu no meio do trabalho (comunicação perdida)
         this.worker.onerror = (ev) => {
-          for (const p of this.pending.values()) p.fail(new EngineError(`Falha no motor 3D: ${ev.message}`));
+          const stage: EngineStage = initDone ? "comm" : "worker";
+          const msg = ev.message || "erro sem mensagem no worker do motor 3D";
+          const where = ev.filename ? [`${ev.filename}:${ev.lineno}:${ev.colno}`] : [];
+          for (const p of this.pending.values()) p.fail(new EngineError(`Falha no motor 3D: ${msg}`, [msg, ...where], stage));
           this.pending.clear();
         };
-        const r = await this.raw("init", { wasm }, [wasm]);
-        this.initMs = performance.now() - t0;
-        return r;
+        this.worker.onmessageerror = () => {
+          for (const p of this.pending.values()) p.fail(new EngineError("Mensagem do motor 3D não pôde ser lida.", ["messageerror"], "comm"));
+          this.pending.clear();
+        };
+        let timer = 0;
+        const timeout = new Promise<never>((_, fail) => {
+          timer = window.setTimeout(() => fail(new EngineError(`O motor 3D não respondeu em ${INIT_TIMEOUT_MS / 1000} s.`, ["sem resposta à inicialização"], "comm")), INIT_TIMEOUT_MS);
+        });
+        try {
+          const r = await Promise.race([this.raw("init", { wasm }, [wasm]), timeout]);
+          initDone = true;
+          this.initMs = performance.now() - t0;
+          return r;
+        } finally {
+          window.clearTimeout(timer);
+        }
       })();
       this.ready.catch(() => {
+        // falhou: libera o worker para que "Tentar novamente" comece do zero (recuperação após falha)
+        this.worker?.terminate();
+        this.worker = null;
         this.ready = null;
       });
     }
@@ -75,12 +123,12 @@ export class Engine {
     if (!p) return;
     this.pending.delete(m.id);
     if (m.ok) p.ok(m.result);
-    else p.fail(new EngineError(m.error, m.details ?? []));
+    else p.fail(new EngineError(m.error, m.details ?? [], m.stage ?? "init", m.errorName));
   }
 
   private raw<K extends EngineOp>(op: K, args: Parameters<EngineApi[K]>[0], transfer: Transferable[] = []): Promise<ReturnType<EngineApi[K]>> {
     const w = this.worker;
-    if (!w) return Promise.reject(new EngineError("Motor 3D não iniciado."));
+    if (!w) return Promise.reject(new EngineError("Motor 3D não iniciado.", [], "comm"));
     const id = ++this.seq;
     const req: EngineRequest<K> = { id, op, args };
     return new Promise((ok, fail) => {
@@ -138,7 +186,7 @@ export class Engine {
     this.worker?.terminate();
     this.worker = null;
     this.ready = null;
-    for (const p of this.pending.values()) p.fail(new EngineError("Motor 3D encerrado."));
+    for (const p of this.pending.values()) p.fail(new EngineError("Motor 3D encerrado.", [], "comm"));
     this.pending.clear();
   }
 }
