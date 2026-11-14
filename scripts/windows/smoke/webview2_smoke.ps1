@@ -142,8 +142,8 @@ function Cdp-Send([string]$method, $params, [string]$session = "") {
   $script:ws.SendAsync($seg, [System.Net.WebSockets.WebSocketMessageType]::Text, $true, [Threading.CancellationToken]::None).Wait() | Out-Null
   return $script:nextId
 }
-function Cdp-Call([string]$method, $params, [int]$ms = 30000) {
-  $id = Cdp-Send $method $params
+function Cdp-Call([string]$method, $params, [int]$ms = 30000, [string]$session = "") {
+  $id = Cdp-Send $method $params $session
   $deadline = [DateTime]::UtcNow.AddMilliseconds($ms)
   while ($true) {
     $left = [int]($deadline - [DateTime]::UtcNow).TotalMilliseconds
@@ -151,7 +151,8 @@ function Cdp-Call([string]$method, $params, [int]$ms = 30000) {
     $s = Cdp-Read $left
     if ($null -eq $s) { continue }
     $m = $s | ConvertFrom-Json
-    if ($m.id -eq $id -and -not $m.sessionId) {
+    $sameSession = $(if ($session) { $m.sessionId -eq $session } else { -not $m.sessionId })
+    if ($m.id -eq $id -and $sameSession) {
       if ($m.error) { throw "CDP $method : $($m.error.message)" }
       return $m.result
     }
@@ -260,6 +261,17 @@ for ($rep = 1; $rep -le $Repeticoes; $rep++) {
       $workers = @($script:events | Where-Object { $_.metodo -eq "Target.attachedToTarget" } | ForEach-Object { $_.params.targetInfo.type + " " + $_.params.targetInfo.url })
       $exc = @($script:events | Where-Object { $_.metodo -eq "Runtime.exceptionThrown" })
       $res.testes += [ordered]@{ id = "S9-cdp"; nome = "console sem erro de segurança (página e worker, via CDP)"; ok = ($sec.Count -eq 0); detalhe = "$($script:events.Count) eventos; segurança $($sec.Count); exceções $($exc.Count); alvos: $($workers -join ' | ')"; ms = $null }
+      # ETAPA 5 — S11: o WebView2 aplica a CSP ao WORKER do motor? (dependência externa da F-05, agora só informativa:
+      # com o glue corrigido o motor não precisa de eval em nenhum dos dois casos). Pergunta direto dentro do worker.
+      $wsess = @($script:events | Where-Object { $_.metodo -eq "Target.attachedToTarget" -and $_.params.targetInfo.type -match "worker" } | ForEach-Object { $_.params.sessionId }) | Select-Object -First 1
+      if ($wsess) {
+        try {
+          $probe = "(function(){ var r = { wasm: typeof WebAssembly === 'object' }; try { (0, eval)('1'); r.eval = 'permitido (worker SEM CSP)'; } catch (e) { r.eval = 'bloqueado (worker COM CSP): ' + e.name; } return JSON.stringify(r); })()"
+          $pr = Cdp-Call "Runtime.evaluate" @{ expression = $probe; returnByValue = $true } 15000 $wsess
+          $res.medidas.cspNoWorker = $pr.result.value
+          $res.testes += [ordered]@{ id = "S11"; nome = "CSP no worker do motor (informativo) e motor pronto mesmo assim"; ok = $true; detalhe = "$($pr.result.value)"; ms = $null }
+        } catch { $res.testes += [ordered]@{ id = "S11"; nome = "CSP no worker do motor (informativo)"; ok = $true; detalhe = "não foi possível perguntar ao worker: $($_.Exception.Message)"; ms = $null } }
+      }
       $res.medidas.processo = Measure-Tree $proc.Id
       ($script:events | ConvertTo-Json -Depth 12) | Set-Content -Path (Join-Path $Out ("console_" + $rep + "_" + $f + ".json")) -Encoding UTF8
     } catch {

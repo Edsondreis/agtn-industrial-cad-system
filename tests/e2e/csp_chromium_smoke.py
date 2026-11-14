@@ -83,6 +83,8 @@ async def main():
             pg.on("console", lambda m, msgs=msgs: msgs.append({"tipo": m.type, "texto": m.text[:300]}))
             pg.on("pageerror", lambda e, msgs=msgs: msgs.append({"tipo": "pageerror", "texto": str(e)[:300]}))
             pg.on("worker", lambda w, msgs=msgs: msgs.append({"tipo": "worker", "texto": w.url}))
+            reqs = []
+            pg.on("request", lambda q, reqs=reqs: reqs.append(q.url))
             hdr = {}
             pg.on("response", lambda r, hdr=hdr: hdr.setdefault("csp", r.headers.get("content-security-policy")) if r.url == URL else None)
             await pg.goto(URL)
@@ -94,6 +96,8 @@ async def main():
             r = await pg.evaluate("(cfg) => window.__agtnSmoke(cfg)", {"arquivo": f, "ref": REF[f], "esperarTitulo": True})
             sec = [m for m in msgs if "Content Security Policy" in m["texto"] or "Refused to" in m["texto"]]
             r["testes"].append({"id": "S9b", "nome": "console sem mensagem de CSP (página e worker)", "ok": not sec, "detalhe": json.dumps(sec[:3], ensure_ascii=False) if sec else f"{len(msgs)} mensagens, 0 de CSP; workers: {[m['texto'].rsplit('/', 1)[-1] for m in msgs if m['tipo'] == 'worker']}", "ms": None})
+            ext = sorted({u.split("/")[2] for u in reqs if u.startswith("http") and not u.startswith(URL)})
+            r["testes"].append({"id": "S10", "nome": "nenhuma requisição a origem externa", "ok": not ext, "detalhe": f"{len(reqs)} requisições; externas: {ext}", "ms": None})
             r["testes"].append({"id": "S0", "nome": "CSP de produção aplicada no documento", "ok": hdr.get("csp") == CSP, "detalhe": hdr.get("csp") or "sem cabeçalho", "ms": None})
             todos.append(r)
             consoles.append({"arquivo": f, "console": msgs})

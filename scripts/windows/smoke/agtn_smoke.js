@@ -116,9 +116,12 @@
       const stTxt = (document.querySelector(".st3-dot") && document.querySelector(".st3-dot").parentElement && document.querySelector(".st3-dot").parentElement.textContent) || "";
       const pronto = dot && dot.classList.contains("ready");
       const errTela = (document.querySelector(".v3-center.err") || {}).innerText || "";
-      if (!pronto) out.medidas.erroMotor = { tela: errTela, worker: window.__agtnWorkerSpy || workerErros };
+      // ETAPA 5 (F-06): o app classifica a falha (WASM_LOAD, WASM_COMPILE, WORKER_START, CSP, OCCT_INIT, MEMORY,
+      // COMMUNICATION) e guarda o diagnóstico completo em window.__agtnEngineDiag
+      const diag = window.__agtnEngineDiag || null;
+      if (!pronto) out.medidas.erroMotor = { codigo: diag && diag.code, tela: errTela, diagnostico: diag, worker: window.__agtnWorkerSpy || workerErros };
       T("S2", "motor WebAssembly inicializa no worker", out.medidas.webassembly && out.medidas.worker && pronto,
-        dot ? (pronto ? "pronto" : `erro: ${errTela.replace(/\s+/g, " ")} | worker: ${JSON.stringify(window.__agtnWorkerSpy || workerErros).slice(0, 600)}`) : "sem resposta em 90 s", tEng);
+        dot ? (pronto ? "pronto" : `erro ${diag ? diag.code : "?"}: ${errTela.replace(/\s+/g, " ").slice(0, 200)} | técnico: ${JSON.stringify(diag ? diag.tecnico : window.__agtnWorkerSpy || workerErros).slice(0, 600)}`) : "sem resposta em 90 s", tEng);
       const occt = /OCCT\s*\d/.test(stTxt) ? stTxt.match(/OCCT[^·]*/)[0].trim() : "";
       const msInit = (stTxt.match(/pronto em ([\d.]+) ms/) || [])[1];
       out.medidas.motorPronto_ms = msInit ? Number(msInit) : null;
@@ -145,6 +148,9 @@
       const bad = want.filter(([n, e]) => !(n in vol) || !near(vol[n], e.volume, 1e-9));
       T("S4", "sólidos 3D regenerados com volume de referência (1e-9)", want.length > 0 && bad.length === 0,
         want.map(([n, e]) => `${n}: ${vol[n]} (ref ${e.volume})`).join("; "), out.medidas.regeneracao_ms);
+      if (a.pingMs) {
+        try { out.medidas.comunicacao_ms = Math.round((await a.pingMs(30)) * 100) / 100; } catch (err) { out.medidas.comunicacao_ms = null; }
+      }
       const st = a.status();
       const states = Object.values(st).flat().map((s) => s.state);
       const errs = states.filter((s) => s === "error" || s === "dependency_error");
@@ -156,11 +162,13 @@
       if (hasBool) T("S5", "operação booleana (corte/união) com volume exato", bad.length === 0, feats.map((f) => f.t + (f.op ? `:${f.op}` : "")).join(","));
 
       // S6/S7 — planificação e exportação (corpos de chapa)
-      const sheets = a.sheets();
       for (const [b] of bodies) {
         const e = (ref.corpos || {})[b.name];
-        const s = sheets[b.id];
-        if (!e || !e.chapa || !s) continue;
+        if (!e || !e.chapa) continue;
+        // ETAPA 5 (F-09): a planificação chega do worker depois dos volumes — esperar, e FALHAR se não chegar
+        // (antes o teste pulava S6/S7 em silêncio quando ela ainda não tinha chegado)
+        const s = await waitFor(() => (window.__agtn3d.sheets() || {})[b.id], 60000, 200);
+        if (!s) { T("S6", `planificação de ${b.name}`, false, "a planificação não chegou ao app em 60 s"); continue; }
         const fp = s.flat;
         const w = fp.box.maxX - fp.box.minX;
         const h = fp.box.maxY - fp.box.minY;
