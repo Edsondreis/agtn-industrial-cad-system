@@ -61,7 +61,7 @@ Alternativas avaliadas (`FASE4_ETAPA5_SOLUCAO_CSP.md`):
 | e2e Chromium (`vite dev`) | `e2e3d` 34/34 · `e2e_param` 25/25 · `e2e_param2` 22/22 · `e2e_audit` 15/15 · `e2e_sheet` 18/18 · `e2e_etapa2` 24/24 |
 | App Tauri compilado Linux (`.deb` com a correção) | `tauri_compiled` 5/5 · `tauri_param` 5/5 · `tauri_sheet` 3/3 · `tauri_etapa2` 5/5 · `tauri_smoke` **65/65** |
 | Chromium, build de produção, CSP estrita (também no worker) | **66/66** (antes: 20/30) |
-| Chromium, CSP como o Tauri | CSP_`tauri_compiled` 5/5 · `tauri_param` 5/5 · `tauri_sheet` 3/3 · `tauri_etapa2` 5/5 · `tauri_smoke` **65/65** |
+| Chromium, CSP como o Tauri | **66/66** |
 | Falhas forçadas, diagnóstico, recuperação, 6 inicializações (`engine_fail.py`) | **33/33** |
 | Regressão 2D (hashes contra a main: `.agtncad`, DXF R12/R2000, SVG, PDF) | iguais (`regressao2d.test.ts` 3/3) |
 
@@ -160,7 +160,7 @@ Branch `feature/agtn-3d-ia`, sobre `c32f309` (ETAPA 4). A `main` não foi tocada
 | `de4972c` | F-05: correção do glue no build, testes de execução sem eval, `test:sem-eval`, CSP mais restrita |
 | `1f7ca6a` | F-06: diagnóstico do motor 3D, recuperação, rótulos de falha de operação |
 | `eb4532a` | instrumentos: `engine_fail.py`, S10, F-09, S11 no WebView2, `security.test`, `version.test` |
-| commit seguinte a `eb4532a` | estes 8 documentos `FASE4_ETAPA5_*` |
+| `442fb45` | estes 8 documentos `FASE4_ETAPA5_*` (+ correção de 1 linha deste relatório no commit seguinte) |
 
 ## Critérios de aceitação da etapa
 
