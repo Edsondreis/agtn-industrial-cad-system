@@ -1,0 +1,151 @@
+{
+ "box_100x50x20.step": {
+  "solids": 1,
+  "volume": 99999.99999999997,
+  "area": 15999.999999999998,
+  "bbox": [
+   0.0,
+   0.0,
+   0.0,
+   100.0,
+   50.0,
+   20.0
+  ],
+  "unidade": "mm"
+ },
+ "cylinder_d60_h100.step": {
+  "solids": 1,
+  "volume": 282743.3388230814,
+  "area": 24504.422698000384,
+  "bbox": [
+   -30.0,
+   -30.0,
+   0.0,
+   30.0,
+   30.0,
+   100.0
+  ],
+  "unidade": "mm"
+ },
+ "plate_holes_fillet.step": {
+  "solids": 1,
+  "volume": 233544.69004940777,
+  "area": 54359.380279681594,
+  "bbox": [
+   -3.552713678800501e-15,
+   -3.552713678800501e-15,
+   0.0,
+   200.0,
+   120.0,
+   10.0
+  ],
+  "unidade": "mm"
+ },
+ "cone_sphere_torus.step": {
+  "solids": 3,
+  "volume": 320335.87075953063,
+  "area": 41850.03990185237,
+  "bbox": [
+   -40.0,
+   -50.0000001,
+   -1e-07,
+   350.0000001,
+   50.0000001,
+   60.00000000000001
+  ],
+  "unidade": "mm"
+ },
+ "loft_bspline.step": {
+  "solids": 1,
+  "volume": 517922.6625307718,
+  "area": 37655.964547344134,
+  "bbox": [
+   -40.0000001,
+   -40.0000001,
+   -1e-07,
+   40.0000001,
+   40.0000001,
+   120.0000001
+  ],
+  "unidade": "mm"
+ },
+ "vessel_revolved.step": {
+  "solids": 1,
+  "invalid": 1,
+  "unidade": "mm",
+  "nota": "OCCT 8 lê as calotas elípticas inválidas: deve SINALIZAR; volume/caixa da referência NÃO conferem"
+ },
+ "tank_assembly.step": {
+  "solids": 4,
+  "volume": 48397554.29746521,
+  "area": 10463796.899091145,
+  "bbox": [
+   -20.0,
+   -450.0,
+   -450.0,
+   1520.0,
+   450.0,
+   677.3076211353316
+  ],
+  "unidade": "mm"
+ },
+ "inch_block_2x1x0.5.step": {
+  "solids": 1,
+  "volume": 16387.064,
+  "area": 4516.119999999999,
+  "bbox": [
+   0.0,
+   0.0,
+   0.0,
+   50.8,
+   25.4,
+   12.7
+  ],
+  "unidade": "in"
+ },
+ "bent_plate_L.step": {
+  "solids": 1,
+  "volume": 273720.5876469101,
+  "area": 119925.57766371347,
+  "bbox": [
+   0.0,
+   0.0,
+   0.0,
+   100.0,
+   100.0,
+   300.0
+  ],
+  "unidade": "mm"
+ },
+ "sheet_U.step": {
+  "volume": 129688.67174367103,
+  "unidade": "mm"
+ },
+ "sheet_Z.step": {
+  "volume": 50827.43338823081,
+  "unidade": "mm"
+ },
+ "sheet_box.step": {
+  "volume": 24848.230016469155,
+  "unidade": "mm"
+ },
+ "grande_400_placas.step": {
+  "solids": 400,
+  "volume": 93417876.01976311,
+  "unidade": "mm"
+ },
+ "grande_120_caixas.step": {
+  "solids": 120,
+  "volume": 12000000,
+  "unidade": "mm"
+ },
+ "fusion_srr_assembly.step": {
+  "unidade": "mm"
+ },
+ "nao_step.step": {
+  "falha": "não é um STEP"
+ },
+ "vazio.stp": {
+  "falha": "vazio"
+ }
+}
