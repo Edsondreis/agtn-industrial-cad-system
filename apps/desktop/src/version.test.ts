@@ -15,7 +15,7 @@ const tauri = j("apps/desktop/src-tauri/tauri.conf.json").version as string;
 describe("versão do aplicativo", () => {
   it("tauri.conf.json, package.json (raiz e desktop), Cargo.toml e Cargo.lock com a mesma versão", () => {
     const cargo = readFileSync(join(ROOT, "apps/desktop/src-tauri/Cargo.toml"), "utf8").match(/^version\s*=\s*"([^"]+)"/m)?.[1];
-    const lock = readFileSync(join(ROOT, "apps/desktop/src-tauri/Cargo.lock"), "utf8").match(/name = "agtn-cad"\nversion = "([^"]+)"/)?.[1];
+    const lock = readFileSync(join(ROOT, "apps/desktop/src-tauri/Cargo.lock"), "utf8").match(/name = "agtn-cad"\r?\nversion = "([^"]+)"/)?.[1];
     expect({ raiz: j("package.json").version, desktop: j("apps/desktop/package.json").version, cargo, lock }).toEqual({ raiz: tauri, desktop: tauri, cargo: tauri, lock: tauri });
   });
   it("versão semver; pré-lançamento só numérico (exigência do MSI/WiX)", () => {
