@@ -17,8 +17,8 @@ const walk = (d: string): string[] => readdirSync(d).flatMap((n) => (statSync(jo
 const ps1 = walk(join(ROOT, "scripts/windows")).filter((f) => f.endsWith(".ps1"));
 
 describe("scripts de homologação do Windows", () => {
-  it("existem os três scripts", () => {
-    expect(ps1.map((f) => f.slice(ROOT.length).replace(/\\/g, "/")).sort()).toEqual(["scripts/windows/homologacao.ps1", "scripts/windows/smoke/webview2_smoke.ps1", "scripts/windows/validar_instalado.ps1"]);
+  it("existem os quatro scripts", () => {
+    expect(ps1.map((f) => f.slice(ROOT.length).replace(/\\/g, "/")).sort()).toEqual(["scripts/windows/homologacao.ps1", "scripts/windows/smoke/webview2_smoke.ps1", "scripts/windows/smoke/webview2_step_smoke.ps1", "scripts/windows/validar_instalado.ps1"]);
   });
   for (const f of ps1)
     it(`${f.slice(ROOT.length)}: UTF-8 com BOM (PowerShell 5.1 não lê acento/— sem BOM)`, () => {
@@ -44,6 +44,29 @@ describe("scripts de homologação do Windows", () => {
     for (const f of list) {
       expect(ref[f], f).toBeDefined();
       expect(() => statSync(join(ROOT, "modules/sheet3d/src/fixtures", f))).not.toThrow();
+    }
+  });
+  it("FASE 5: step_smoke.js compila e define as três funções", () => {
+    const src = readFileSync(join(ROOT, "scripts/windows/smoke/step_smoke.js"), "utf8");
+    const w: Record<string, unknown> = {};
+    runInNewContext(src, { window: w });
+    for (const k of ["__agtnStepSmoke", "__agtnStepClose", "__agtnDxfSmoke"]) expect(typeof w[k], k).toBe("function");
+  });
+  it("FASE 5: referencias_step.json cobre os STEP do webview2_step_smoke.ps1, e os arquivos versionados existem", () => {
+    const ref = JSON.parse(readFileSync(join(ROOT, "scripts/windows/smoke/referencias_step.json"), "utf8"));
+    const ps = readFileSync(join(ROOT, "scripts/windows/smoke/webview2_step_smoke.ps1"), "utf8");
+    const list = [...(ps.match(/\[string\[\]\]\$Arquivos = @\(([^)]*)\)/)?.[1].matchAll(/"([^"]+)"/g) ?? [])].map((m) => m[1]);
+    expect(list.length).toBeGreaterThanOrEqual(10);
+    for (const f of list) {
+      if (f.endsWith(".dxf")) {
+        expect(() => statSync(join(ROOT, "tests/dxf/fixtures/fase5", f))).not.toThrow();
+        expect(ps.includes(`"${f}"`) && new RegExp(`"${f.replace(".", "\\.")}"\\s*=\\s*@\\{`).test(ps), f).toBe(true);
+        continue;
+      }
+      expect(ref[f], f).toBeDefined();
+      // gerados na hora (pasta de saída/teste), não versionados
+      if (/^(grande_|nao_step|vazio)/.test(f)) continue;
+      expect(() => statSync(join(ROOT, "tests/step/viewer_ref", f))).not.toThrow();
     }
   });
 });
