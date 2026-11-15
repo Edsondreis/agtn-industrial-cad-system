@@ -41,7 +41,7 @@ $H = "$R\homologacao"; New-Item -ItemType Directory -Force $H | Out-Null
 $src = Get-ChildItem "$S\apps\desktop\src-tauri\target\release\bundle\nsis" -Filter "*_${V}_x64-setup.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
 if (-not $src) { Log "ERRO: instalador $V nao gerado"; Save; Set-Content "$L\11_FIM.txt" "sem instalador"; exit 5 }
 $dst = Join-Path $H $src.Name
-if (Test-Path -LiteralPath $dst) { $dst = Join-Path $H ($src.BaseName + "_" + (Get-Date -Format yyyyMMdd_HHmmss) + ".exe"); Log "ja existe um instalador $V; o novo vai como $dst (o anterior fica)" }
+if (Test-Path -LiteralPath $dst) { $old = $src.BaseName + "_superado_" + (Get-Item -LiteralPath $dst).LastWriteTime.ToString("yyyyMMdd_HHmmss") + ".exe"; Rename-Item -LiteralPath $dst -NewName $old; Log "ja havia um instalador $V de build anterior: guardado como $old (nao apagado); o novo fica com o nome padrao" }
 Copy-Item -LiteralPath $src.FullName -Destination $dst
 $vi = (Get-Item -LiteralPath $dst).VersionInfo
 $lin = @()
