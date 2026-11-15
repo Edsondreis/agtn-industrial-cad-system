@@ -1,0 +1,950 @@
+{
+ "aprovadas": 90,
+ "total": 90,
+ "execucoes": [
+  {
+   "arquivo": "box_100x50x20.step",
+   "testes": [
+    {
+     "id": "P1",
+     "nome": "STEP da linha de comando abre no visualizador (documento próprio)",
+     "ok": true,
+     "detalhe": "aba STEP",
+     "ms": null
+    },
+    {
+     "id": "P2",
+     "nome": "estado 'Arquivo pronto'",
+     "ok": true,
+     "detalhe": "Arquivo pronto; ",
+     "ms": null
+    },
+    {
+     "id": "P3",
+     "nome": "quantidade de sólidos = referência",
+     "ok": true,
+     "detalhe": "1 (ref 1)",
+     "ms": null
+    },
+    {
+     "id": "P4",
+     "nome": "volume (B-rep) = referência independente (erro relativo < 1e-6)",
+     "ok": true,
+     "detalhe": "99999.99999999997 (ref 99999.99999999997)",
+     "ms": null
+    },
+    {
+     "id": "P5",
+     "nome": "área (B-rep) = referência (< 1e-6)",
+     "ok": true,
+     "detalhe": "15999.999999999998 (ref 15999.999999999998)",
+     "ms": null
+    },
+    {
+     "id": "P6",
+     "nome": "caixa delimitadora = referência (± 0,05 mm)",
+     "ok": true,
+     "detalhe": "0.000 0.000 0.000 100.000 50.000 20.000",
+     "ms": null
+    },
+    {
+     "id": "P7",
+     "nome": "unidade do arquivo informada",
+     "ok": true,
+     "detalhe": "mm (ref mm); tela: mm",
+     "ms": null
+    },
+    {
+     "id": "P8",
+     "nome": "nenhum corpo inválido",
+     "ok": true,
+     "detalhe": "0 inválido(s)",
+     "ms": null
+    },
+    {
+     "id": "P9",
+     "nome": "7 vistas padrão",
+     "ok": true,
+     "detalhe": "Frente, Trás, Sup., Inf., Esq., Dir., Iso",
+     "ms": null
+    },
+    {
+     "id": "P10",
+     "nome": "ajustar, arame/sólido e malha de exibição gerada",
+     "ok": true,
+     "detalhe": "triângulos 12; altura vista 127.2 → 127.2",
+     "ms": null
+    },
+    {
+     "id": "P11",
+     "nome": "fechar o documento: visualizador e aba STEP somem, gancho liberado",
+     "ok": true,
+     "detalhe": "",
+     "ms": null
+    },
+    {
+     "id": "P12",
+     "nome": "volta ao DESENHO com o desenho intacto (vazio, sem caminho)",
+     "ok": true,
+     "detalhe": "0 objeto(s)",
+     "ms": null
+    },
+    {
+     "id": "P13",
+     "nome": "CSP de produção sem violação",
+     "ok": true,
+     "detalhe": "[]"
+    }
+   ],
+   "medidas": {
+    "total_ms": 1846,
+    "fases_ms": {
+     "carregando": 0.20000000018626451,
+     "interpretando": 487.69999999995343,
+     "gerando": 88.10000000009313
+    },
+    "estado": "pronto",
+    "estadoTela": "Arquivo pronto",
+    "resumo": {
+     "bodies": 1,
+     "solids": 1,
+     "faces": 6,
+     "edges": 12,
+     "vertices": 8,
+     "volume": 99999.99999999997,
+     "area": 15999.999999999998,
+     "bbox": {
+      "min": {
+       "x": 0,
+       "y": 0,
+       "z": 0
+      },
+      "max": {
+       "x": 100,
+       "y": 50,
+       "z": 20
+      }
+     },
+     "open": 0,
+     "invalid": 0
+    },
+    "unidade": {
+     "name": "mm",
+     "toMm": 1,
+     "source": "SI_UNIT"
+    }
+   }
+  },
+  {
+   "arquivo": "inch_block_2x1x0.5.step",
+   "testes": [
+    {
+     "id": "P1",
+     "nome": "STEP da linha de comando abre no visualizador (documento próprio)",
+     "ok": true,
+     "detalhe": "aba STEP",
+     "ms": null
+    },
+    {
+     "id": "P2",
+     "nome": "estado 'Arquivo pronto'",
+     "ok": true,
+     "detalhe": "Arquivo pronto; ",
+     "ms": null
+    },
+    {
+     "id": "P3",
+     "nome": "quantidade de sólidos = referência",
+     "ok": true,
+     "detalhe": "1 (ref 1)",
+     "ms": null
+    },
+    {
+     "id": "P4",
+     "nome": "volume (B-rep) = referência independente (erro relativo < 1e-6)",
+     "ok": true,
+     "detalhe": "16387.064 (ref 16387.064)",
+     "ms": null
+    },
+    {
+     "id": "P5",
+     "nome": "área (B-rep) = referência (< 1e-6)",
+     "ok": true,
+     "detalhe": "4516.119999999999 (ref 4516.119999999999)",
+     "ms": null
+    },
+    {
+     "id": "P6",
+     "nome": "caixa delimitadora = referência (± 0,05 mm)",
+     "ok": true,
+     "detalhe": "0.000 0.000 0.000 50.800 25.400 12.700",
+     "ms": null
+    },
+    {
+     "id": "P7",
+     "nome": "unidade do arquivo informada",
+     "ok": true,
+     "detalhe": "in (ref in); tela: in (1 in = 25,4 mm)",
+     "ms": null
+    },
+    {
+     "id": "P8",
+     "nome": "nenhum corpo inválido",
+     "ok": true,
+     "detalhe": "0 inválido(s)",
+     "ms": null
+    },
+    {
+     "id": "P9",
+     "nome": "7 vistas padrão",
+     "ok": true,
+     "detalhe": "Frente, Trás, Sup., Inf., Esq., Dir., Iso",
+     "ms": null
+    },
+    {
+     "id": "P10",
+     "nome": "ajustar, arame/sólido e malha de exibição gerada",
+     "ok": true,
+     "detalhe": "triângulos 12; altura vista 65.2 → 65.2",
+     "ms": null
+    },
+    {
+     "id": "P11",
+     "nome": "fechar o documento: visualizador e aba STEP somem, gancho liberado",
+     "ok": true,
+     "detalhe": "",
+     "ms": null
+    },
+    {
+     "id": "P12",
+     "nome": "volta ao DESENHO com o desenho intacto (vazio, sem caminho)",
+     "ok": true,
+     "detalhe": "0 objeto(s)",
+     "ms": null
+    },
+    {
+     "id": "P13",
+     "nome": "CSP de produção sem violação",
+     "ok": true,
+     "detalhe": "[]"
+    }
+   ],
+   "medidas": {
+    "total_ms": 1983,
+    "fases_ms": {
+     "carregando": 0.09999999986030161,
+     "interpretando": 471.10000000009313,
+     "gerando": 264.60000000009313
+    },
+    "estado": "pronto",
+    "estadoTela": "Arquivo pronto",
+    "resumo": {
+     "bodies": 1,
+     "solids": 1,
+     "faces": 6,
+     "edges": 12,
+     "vertices": 8,
+     "volume": 16387.064,
+     "area": 4516.119999999999,
+     "bbox": {
+      "min": {
+       "x": 0,
+       "y": 0,
+       "z": 0
+      },
+      "max": {
+       "x": 50.8,
+       "y": 25.4,
+       "z": 12.7
+      }
+     },
+     "open": 0,
+     "invalid": 0
+    },
+    "unidade": {
+     "name": "in",
+     "toMm": 25.4,
+     "source": "CONVERSION_BASED_UNIT"
+    }
+   }
+  },
+  {
+   "arquivo": "tank_assembly.step",
+   "testes": [
+    {
+     "id": "P1",
+     "nome": "STEP da linha de comando abre no visualizador (documento próprio)",
+     "ok": true,
+     "detalhe": "aba STEP",
+     "ms": null
+    },
+    {
+     "id": "P2",
+     "nome": "estado 'Arquivo pronto'",
+     "ok": true,
+     "detalhe": "Arquivo pronto; ",
+     "ms": null
+    },
+    {
+     "id": "P3",
+     "nome": "quantidade de sólidos = referência",
+     "ok": true,
+     "detalhe": "4 (ref 4)",
+     "ms": null
+    },
+    {
+     "id": "P4",
+     "nome": "volume (B-rep) = referência independente (erro relativo < 1e-6)",
+     "ok": true,
+     "detalhe": "48397554.29746682 (ref 48397554.29746521)",
+     "ms": null
+    },
+    {
+     "id": "P5",
+     "nome": "área (B-rep) = referência (< 1e-6)",
+     "ok": true,
+     "detalhe": "10463796.899091655 (ref 10463796.899091145)",
+     "ms": null
+    },
+    {
+     "id": "P6",
+     "nome": "caixa delimitadora = referência (± 0,05 mm)",
+     "ok": true,
+     "detalhe": "-20.000 -450.000 -450.000 1520.000 450.000 677.308",
+     "ms": null
+    },
+    {
+     "id": "P7",
+     "nome": "unidade do arquivo informada",
+     "ok": true,
+     "detalhe": "mm (ref mm); tela: mm",
+     "ms": null
+    },
+    {
+     "id": "P8",
+     "nome": "nenhum corpo inválido",
+     "ok": true,
+     "detalhe": "0 inválido(s)",
+     "ms": null
+    },
+    {
+     "id": "P9",
+     "nome": "7 vistas padrão",
+     "ok": true,
+     "detalhe": "Frente, Trás, Sup., Inf., Esq., Dir., Iso",
+     "ms": null
+    },
+    {
+     "id": "P10",
+     "nome": "ajustar, arame/sólido e malha de exibição gerada",
+     "ok": true,
+     "detalhe": "triângulos 7504; altura vista 2363.3 → 2363.3",
+     "ms": null
+    },
+    {
+     "id": "P11",
+     "nome": "fechar o documento: visualizador e aba STEP somem, gancho liberado",
+     "ok": true,
+     "detalhe": "",
+     "ms": null
+    },
+    {
+     "id": "P12",
+     "nome": "volta ao DESENHO com o desenho intacto (vazio, sem caminho)",
+     "ok": true,
+     "detalhe": "0 objeto(s)",
+     "ms": null
+    },
+    {
+     "id": "P13",
+     "nome": "CSP de produção sem violação",
+     "ok": true,
+     "detalhe": "[]"
+    }
+   ],
+   "medidas": {
+    "total_ms": 2698,
+    "fases_ms": {
+     "carregando": 0.19999999995343387,
+     "interpretando": 616.3999999999069,
+     "gerando": 668
+    },
+    "estado": "pronto",
+    "estadoTela": "Arquivo pronto",
+    "resumo": {
+     "bodies": 4,
+     "solids": 4,
+     "faces": 38,
+     "edges": 90,
+     "vertices": 60,
+     "volume": 48397554.29746682,
+     "area": 10463796.899091655,
+     "bbox": {
+      "min": {
+       "x": -20,
+       "y": -450,
+       "z": -450
+      },
+      "max": {
+       "x": 1520,
+       "y": 450,
+       "z": 677.3076211353316
+      }
+     },
+     "open": 0,
+     "invalid": 0
+    },
+    "unidade": {
+     "name": "mm",
+     "toMm": 1,
+     "source": "SI_UNIT"
+    }
+   }
+  },
+  {
+   "arquivo": "cone_sphere_torus.step",
+   "testes": [
+    {
+     "id": "P1",
+     "nome": "STEP da linha de comando abre no visualizador (documento próprio)",
+     "ok": true,
+     "detalhe": "aba STEP",
+     "ms": null
+    },
+    {
+     "id": "P2",
+     "nome": "estado 'Arquivo pronto'",
+     "ok": true,
+     "detalhe": "Arquivo pronto; ",
+     "ms": null
+    },
+    {
+     "id": "P3",
+     "nome": "quantidade de sólidos = referência",
+     "ok": true,
+     "detalhe": "3 (ref 3)",
+     "ms": null
+    },
+    {
+     "id": "P4",
+     "nome": "volume (B-rep) = referência independente (erro relativo < 1e-6)",
+     "ok": true,
+     "detalhe": "320335.87075943477 (ref 320335.87075953063)",
+     "ms": null
+    },
+    {
+     "id": "P5",
+     "nome": "área (B-rep) = referência (< 1e-6)",
+     "ok": true,
+     "detalhe": "41850.03990184992 (ref 41850.03990185237)",
+     "ms": null
+    },
+    {
+     "id": "P6",
+     "nome": "caixa delimitadora = referência (± 0,05 mm)",
+     "ok": true,
+     "detalhe": "-40.000 -50.000 -0.000 350.000 50.000 60.000",
+     "ms": null
+    },
+    {
+     "id": "P7",
+     "nome": "unidade do arquivo informada",
+     "ok": true,
+     "detalhe": "mm (ref mm); tela: mm",
+     "ms": null
+    },
+    {
+     "id": "P8",
+     "nome": "nenhum corpo inválido",
+     "ok": true,
+     "detalhe": "0 inválido(s)",
+     "ms": null
+    },
+    {
+     "id": "P9",
+     "nome": "7 vistas padrão",
+     "ok": true,
+     "detalhe": "Frente, Trás, Sup., Inf., Esq., Dir., Iso",
+     "ms": null
+    },
+    {
+     "id": "P10",
+     "nome": "ajustar, arame/sólido e malha de exibição gerada",
+     "ok": true,
+     "detalhe": "triângulos 8330; altura vista 455.9 → 455.9",
+     "ms": null
+    },
+    {
+     "id": "P11",
+     "nome": "fechar o documento: visualizador e aba STEP somem, gancho liberado",
+     "ok": true,
+     "detalhe": "",
+     "ms": null
+    },
+    {
+     "id": "P12",
+     "nome": "volta ao DESENHO com o desenho intacto (vazio, sem caminho)",
+     "ok": true,
+     "detalhe": "0 objeto(s)",
+     "ms": null
+    },
+    {
+     "id": "P13",
+     "nome": "CSP de produção sem violação",
+     "ok": true,
+     "detalhe": "[]"
+    }
+   ],
+   "medidas": {
+    "total_ms": 1930,
+    "fases_ms": {
+     "carregando": 0.19999999995343387,
+     "interpretando": 523.6999999999534,
+     "gerando": 392
+    },
+    "estado": "pronto",
+    "estadoTela": "Arquivo pronto",
+    "resumo": {
+     "bodies": 3,
+     "solids": 3,
+     "faces": 5,
+     "edges": 8,
+     "vertices": 5,
+     "volume": 320335.87075943477,
+     "area": 41850.03990184992,
+     "bbox": {
+      "min": {
+       "x": -40,
+       "y": -50.0000001,
+       "z": -1e-07
+      },
+      "max": {
+       "x": 350.0000001,
+       "y": 50.0000001,
+       "z": 60.00000000000001
+      }
+     },
+     "open": 0,
+     "invalid": 0
+    },
+    "unidade": {
+     "name": "mm",
+     "toMm": 1,
+     "source": "SI_UNIT"
+    }
+   }
+  },
+  {
+   "arquivo": "vessel_revolved.step",
+   "testes": [
+    {
+     "id": "P1",
+     "nome": "STEP da linha de comando abre no visualizador (documento próprio)",
+     "ok": true,
+     "detalhe": "aba STEP",
+     "ms": null
+    },
+    {
+     "id": "P2",
+     "nome": "estado 'Arquivo pronto'",
+     "ok": true,
+     "detalhe": "Arquivo pronto; ",
+     "ms": null
+    },
+    {
+     "id": "P3",
+     "nome": "quantidade de sólidos = referência",
+     "ok": true,
+     "detalhe": "1 (ref 1)",
+     "ms": null
+    },
+    {
+     "id": "P7",
+     "nome": "unidade do arquivo informada",
+     "ok": true,
+     "detalhe": "mm (ref mm); tela: mm",
+     "ms": null
+    },
+    {
+     "id": "P8",
+     "nome": "geometria inválida do motor SINALIZADA na tela",
+     "ok": true,
+     "detalhe": "1 inválido(s)",
+     "ms": null
+    },
+    {
+     "id": "P9",
+     "nome": "7 vistas padrão",
+     "ok": true,
+     "detalhe": "Frente, Trás, Sup., Inf., Esq., Dir., Iso",
+     "ms": null
+    },
+    {
+     "id": "P10",
+     "nome": "ajustar, arame/sólido e malha de exibição gerada",
+     "ok": true,
+     "detalhe": "triângulos 1032; altura vista 1385.4 → 1385.4",
+     "ms": null
+    },
+    {
+     "id": "P11",
+     "nome": "fechar o documento: visualizador e aba STEP somem, gancho liberado",
+     "ok": true,
+     "detalhe": "",
+     "ms": null
+    },
+    {
+     "id": "P12",
+     "nome": "volta ao DESENHO com o desenho intacto (vazio, sem caminho)",
+     "ok": true,
+     "detalhe": "0 objeto(s)",
+     "ms": null
+    },
+    {
+     "id": "P13",
+     "nome": "CSP de produção sem violação",
+     "ok": true,
+     "detalhe": "[]"
+    }
+   ],
+   "medidas": {
+    "total_ms": 2239,
+    "fases_ms": {
+     "carregando": 0.09999999986030161,
+     "interpretando": 437.5999999998603,
+     "gerando": 409.19999999995343
+    },
+    "estado": "pronto",
+    "estadoTela": "Arquivo pronto",
+    "resumo": {
+     "bodies": 1,
+     "solids": 1,
+     "faces": 5,
+     "edges": 6,
+     "vertices": 4,
+     "volume": 8397477.163045317,
+     "area": 3370187.5014353795,
+     "bbox": {
+      "min": {
+       "x": 0,
+       "y": -300,
+       "z": -300
+      },
+      "max": {
+       "x": 900.0000001469999,
+       "y": 300,
+       "z": 300
+      }
+     },
+     "open": 0,
+     "invalid": 1
+    },
+    "unidade": {
+     "name": "mm",
+     "toMm": 1,
+     "source": "SI_UNIT"
+    }
+   }
+  },
+  {
+   "arquivo": "fusion_srr_assembly.step",
+   "testes": [
+    {
+     "id": "P1",
+     "nome": "STEP da linha de comando abre no visualizador (documento próprio)",
+     "ok": true,
+     "detalhe": "aba STEP",
+     "ms": null
+    },
+    {
+     "id": "P2",
+     "nome": "estado 'Arquivo pronto'",
+     "ok": true,
+     "detalhe": "Arquivo pronto; ",
+     "ms": null
+    },
+    {
+     "id": "P7",
+     "nome": "unidade do arquivo informada",
+     "ok": true,
+     "detalhe": "mm (ref mm); tela: mm",
+     "ms": null
+    },
+    {
+     "id": "P8",
+     "nome": "nenhum corpo inválido",
+     "ok": true,
+     "detalhe": "0 inválido(s)",
+     "ms": null
+    },
+    {
+     "id": "P9",
+     "nome": "7 vistas padrão",
+     "ok": true,
+     "detalhe": "Frente, Trás, Sup., Inf., Esq., Dir., Iso",
+     "ms": null
+    },
+    {
+     "id": "P10",
+     "nome": "ajustar, arame/sólido e malha de exibição gerada",
+     "ok": true,
+     "detalhe": "triângulos 24; altura vista 778.3 → 778.3",
+     "ms": null
+    },
+    {
+     "id": "P11",
+     "nome": "fechar o documento: visualizador e aba STEP somem, gancho liberado",
+     "ok": true,
+     "detalhe": "",
+     "ms": null
+    },
+    {
+     "id": "P12",
+     "nome": "volta ao DESENHO com o desenho intacto (vazio, sem caminho)",
+     "ok": true,
+     "detalhe": "0 objeto(s)",
+     "ms": null
+    },
+    {
+     "id": "P13",
+     "nome": "CSP de produção sem violação",
+     "ok": true,
+     "detalhe": "[]"
+    }
+   ],
+   "medidas": {
+    "total_ms": 2056,
+    "fases_ms": {
+     "carregando": 0.09999999986030161,
+     "interpretando": 582.5,
+     "gerando": 231
+    },
+    "estado": "pronto",
+    "estadoTela": "Arquivo pronto",
+    "resumo": {
+     "bodies": 2,
+     "solids": 2,
+     "faces": 12,
+     "edges": 24,
+     "vertices": 16,
+     "volume": 199999.99999999994,
+     "area": 31999.999999999996,
+     "bbox": {
+      "min": {
+       "x": 0,
+       "y": 0,
+       "z": 0
+      },
+      "max": {
+       "x": 600,
+       "y": 350,
+       "z": 20
+      }
+     },
+     "open": 0,
+     "invalid": 0
+    },
+    "unidade": {
+     "name": "mm",
+     "toMm": 1,
+     "source": "SI_UNIT"
+    }
+   }
+  },
+  {
+   "arquivo": "grande_400_placas.step",
+   "testes": [
+    {
+     "id": "P1",
+     "nome": "STEP da linha de comando abre no visualizador (documento próprio)",
+     "ok": true,
+     "detalhe": "aba STEP",
+     "ms": null
+    },
+    {
+     "id": "P2",
+     "nome": "estado 'Arquivo pronto'",
+     "ok": true,
+     "detalhe": "Arquivo pronto; ",
+     "ms": null
+    },
+    {
+     "id": "P3",
+     "nome": "quantidade de sólidos = referência",
+     "ok": true,
+     "detalhe": "400 (ref 400)",
+     "ms": null
+    },
+    {
+     "id": "P4",
+     "nome": "volume (B-rep) = referência independente (erro relativo < 1e-6)",
+     "ok": true,
+     "detalhe": "93417876.01976398 (ref 93417876.01976311)",
+     "ms": null
+    },
+    {
+     "id": "P7",
+     "nome": "unidade do arquivo informada",
+     "ok": true,
+     "detalhe": "mm (ref mm); tela: mm",
+     "ms": null
+    },
+    {
+     "id": "P8",
+     "nome": "nenhum corpo inválido",
+     "ok": true,
+     "detalhe": "0 inválido(s)",
+     "ms": null
+    },
+    {
+     "id": "P9",
+     "nome": "7 vistas padrão",
+     "ok": true,
+     "detalhe": "Iso, Trás, Sup., Sup., Esq., Dir., Iso",
+     "ms": null
+    },
+    {
+     "id": "P10",
+     "nome": "ajustar, arame/sólido e malha de exibição gerada",
+     "ok": true,
+     "detalhe": "triângulos 305600; altura vista 5810.3 → 5810.3",
+     "ms": null
+    },
+    {
+     "id": "P11",
+     "nome": "fechar o documento: visualizador e aba STEP somem, gancho liberado",
+     "ok": true,
+     "detalhe": "",
+     "ms": null
+    },
+    {
+     "id": "P12",
+     "nome": "volta ao DESENHO com o desenho intacto (vazio, sem caminho)",
+     "ok": true,
+     "detalhe": "0 objeto(s)",
+     "ms": null
+    },
+    {
+     "id": "P13",
+     "nome": "CSP de produção sem violação",
+     "ok": true,
+     "detalhe": "[]"
+    }
+   ],
+   "medidas": {
+    "total_ms": 12346,
+    "fases_ms": {
+     "carregando": 14.300000000046566,
+     "interpretando": 5563.40000000014,
+     "gerando": 5178.899999999907
+    },
+    "estado": "pronto",
+    "estadoTela": "Arquivo pronto",
+    "resumo": {
+     "bodies": 400,
+     "solids": 400,
+     "faces": 5600,
+     "edges": 14400,
+     "vertices": 9600,
+     "volume": 93417876.01976398,
+     "area": 21743752.11187289,
+     "bbox": {
+      "min": {
+       "x": -3.552713678801e-15,
+       "y": -3.552713678801e-15,
+       "z": 0
+      },
+      "max": {
+       "x": 4380,
+       "y": 2780,
+       "z": 10
+      }
+     },
+     "open": 0,
+     "invalid": 0
+    },
+    "unidade": {
+     "name": "mm",
+     "toMm": 1,
+     "source": "SI_UNIT"
+    }
+   }
+  },
+  {
+   "arquivo": "nao_step.step",
+   "testes": [
+    {
+     "id": "P1",
+     "nome": "STEP da linha de comando abre no visualizador (documento próprio)",
+     "ok": true,
+     "detalhe": "aba STEP",
+     "ms": null
+    },
+    {
+     "id": "P2",
+     "nome": "arquivo inválido: 'Falha na leitura' com mensagem clara",
+     "ok": true,
+     "detalhe": "O arquivo não é um STEP válido (cabeçalho ISO-10303-21 ausente).",
+     "ms": null
+    },
+    {
+     "id": "P3",
+     "nome": "app continua respondendo após a falha",
+     "ok": true,
+     "detalhe": "",
+     "ms": null
+    },
+    {
+     "id": "P13",
+     "nome": "CSP de produção sem violação",
+     "ok": true,
+     "detalhe": "[]"
+    }
+   ],
+   "medidas": {
+    "total_ms": 923,
+    "fases_ms": {},
+    "estado": "falha",
+    "estadoTela": "Falha na leitura"
+   }
+  },
+  {
+   "arquivo": "vazio.stp",
+   "testes": [
+    {
+     "id": "P1",
+     "nome": "STEP da linha de comando abre no visualizador (documento próprio)",
+     "ok": true,
+     "detalhe": "aba STEP",
+     "ms": null
+    },
+    {
+     "id": "P2",
+     "nome": "arquivo inválido: 'Falha na leitura' com mensagem clara",
+     "ok": true,
+     "detalhe": "Arquivo STEP vazio.",
+     "ms": null
+    },
+    {
+     "id": "P3",
+     "nome": "app continua respondendo após a falha",
+     "ok": true,
+     "detalhe": "",
+     "ms": null
+    },
+    {
+     "id": "P13",
+     "nome": "CSP de produção sem violação",
+     "ok": true,
+     "detalhe": "[]"
+    }
+   ],
+   "medidas": {
+    "total_ms": 906,
+    "fases_ms": {},
+    "estado": "falha",
+    "estadoTela": "Falha na leitura"
+   }
+  }
+ ]
+}

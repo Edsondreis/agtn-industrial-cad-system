@@ -1,0 +1,205 @@
+{
+ "pass": 35,
+ "total": 35,
+ "results": [
+  [
+   "STEP abre como documento: estado 'Arquivo pronto'",
+   true,
+   ""
+  ],
+  [
+   "caixa: 1 sólido, volume 100 000 mm³ (B-rep)",
+   true,
+   "{\"solids\": 1, \"volume\": 99999.99999999997, \"faces\": 6}"
+  ],
+  [
+   "painel mostra o volume em mm³",
+   true,
+   "100000,000 mm³"
+  ],
+  [
+   "unidade do arquivo: mm",
+   true,
+   ""
+  ],
+  [
+   "aba STEP aparece só com documento aberto",
+   true,
+   ""
+  ],
+  [
+   "motor próprio do documento (worker separado)",
+   true,
+   "workers 0 → 1"
+  ],
+  [
+   "caixa delimitadora 100 × 50 × 20",
+   true,
+   ""
+  ],
+  [
+   "7 vistas padrão (frente, trás, superior, inferior, esquerda, direita, iso)",
+   true,
+   "[('frente', 'Frente'), ('tras', 'Trás'), ('superior', 'Sup.'), ('inferior', 'Inf.'), ('esquerda', 'Esq.'), ('direita', 'Dir.'), ('iso', 'Iso')]"
+  ],
+  [
+   "zoom pela roda do mouse",
+   true,
+   "127.2 → 3.0"
+  ],
+  [
+   "rotação arrastando o mouse",
+   true,
+   "[0.577350269189626, -0.5773502691896257, 0.5773502691896258] → [0.062126303232913224, -0.9486154504613242, 0.31027254082930206]"
+  ],
+  [
+   "Ajustar enquadra de novo",
+   true,
+   "3.0 → 127.2"
+  ],
+  [
+   "alternância sólido/arame sem erro",
+   true,
+   ""
+  ],
+  [
+   "seleção da face superior mostra informação exata do B-rep (plano, 5000 mm²)",
+   true,
+   "Face plane Área 5000,000 mm²"
+  ],
+  [
+   "exibição em cm: 100 cm³ (só conversão de exibição)",
+   true,
+   "100,000 cm³"
+  ],
+  [
+   "fechar o documento encerra o worker do motor",
+   true,
+   "workers 1 → 0"
+  ],
+  [
+   "aba STEP some ao fechar",
+   true,
+   ""
+  ],
+  [
+   "desenho 2D intacto depois de abrir/fechar o STEP",
+   true,
+   "[2, 'Sem título'] → [2, 'Sem título']"
+  ],
+  [
+   "STEP em polegada: unidade do arquivo 'in', exibição inicia em in",
+   true,
+   "in (1 in = 25,4 mm)"
+  ],
+  [
+   "polegada convertida: 50,8 × 25,4 × 12,7 mm",
+   true,
+   ""
+  ],
+  [
+   "conjunto (tank_assembly): 4 sólidos e hierarquia na árvore",
+   true,
+   "sólidos 4, linhas 5"
+  ],
+  [
+   "conjunto: volume = referência independente",
+   true,
+   ""
+  ],
+  [
+   "eixo Y para cima: gira só a exibição, volume igual",
+   true,
+   ""
+  ],
+  [
+   "superfícies curvas (cone, esfera, toro): 3 sólidos, volume de referência",
+   true,
+   ""
+  ],
+  [
+   "geometria inválida do motor é SINALIZADA (vessel_revolved)",
+   true,
+   "inválidos 1"
+  ],
+  [
+   "nao_step.step: 'Falha na leitura' com mensagem clara",
+   true,
+   "O arquivo não é um STEP válido (cabeçalho ISO-10303-21 ausente)."
+  ],
+  [
+   "vazio.stp: 'Falha na leitura' com mensagem clara",
+   true,
+   "Arquivo STEP vazio."
+  ],
+  [
+   "STEP truncado: falha controlada ou aviso de integridade",
+   true,
+   "Falha ao ler/gravar o arquivo (importar STEP)."
+  ],
+  [
+   "nenhum erro não tratado na página",
+   true,
+   ""
+  ],
+  [
+   "grande_120_caixas.step (1.9 MB): 120 sólidos",
+   true,
+   "leitura 2101 ms, visualização 730 ms"
+  ],
+  [
+   "grande_120_caixas.step: memória da interface liberada ao fechar",
+   true,
+   "heap 32 → 46 → 34 MB"
+  ],
+  [
+   "grande_400_placas.step (20.2 MB): 400 sólidos",
+   true,
+   "leitura 5560 ms, visualização 5076 ms"
+  ],
+  [
+   "grande_400_placas.step: memória da interface liberada ao fechar",
+   true,
+   "heap 34 → 108 → 53 MB"
+  ],
+  [
+   "worker do motor STEP encerrado ao fim",
+   true,
+   "workers 0"
+  ],
+  [
+   "abrir/fechar 5× não acumula workers",
+   true,
+   ""
+  ],
+  [
+   "CSP: nenhuma violação no console",
+   true,
+   ""
+  ]
+ ],
+ "metrics": {
+  "grande_120_caixas.step": {
+   "bytes": 2033777,
+   "ms": {
+    "carregando": 1.6000000000931323,
+    "interpretando": 2101.399999999907,
+    "gerando": 729.7000000001863
+   },
+   "heap_mb_antes": 31.79355525970459,
+   "heap_mb_aberto": 46.38290786743164,
+   "heap_mb_fechado": 33.86316967010498
+  },
+  "grande_400_placas.step": {
+   "bytes": 21208235,
+   "ms": {
+    "carregando": 17.600000000093132,
+    "interpretando": 5559.699999999721,
+    "gerando": 5075.5
+   },
+   "heap_mb_antes": 33.86316967010498,
+   "heap_mb_aberto": 108.0868673324585,
+   "heap_mb_fechado": 52.58581256866455
+  }
+ }
+}
