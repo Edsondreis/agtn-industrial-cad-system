@@ -90,7 +90,7 @@ function Read-Recents($exe, $tag) {
 
 # ====================================================== ambiente SEM ferramentas de desenvolvimento neste processo
 $env:PATH = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [Environment]::GetEnvironmentVariable("Path", "User")
-foreach ($v in "RUSTUP_HOME", "CARGO_HOME", "npm_config_cache") { Remove-Item "Env:\$v" -ErrorAction SilentlyContinue }
+foreach ($ev in "RUSTUP_HOME", "CARGO_HOME", "npm_config_cache") { Remove-Item "Env:\$ev" -ErrorAction SilentlyContinue }
 $env:TEMP = "$env:LOCALAPPDATA\Temp"; $env:TMP = $env:TEMP
 $dev = [ordered]@{}; foreach ($t in "git", "node", "npm", "cargo", "rustc", "cl", "link") { $c = Get-Command $t -ErrorAction SilentlyContinue; $dev[$t] = $(if ($c) { $c.Source } else { $null }) }
 $semDev = -not ($dev.Values | Where-Object { $_ })
