@@ -181,7 +181,7 @@ Item "U2-atualizacao" $(if ($ec -eq 0 -and $apps.Count -eq 1 -and $up.DisplayVer
 Item "U3-dados-preservados" $(if ($difs.Count -eq 0 -and (Hash $proj) -eq $projHash) { "APROVADO" } else { "REPROVADO" }) "perfil do app: $($snapAntes.Count) arquivos, $($difs.Count) alterados pelo instalador; projeto do usuario intacto: $((Hash $proj) -eq $projHash)"
 $recUp = Read-Recents $exeUp $V
 Item "U4-recentes" $(if ($temPrev -and $recUp -match "projeto_usuario_fase5") { "APROVADO" } else { "REPROVADO" }) "recentes na 3.2.0-1 contem o projeto: $temPrev; a $V le a mesma lista: $([bool]($recUp -match 'projeto_usuario_fase5'))"
-& powershell -NoProfile -ExecutionPolicy Bypass -File "$smokeDir\webview2_step_smoke.ps1" -Exe $exeUp -Out "$O\step_smoke_pos_atualizacao" -Arquivos "box_100x50x20.step", "cobertura_r2000.dxf" *> "$O\step_smoke_pos_atualizacao_console.txt"
+& powershell -NoProfile -ExecutionPolicy Bypass -File "$smokeDir\webview2_step_smoke.ps1" -Exe $exeUp -Out "$O\step_smoke_pos_atualizacao" -Arquivos "box_100x50x20.step,cobertura_r2000.dxf" *> "$O\step_smoke_pos_atualizacao_console.txt"
 $st2 = $null; if (Test-Path "$O\step_smoke_pos_atualizacao\step_resultado.json") { $st2 = [IO.File]::ReadAllText("$O\step_smoke_pos_atualizacao\step_resultado.json", [Text.Encoding]::UTF8) | ConvertFrom-Json }
 Item "U5-funcional-pos-atualizacao" $(if ($st2 -and $st2.verificacoes -gt 0 -and $st2.verificacoes -eq $st2.aprovadas) { "APROVADO" } else { "REPROVADO" }) "STEP+DXF no app atualizado: $($st2.aprovadas)/$($st2.verificacoes)"
 Save

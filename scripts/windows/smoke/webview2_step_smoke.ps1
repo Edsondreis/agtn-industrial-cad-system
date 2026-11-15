@@ -24,6 +24,8 @@ param(
   [int]$TimeoutS = 600
 )
 $ErrorActionPreference = "Stop"
+# chamado com powershell -File, uma lista chega como texto único "a,b": separa aqui
+if ($Arquivos.Count -eq 1 -and $Arquivos[0] -match ",") { $Arquivos = @($Arquivos[0] -split "\s*,\s*" | Where-Object { $_ }) }
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $Out) { $Out = Join-Path $env:TEMP ("AGTN_STEP_" + (Get-Date -Format "yyyyMMdd_HHmmss")) }
 New-Item -ItemType Directory -Force -Path $Out | Out-Null
