@@ -1,0 +1,1579 @@
+﻿{
+    "data":  "2026-11-15T13:14:58",
+    "app":  "C:\\Users\\Luiza\\AppData\\Local\\AGTN Industrial CAD\\agtn-cad.exe",
+    "versaoArquivo":  "3.2.0-2",
+    "versaoRegistro":  "3.2.0-2",
+    "verificacoes":  138,
+    "aprovadas":  138,
+    "resultado":  "APROVADO",
+    "execucoes":  [
+                      {
+                          "arquivo":  "box_100x50x20.step",
+                          "bytes":  15845,
+                          "testes":  [
+                                         {
+                                             "id":  "P1",
+                                             "nome":  "STEP da linha de comando abre no visualizador (documento próprio)",
+                                             "ok":  true,
+                                             "detalhe":  "aba STEP",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P2",
+                                             "nome":  "estado \u0027Arquivo pronto\u0027",
+                                             "ok":  true,
+                                             "detalhe":  "Arquivo pronto; ",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P3",
+                                             "nome":  "quantidade de sólidos = referência",
+                                             "ok":  true,
+                                             "detalhe":  "1 (ref 1)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P4",
+                                             "nome":  "volume (B-rep) = referência independente (erro relativo \u003c 1e-6)",
+                                             "ok":  true,
+                                             "detalhe":  "99999.99999999997 (ref 99999.99999999997)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P5",
+                                             "nome":  "área (B-rep) = referência (\u003c 1e-6)",
+                                             "ok":  true,
+                                             "detalhe":  "15999.999999999998 (ref 15999.999999999998)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P6",
+                                             "nome":  "caixa delimitadora = referência (± 0,05 mm)",
+                                             "ok":  true,
+                                             "detalhe":  "0.000 0.000 0.000 100.000 50.000 20.000",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P7",
+                                             "nome":  "unidade do arquivo informada",
+                                             "ok":  true,
+                                             "detalhe":  "mm (ref mm); tela: mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P8",
+                                             "nome":  "nenhum corpo inválido",
+                                             "ok":  true,
+                                             "detalhe":  "0 inválido(s)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P9",
+                                             "nome":  "7 vistas padrão",
+                                             "ok":  true,
+                                             "detalhe":  "Frente, Trás, Sup., Inf., Esq., Dir., Iso",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P10",
+                                             "nome":  "ajustar, arame/sólido e malha de exibição gerada",
+                                             "ok":  true,
+                                             "detalhe":  "triângulos 12; altura vista 127.2 → 127.2",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P11",
+                                             "nome":  "fechar o documento: visualizador e aba STEP somem, gancho liberado",
+                                             "ok":  true,
+                                             "detalhe":  "",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P12",
+                                             "nome":  "volta ao DESENHO com o desenho intacto (vazio, sem caminho)",
+                                             "ok":  true,
+                                             "detalhe":  "0 objeto(s)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P14",
+                                             "nome":  "memória (app + WebView2) não cresce depois de fechar o documento",
+                                             "ok":  true,
+                                             "detalhe":  "privada 533.8 MB aberto → 322.1 MB fechado; conjunto de trabalho 521.6 → 455.9 MB; processos 7 → 7"
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "sem violação de CSP/segurança (página e worker)",
+                                             "ok":  true,
+                                             "detalhe":  "eventos 24; segurança 0; securitypolicyviolation []"
+                                         },
+                                         {
+                                             "id":  "RO",
+                                             "nome":  "arquivo de origem intacto (mesmo SHA-256 antes e depois)",
+                                             "ok":  true,
+                                             "detalhe":  "40B952E4C195EC419F261AA1F2D594AA4E4C10D31DDBE0E276306170C292C72A"
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "app":  {
+                                                      "total_ms":  1418,
+                                                      "fases_ms":  {
+                                                                       "carregando":  0.09999999962747097,
+                                                                       "interpretando":  500.10000000009313,
+                                                                       "gerando":  61
+                                                                   },
+                                                      "estado":  "pronto",
+                                                      "estadoTela":  "Arquivo pronto",
+                                                      "resumo":  {
+                                                                     "bodies":  1,
+                                                                     "solids":  1,
+                                                                     "faces":  6,
+                                                                     "edges":  12,
+                                                                     "vertices":  8,
+                                                                     "volume":  99999.99999999997,
+                                                                     "area":  15999.999999999998,
+                                                                     "bbox":  {
+                                                                                  "min":  {
+                                                                                              "x":  0,
+                                                                                              "y":  0,
+                                                                                              "z":  0
+                                                                                          },
+                                                                                  "max":  {
+                                                                                              "x":  100,
+                                                                                              "y":  50,
+                                                                                              "z":  20
+                                                                                          }
+                                                                              },
+                                                                     "open":  0,
+                                                                     "invalid":  0
+                                                                 },
+                                                      "unidade":  {
+                                                                      "name":  "mm",
+                                                                      "toMm":  1,
+                                                                      "source":  "SI_UNIT"
+                                                                  }
+                                                  },
+                                          "processoAberto":  {
+                                                                 "processos":  7,
+                                                                 "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                                 "memoriaMB":  521.6,
+                                                                 "privadaMB":  533.8,
+                                                                 "cpuSegundos":  7.47
+                                                             },
+                                          "processoFechado":  {
+                                                                  "processos":  7,
+                                                                  "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                                  "memoriaMB":  455.9,
+                                                                  "privadaMB":  322.1,
+                                                                  "cpuSegundos":  7.66
+                                                              },
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  454.1,
+                                                           "privadaMB":  319.9,
+                                                           "cpuSegundos":  7.66
+                                                       }
+                                      }
+                      },
+                      {
+                          "arquivo":  "inch_block_2x1x0.5.step",
+                          "bytes":  16191,
+                          "testes":  [
+                                         {
+                                             "id":  "P1",
+                                             "nome":  "STEP da linha de comando abre no visualizador (documento próprio)",
+                                             "ok":  true,
+                                             "detalhe":  "aba STEP",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P2",
+                                             "nome":  "estado \u0027Arquivo pronto\u0027",
+                                             "ok":  true,
+                                             "detalhe":  "Arquivo pronto; ",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P3",
+                                             "nome":  "quantidade de sólidos = referência",
+                                             "ok":  true,
+                                             "detalhe":  "1 (ref 1)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P4",
+                                             "nome":  "volume (B-rep) = referência independente (erro relativo \u003c 1e-6)",
+                                             "ok":  true,
+                                             "detalhe":  "16387.064 (ref 16387.064)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P5",
+                                             "nome":  "área (B-rep) = referência (\u003c 1e-6)",
+                                             "ok":  true,
+                                             "detalhe":  "4516.119999999999 (ref 4516.119999999999)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P6",
+                                             "nome":  "caixa delimitadora = referência (± 0,05 mm)",
+                                             "ok":  true,
+                                             "detalhe":  "0.000 0.000 0.000 50.800 25.400 12.700",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P7",
+                                             "nome":  "unidade do arquivo informada",
+                                             "ok":  true,
+                                             "detalhe":  "in (ref in); tela: in (1 in = 25,4 mm)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P8",
+                                             "nome":  "nenhum corpo inválido",
+                                             "ok":  true,
+                                             "detalhe":  "0 inválido(s)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P9",
+                                             "nome":  "7 vistas padrão",
+                                             "ok":  true,
+                                             "detalhe":  "Frente, Trás, Sup., Inf., Esq., Dir., Iso",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P10",
+                                             "nome":  "ajustar, arame/sólido e malha de exibição gerada",
+                                             "ok":  true,
+                                             "detalhe":  "triângulos 12; altura vista 65.2 → 65.2",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P11",
+                                             "nome":  "fechar o documento: visualizador e aba STEP somem, gancho liberado",
+                                             "ok":  true,
+                                             "detalhe":  "",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P12",
+                                             "nome":  "volta ao DESENHO com o desenho intacto (vazio, sem caminho)",
+                                             "ok":  true,
+                                             "detalhe":  "0 objeto(s)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P14",
+                                             "nome":  "memória (app + WebView2) não cresce depois de fechar o documento",
+                                             "ok":  true,
+                                             "detalhe":  "privada 525.7 MB aberto → 347 MB fechado; conjunto de trabalho 516.8 → 457.6 MB; processos 7 → 7"
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "sem violação de CSP/segurança (página e worker)",
+                                             "ok":  true,
+                                             "detalhe":  "eventos 24; segurança 0; securitypolicyviolation []"
+                                         },
+                                         {
+                                             "id":  "RO",
+                                             "nome":  "arquivo de origem intacto (mesmo SHA-256 antes e depois)",
+                                             "ok":  true,
+                                             "detalhe":  "8734D975B3E134070851655A9721439608F3EE5E7CAF919791895DCE9502F767"
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "app":  {
+                                                      "total_ms":  1440,
+                                                      "fases_ms":  {
+                                                                       "carregando":  0.10000000009313226,
+                                                                       "interpretando":  475.29999999981374,
+                                                                       "gerando":  67.29999999981374
+                                                                   },
+                                                      "estado":  "pronto",
+                                                      "estadoTela":  "Arquivo pronto",
+                                                      "resumo":  {
+                                                                     "bodies":  1,
+                                                                     "solids":  1,
+                                                                     "faces":  6,
+                                                                     "edges":  12,
+                                                                     "vertices":  8,
+                                                                     "volume":  16387.064,
+                                                                     "area":  4516.119999999999,
+                                                                     "bbox":  {
+                                                                                  "min":  {
+                                                                                              "x":  0,
+                                                                                              "y":  0,
+                                                                                              "z":  0
+                                                                                          },
+                                                                                  "max":  {
+                                                                                              "x":  50.8,
+                                                                                              "y":  25.4,
+                                                                                              "z":  12.7
+                                                                                          }
+                                                                              },
+                                                                     "open":  0,
+                                                                     "invalid":  0
+                                                                 },
+                                                      "unidade":  {
+                                                                      "name":  "in",
+                                                                      "toMm":  25.4,
+                                                                      "source":  "CONVERSION_BASED_UNIT"
+                                                                  }
+                                                  },
+                                          "processoAberto":  {
+                                                                 "processos":  7,
+                                                                 "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                                 "memoriaMB":  516.8,
+                                                                 "privadaMB":  525.7,
+                                                                 "cpuSegundos":  8.8
+                                                             },
+                                          "processoFechado":  {
+                                                                  "processos":  7,
+                                                                  "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                                  "memoriaMB":  457.6,
+                                                                  "privadaMB":  347,
+                                                                  "cpuSegundos":  8.97
+                                                              },
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  455.9,
+                                                           "privadaMB":  343.5,
+                                                           "cpuSegundos":  8.97
+                                                       }
+                                      }
+                      },
+                      {
+                          "arquivo":  "tank_assembly.step",
+                          "bytes":  76173,
+                          "testes":  [
+                                         {
+                                             "id":  "P1",
+                                             "nome":  "STEP da linha de comando abre no visualizador (documento próprio)",
+                                             "ok":  true,
+                                             "detalhe":  "aba STEP",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P2",
+                                             "nome":  "estado \u0027Arquivo pronto\u0027",
+                                             "ok":  true,
+                                             "detalhe":  "Arquivo pronto; ",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P3",
+                                             "nome":  "quantidade de sólidos = referência",
+                                             "ok":  true,
+                                             "detalhe":  "4 (ref 4)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P4",
+                                             "nome":  "volume (B-rep) = referência independente (erro relativo \u003c 1e-6)",
+                                             "ok":  true,
+                                             "detalhe":  "48397554.29746682 (ref 48397554.29746521)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P5",
+                                             "nome":  "área (B-rep) = referência (\u003c 1e-6)",
+                                             "ok":  true,
+                                             "detalhe":  "10463796.899091655 (ref 10463796.899091145)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P6",
+                                             "nome":  "caixa delimitadora = referência (± 0,05 mm)",
+                                             "ok":  true,
+                                             "detalhe":  "-20.000 -450.000 -450.000 1520.000 450.000 677.308",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P7",
+                                             "nome":  "unidade do arquivo informada",
+                                             "ok":  true,
+                                             "detalhe":  "mm (ref mm); tela: mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P8",
+                                             "nome":  "nenhum corpo inválido",
+                                             "ok":  true,
+                                             "detalhe":  "0 inválido(s)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P9",
+                                             "nome":  "7 vistas padrão",
+                                             "ok":  true,
+                                             "detalhe":  "Frente, Trás, Sup., Inf., Esq., Dir., Iso",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P10",
+                                             "nome":  "ajustar, arame/sólido e malha de exibição gerada",
+                                             "ok":  true,
+                                             "detalhe":  "triângulos 7504; altura vista 2363.3 → 2363.3",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P11",
+                                             "nome":  "fechar o documento: visualizador e aba STEP somem, gancho liberado",
+                                             "ok":  true,
+                                             "detalhe":  "",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P12",
+                                             "nome":  "volta ao DESENHO com o desenho intacto (vazio, sem caminho)",
+                                             "ok":  true,
+                                             "detalhe":  "0 objeto(s)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P14",
+                                             "nome":  "memória (app + WebView2) não cresce depois de fechar o documento",
+                                             "ok":  true,
+                                             "detalhe":  "privada 538.6 MB aberto → 337.2 MB fechado; conjunto de trabalho 540 → 468.1 MB; processos 7 → 7"
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "sem violação de CSP/segurança (página e worker)",
+                                             "ok":  true,
+                                             "detalhe":  "eventos 20; segurança 0; securitypolicyviolation []"
+                                         },
+                                         {
+                                             "id":  "RO",
+                                             "nome":  "arquivo de origem intacto (mesmo SHA-256 antes e depois)",
+                                             "ok":  true,
+                                             "detalhe":  "3FB4441E81D1B73A758EBF9BCA147C4939DEE9E4697A8BBA2FB7CAC6CC016A39"
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "app":  {
+                                                      "total_ms":  1702,
+                                                      "fases_ms":  {
+                                                                       "carregando":  0.19999999972060323,
+                                                                       "interpretando":  535.1000000000931,
+                                                                       "gerando":  239.60000000009313
+                                                                   },
+                                                      "estado":  "pronto",
+                                                      "estadoTela":  "Arquivo pronto",
+                                                      "resumo":  {
+                                                                     "bodies":  4,
+                                                                     "solids":  4,
+                                                                     "faces":  38,
+                                                                     "edges":  90,
+                                                                     "vertices":  60,
+                                                                     "volume":  48397554.29746682,
+                                                                     "area":  10463796.899091655,
+                                                                     "bbox":  {
+                                                                                  "min":  {
+                                                                                              "x":  -20,
+                                                                                              "y":  -450,
+                                                                                              "z":  -450
+                                                                                          },
+                                                                                  "max":  {
+                                                                                              "x":  1520,
+                                                                                              "y":  450,
+                                                                                              "z":  677.3076211353316
+                                                                                          }
+                                                                              },
+                                                                     "open":  0,
+                                                                     "invalid":  0
+                                                                 },
+                                                      "unidade":  {
+                                                                      "name":  "mm",
+                                                                      "toMm":  1,
+                                                                      "source":  "SI_UNIT"
+                                                                  }
+                                                  },
+                                          "processoAberto":  {
+                                                                 "processos":  7,
+                                                                 "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                                 "memoriaMB":  540,
+                                                                 "privadaMB":  538.6,
+                                                                 "cpuSegundos":  8.92
+                                                             },
+                                          "processoFechado":  {
+                                                                  "processos":  7,
+                                                                  "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                                  "memoriaMB":  468.1,
+                                                                  "privadaMB":  337.2,
+                                                                  "cpuSegundos":  9.11
+                                                              },
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  466,
+                                                           "privadaMB":  334.6,
+                                                           "cpuSegundos":  9.12
+                                                       }
+                                      }
+                      },
+                      {
+                          "arquivo":  "cone_sphere_torus.step",
+                          "bytes":  13894,
+                          "testes":  [
+                                         {
+                                             "id":  "P1",
+                                             "nome":  "STEP da linha de comando abre no visualizador (documento próprio)",
+                                             "ok":  true,
+                                             "detalhe":  "aba STEP",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P2",
+                                             "nome":  "estado \u0027Arquivo pronto\u0027",
+                                             "ok":  true,
+                                             "detalhe":  "Arquivo pronto; ",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P3",
+                                             "nome":  "quantidade de sólidos = referência",
+                                             "ok":  true,
+                                             "detalhe":  "3 (ref 3)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P4",
+                                             "nome":  "volume (B-rep) = referência independente (erro relativo \u003c 1e-6)",
+                                             "ok":  true,
+                                             "detalhe":  "320335.87075943477 (ref 320335.87075953063)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P5",
+                                             "nome":  "área (B-rep) = referência (\u003c 1e-6)",
+                                             "ok":  true,
+                                             "detalhe":  "41850.03990184992 (ref 41850.03990185237)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P6",
+                                             "nome":  "caixa delimitadora = referência (± 0,05 mm)",
+                                             "ok":  true,
+                                             "detalhe":  "-40.000 -50.000 -0.000 350.000 50.000 60.000",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P7",
+                                             "nome":  "unidade do arquivo informada",
+                                             "ok":  true,
+                                             "detalhe":  "mm (ref mm); tela: mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P8",
+                                             "nome":  "nenhum corpo inválido",
+                                             "ok":  true,
+                                             "detalhe":  "0 inválido(s)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P9",
+                                             "nome":  "7 vistas padrão",
+                                             "ok":  true,
+                                             "detalhe":  "Frente, Trás, Sup., Inf., Esq., Dir., Iso",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P10",
+                                             "nome":  "ajustar, arame/sólido e malha de exibição gerada",
+                                             "ok":  true,
+                                             "detalhe":  "triângulos 8330; altura vista 455.9 → 455.9",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P11",
+                                             "nome":  "fechar o documento: visualizador e aba STEP somem, gancho liberado",
+                                             "ok":  true,
+                                             "detalhe":  "",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P12",
+                                             "nome":  "volta ao DESENHO com o desenho intacto (vazio, sem caminho)",
+                                             "ok":  true,
+                                             "detalhe":  "0 objeto(s)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P14",
+                                             "nome":  "memória (app + WebView2) não cresce depois de fechar o documento",
+                                             "ok":  true,
+                                             "detalhe":  "privada 565.4 MB aberto → 336 MB fechado; conjunto de trabalho 542 → 467.9 MB; processos 7 → 7"
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "sem violação de CSP/segurança (página e worker)",
+                                             "ok":  true,
+                                             "detalhe":  "eventos 20; segurança 0; securitypolicyviolation []"
+                                         },
+                                         {
+                                             "id":  "RO",
+                                             "nome":  "arquivo de origem intacto (mesmo SHA-256 antes e depois)",
+                                             "ok":  true,
+                                             "detalhe":  "3B25103375E5279AD845D61E45C36E812903A6A9A519DE91C37CF702D8FF8261"
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "app":  {
+                                                      "total_ms":  1442,
+                                                      "fases_ms":  {
+                                                                       "carregando":  0.20000000018626451,
+                                                                       "interpretando":  459.09999999962747,
+                                                                       "gerando":  153.10000000009313
+                                                                   },
+                                                      "estado":  "pronto",
+                                                      "estadoTela":  "Arquivo pronto",
+                                                      "resumo":  {
+                                                                     "bodies":  3,
+                                                                     "solids":  3,
+                                                                     "faces":  5,
+                                                                     "edges":  8,
+                                                                     "vertices":  5,
+                                                                     "volume":  320335.87075943477,
+                                                                     "area":  41850.03990184992,
+                                                                     "bbox":  {
+                                                                                  "min":  {
+                                                                                              "x":  -40,
+                                                                                              "y":  -50.0000001,
+                                                                                              "z":  -1E-07
+                                                                                          },
+                                                                                  "max":  {
+                                                                                              "x":  350.0000001,
+                                                                                              "y":  50.0000001,
+                                                                                              "z":  60.00000000000001
+                                                                                          }
+                                                                              },
+                                                                     "open":  0,
+                                                                     "invalid":  0
+                                                                 },
+                                                      "unidade":  {
+                                                                      "name":  "mm",
+                                                                      "toMm":  1,
+                                                                      "source":  "SI_UNIT"
+                                                                  }
+                                                  },
+                                          "processoAberto":  {
+                                                                 "processos":  7,
+                                                                 "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                                 "memoriaMB":  542,
+                                                                 "privadaMB":  565.4,
+                                                                 "cpuSegundos":  8.03
+                                                             },
+                                          "processoFechado":  {
+                                                                  "processos":  7,
+                                                                  "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                                  "memoriaMB":  467.9,
+                                                                  "privadaMB":  336,
+                                                                  "cpuSegundos":  8.17
+                                                              },
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  466.1,
+                                                           "privadaMB":  331,
+                                                           "cpuSegundos":  8.17
+                                                       }
+                                      }
+                      },
+                      {
+                          "arquivo":  "vessel_revolved.step",
+                          "bytes":  12323,
+                          "testes":  [
+                                         {
+                                             "id":  "P1",
+                                             "nome":  "STEP da linha de comando abre no visualizador (documento próprio)",
+                                             "ok":  true,
+                                             "detalhe":  "aba STEP",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P2",
+                                             "nome":  "estado \u0027Arquivo pronto\u0027",
+                                             "ok":  true,
+                                             "detalhe":  "Arquivo pronto; ",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P3",
+                                             "nome":  "quantidade de sólidos = referência",
+                                             "ok":  true,
+                                             "detalhe":  "1 (ref 1)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P7",
+                                             "nome":  "unidade do arquivo informada",
+                                             "ok":  true,
+                                             "detalhe":  "mm (ref mm); tela: mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P8",
+                                             "nome":  "geometria inválida do motor SINALIZADA na tela",
+                                             "ok":  true,
+                                             "detalhe":  "1 inválido(s)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P9",
+                                             "nome":  "7 vistas padrão",
+                                             "ok":  true,
+                                             "detalhe":  "Frente, Trás, Sup., Inf., Esq., Dir., Iso",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P10",
+                                             "nome":  "ajustar, arame/sólido e malha de exibição gerada",
+                                             "ok":  true,
+                                             "detalhe":  "triângulos 1032; altura vista 1385.4 → 1385.4",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P11",
+                                             "nome":  "fechar o documento: visualizador e aba STEP somem, gancho liberado",
+                                             "ok":  true,
+                                             "detalhe":  "",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P12",
+                                             "nome":  "volta ao DESENHO com o desenho intacto (vazio, sem caminho)",
+                                             "ok":  true,
+                                             "detalhe":  "0 objeto(s)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P14",
+                                             "nome":  "memória (app + WebView2) não cresce depois de fechar o documento",
+                                             "ok":  true,
+                                             "detalhe":  "privada 629.1 MB aberto → 345.3 MB fechado; conjunto de trabalho 538 → 464.6 MB; processos 7 → 7"
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "sem violação de CSP/segurança (página e worker)",
+                                             "ok":  true,
+                                             "detalhe":  "eventos 20; segurança 0; securitypolicyviolation []"
+                                         },
+                                         {
+                                             "id":  "RO",
+                                             "nome":  "arquivo de origem intacto (mesmo SHA-256 antes e depois)",
+                                             "ok":  true,
+                                             "detalhe":  "4C532FB4585A6CF71957A1ECDE41D57F3B23CAB982CE750D1CCF5F8FF3758F25"
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "app":  {
+                                                      "total_ms":  1450,
+                                                      "fases_ms":  {
+                                                                       "carregando":  0.10000000009313226,
+                                                                       "interpretando":  504.59999999962747,
+                                                                       "gerando":  106.60000000009313
+                                                                   },
+                                                      "estado":  "pronto",
+                                                      "estadoTela":  "Arquivo pronto",
+                                                      "resumo":  {
+                                                                     "bodies":  1,
+                                                                     "solids":  1,
+                                                                     "faces":  5,
+                                                                     "edges":  6,
+                                                                     "vertices":  4,
+                                                                     "volume":  8397477.163045317,
+                                                                     "area":  3370187.5014353795,
+                                                                     "bbox":  {
+                                                                                  "min":  {
+                                                                                              "x":  0,
+                                                                                              "y":  -300,
+                                                                                              "z":  -300
+                                                                                          },
+                                                                                  "max":  {
+                                                                                              "x":  900.0000001469999,
+                                                                                              "y":  300,
+                                                                                              "z":  300
+                                                                                          }
+                                                                              },
+                                                                     "open":  0,
+                                                                     "invalid":  1
+                                                                 },
+                                                      "unidade":  {
+                                                                      "name":  "mm",
+                                                                      "toMm":  1,
+                                                                      "source":  "SI_UNIT"
+                                                                  }
+                                                  },
+                                          "processoAberto":  {
+                                                                 "processos":  7,
+                                                                 "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                                 "memoriaMB":  538,
+                                                                 "privadaMB":  629.1,
+                                                                 "cpuSegundos":  9.16
+                                                             },
+                                          "processoFechado":  {
+                                                                  "processos":  7,
+                                                                  "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                                  "memoriaMB":  464.6,
+                                                                  "privadaMB":  345.3,
+                                                                  "cpuSegundos":  9.3
+                                                              },
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  463.3,
+                                                           "privadaMB":  340.6,
+                                                           "cpuSegundos":  9.3
+                                                       }
+                                      }
+                      },
+                      {
+                          "arquivo":  "fusion_srr_assembly.step",
+                          "bytes":  17528,
+                          "testes":  [
+                                         {
+                                             "id":  "P1",
+                                             "nome":  "STEP da linha de comando abre no visualizador (documento próprio)",
+                                             "ok":  true,
+                                             "detalhe":  "aba STEP",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P2",
+                                             "nome":  "estado \u0027Arquivo pronto\u0027",
+                                             "ok":  true,
+                                             "detalhe":  "Arquivo pronto; ",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P7",
+                                             "nome":  "unidade do arquivo informada",
+                                             "ok":  true,
+                                             "detalhe":  "mm (ref mm); tela: mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P8",
+                                             "nome":  "nenhum corpo inválido",
+                                             "ok":  true,
+                                             "detalhe":  "0 inválido(s)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P9",
+                                             "nome":  "7 vistas padrão",
+                                             "ok":  true,
+                                             "detalhe":  "Frente, Trás, Sup., Inf., Esq., Dir., Iso",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P10",
+                                             "nome":  "ajustar, arame/sólido e malha de exibição gerada",
+                                             "ok":  true,
+                                             "detalhe":  "triângulos 24; altura vista 778.3 → 778.3",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P11",
+                                             "nome":  "fechar o documento: visualizador e aba STEP somem, gancho liberado",
+                                             "ok":  true,
+                                             "detalhe":  "",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P12",
+                                             "nome":  "volta ao DESENHO com o desenho intacto (vazio, sem caminho)",
+                                             "ok":  true,
+                                             "detalhe":  "0 objeto(s)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P14",
+                                             "nome":  "memória (app + WebView2) não cresce depois de fechar o documento",
+                                             "ok":  true,
+                                             "detalhe":  "privada 530.3 MB aberto → 324.6 MB fechado; conjunto de trabalho 522.7 → 458 MB; processos 7 → 7"
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "sem violação de CSP/segurança (página e worker)",
+                                             "ok":  true,
+                                             "detalhe":  "eventos 22; segurança 0; securitypolicyviolation []"
+                                         },
+                                         {
+                                             "id":  "RO",
+                                             "nome":  "arquivo de origem intacto (mesmo SHA-256 antes e depois)",
+                                             "ok":  true,
+                                             "detalhe":  "9EF8278BA5D849A5DE521203722E4C0CBA84DB6312933D79FF6FD16F1B33D635"
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "app":  {
+                                                      "total_ms":  1455,
+                                                      "fases_ms":  {
+                                                                       "carregando":  0.19999999972060323,
+                                                                       "interpretando":  510.20000000018626,
+                                                                       "gerando":  76.89999999990687
+                                                                   },
+                                                      "estado":  "pronto",
+                                                      "estadoTela":  "Arquivo pronto",
+                                                      "resumo":  {
+                                                                     "bodies":  2,
+                                                                     "solids":  2,
+                                                                     "faces":  12,
+                                                                     "edges":  24,
+                                                                     "vertices":  16,
+                                                                     "volume":  199999.99999999994,
+                                                                     "area":  31999.999999999996,
+                                                                     "bbox":  {
+                                                                                  "min":  {
+                                                                                              "x":  0,
+                                                                                              "y":  0,
+                                                                                              "z":  0
+                                                                                          },
+                                                                                  "max":  {
+                                                                                              "x":  600,
+                                                                                              "y":  350,
+                                                                                              "z":  20
+                                                                                          }
+                                                                              },
+                                                                     "open":  0,
+                                                                     "invalid":  0
+                                                                 },
+                                                      "unidade":  {
+                                                                      "name":  "mm",
+                                                                      "toMm":  1,
+                                                                      "source":  "SI_UNIT"
+                                                                  }
+                                                  },
+                                          "processoAberto":  {
+                                                                 "processos":  7,
+                                                                 "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                                 "memoriaMB":  522.7,
+                                                                 "privadaMB":  530.3,
+                                                                 "cpuSegundos":  8.22
+                                                             },
+                                          "processoFechado":  {
+                                                                  "processos":  7,
+                                                                  "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                                  "memoriaMB":  458,
+                                                                  "privadaMB":  324.6,
+                                                                  "cpuSegundos":  8.34
+                                                              },
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  456.1,
+                                                           "privadaMB":  322.4,
+                                                           "cpuSegundos":  8.34
+                                                       }
+                                      }
+                      },
+                      {
+                          "arquivo":  "grande_120_caixas.step",
+                          "bytes":  2033777,
+                          "testes":  [
+                                         {
+                                             "id":  "P1",
+                                             "nome":  "STEP da linha de comando abre no visualizador (documento próprio)",
+                                             "ok":  true,
+                                             "detalhe":  "aba STEP",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P2",
+                                             "nome":  "estado \u0027Arquivo pronto\u0027",
+                                             "ok":  true,
+                                             "detalhe":  "Arquivo pronto; ",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P3",
+                                             "nome":  "quantidade de sólidos = referência",
+                                             "ok":  true,
+                                             "detalhe":  "120 (ref 120)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P4",
+                                             "nome":  "volume (B-rep) = referência independente (erro relativo \u003c 1e-6)",
+                                             "ok":  true,
+                                             "detalhe":  "11999999.999999998 (ref 12000000)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P7",
+                                             "nome":  "unidade do arquivo informada",
+                                             "ok":  true,
+                                             "detalhe":  "mm (ref mm); tela: mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P8",
+                                             "nome":  "nenhum corpo inválido",
+                                             "ok":  true,
+                                             "detalhe":  "0 inválido(s)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P9",
+                                             "nome":  "7 vistas padrão",
+                                             "ok":  true,
+                                             "detalhe":  "Frente, Trás, Sup., Inf., Esq., Dir., Iso",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P10",
+                                             "nome":  "ajustar, arame/sólido e malha de exibição gerada",
+                                             "ok":  true,
+                                             "detalhe":  "triângulos 1440; altura vista 2141.5 → 2141.5",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P11",
+                                             "nome":  "fechar o documento: visualizador e aba STEP somem, gancho liberado",
+                                             "ok":  true,
+                                             "detalhe":  "",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P12",
+                                             "nome":  "volta ao DESENHO com o desenho intacto (vazio, sem caminho)",
+                                             "ok":  true,
+                                             "detalhe":  "0 objeto(s)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P14",
+                                             "nome":  "memória (app + WebView2) não cresce depois de fechar o documento",
+                                             "ok":  true,
+                                             "detalhe":  "privada 598.9 MB aberto → 387.6 MB fechado; conjunto de trabalho 607.1 → 516.4 MB; processos 7 → 7"
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "sem violação de CSP/segurança (página e worker)",
+                                             "ok":  true,
+                                             "detalhe":  "eventos 22; segurança 0; securitypolicyviolation []"
+                                         },
+                                         {
+                                             "id":  "RO",
+                                             "nome":  "arquivo de origem intacto (mesmo SHA-256 antes e depois)",
+                                             "ok":  true,
+                                             "detalhe":  "49F360E5CFAF18C5AF123D94301175A1F75D17A9B1D765A93B81C989E6432405"
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "app":  {
+                                                      "total_ms":  2476,
+                                                      "fases_ms":  {
+                                                                       "carregando":  1,
+                                                                       "interpretando":  1274.8999999999069,
+                                                                       "gerando":  431.60000000009313
+                                                                   },
+                                                      "estado":  "pronto",
+                                                      "estadoTela":  "Arquivo pronto",
+                                                      "resumo":  {
+                                                                     "bodies":  120,
+                                                                     "solids":  120,
+                                                                     "faces":  720,
+                                                                     "edges":  1440,
+                                                                     "vertices":  960,
+                                                                     "volume":  11999999.999999998,
+                                                                     "area":  1919999.9999999998,
+                                                                     "bbox":  {
+                                                                                  "min":  {
+                                                                                              "x":  0,
+                                                                                              "y":  0,
+                                                                                              "z":  0
+                                                                                          },
+                                                                                  "max":  {
+                                                                                              "x":  1750,
+                                                                                              "y":  770,
+                                                                                              "z":  20
+                                                                                          }
+                                                                              },
+                                                                     "open":  0,
+                                                                     "invalid":  0
+                                                                 },
+                                                      "unidade":  {
+                                                                      "name":  "mm",
+                                                                      "toMm":  1,
+                                                                      "source":  "SI_UNIT"
+                                                                  }
+                                                  },
+                                          "processoAberto":  {
+                                                                 "processos":  7,
+                                                                 "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                                 "memoriaMB":  607.1,
+                                                                 "privadaMB":  598.9,
+                                                                 "cpuSegundos":  12.89
+                                                             },
+                                          "processoFechado":  {
+                                                                  "processos":  7,
+                                                                  "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                                  "memoriaMB":  516.4,
+                                                                  "privadaMB":  387.6,
+                                                                  "cpuSegundos":  13.02
+                                                              },
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  514.2,
+                                                           "privadaMB":  383.5,
+                                                           "cpuSegundos":  13.02
+                                                       }
+                                      }
+                      },
+                      {
+                          "arquivo":  "grande_400_placas.step",
+                          "bytes":  21208235,
+                          "testes":  [
+                                         {
+                                             "id":  "P1",
+                                             "nome":  "STEP da linha de comando abre no visualizador (documento próprio)",
+                                             "ok":  true,
+                                             "detalhe":  "aba STEP",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P2",
+                                             "nome":  "estado \u0027Arquivo pronto\u0027",
+                                             "ok":  true,
+                                             "detalhe":  "Arquivo pronto; ",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P3",
+                                             "nome":  "quantidade de sólidos = referência",
+                                             "ok":  true,
+                                             "detalhe":  "400 (ref 400)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P4",
+                                             "nome":  "volume (B-rep) = referência independente (erro relativo \u003c 1e-6)",
+                                             "ok":  true,
+                                             "detalhe":  "93417876.01976398 (ref 93417876.01976311)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P7",
+                                             "nome":  "unidade do arquivo informada",
+                                             "ok":  true,
+                                             "detalhe":  "mm (ref mm); tela: mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P8",
+                                             "nome":  "nenhum corpo inválido",
+                                             "ok":  true,
+                                             "detalhe":  "0 inválido(s)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P9",
+                                             "nome":  "7 vistas padrão",
+                                             "ok":  true,
+                                             "detalhe":  "Frente, Trás, Sup., Inf., Esq., Dir., Iso",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P10",
+                                             "nome":  "ajustar, arame/sólido e malha de exibição gerada",
+                                             "ok":  true,
+                                             "detalhe":  "triângulos 305600; altura vista 5810.3 → 5810.3",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P11",
+                                             "nome":  "fechar o documento: visualizador e aba STEP somem, gancho liberado",
+                                             "ok":  true,
+                                             "detalhe":  "",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P12",
+                                             "nome":  "volta ao DESENHO com o desenho intacto (vazio, sem caminho)",
+                                             "ok":  true,
+                                             "detalhe":  "0 objeto(s)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P14",
+                                             "nome":  "memória (app + WebView2) não cresce depois de fechar o documento",
+                                             "ok":  true,
+                                             "detalhe":  "privada 807.5 MB aberto → 561.6 MB fechado; conjunto de trabalho 888.9 → 667.2 MB; processos 7 → 7"
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "sem violação de CSP/segurança (página e worker)",
+                                             "ok":  true,
+                                             "detalhe":  "eventos 22; segurança 0; securitypolicyviolation []"
+                                         },
+                                         {
+                                             "id":  "RO",
+                                             "nome":  "arquivo de origem intacto (mesmo SHA-256 antes e depois)",
+                                             "ok":  true,
+                                             "detalhe":  "83AFD6F04C5895951DF71E5753713794BA3C3D130F00BDBE5AD01AEF9558FD61"
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "app":  {
+                                                      "total_ms":  15081,
+                                                      "fases_ms":  {
+                                                                       "carregando":  12.700000000186265,
+                                                                       "interpretando":  6435.5,
+                                                                       "gerando":  7189.799999999814
+                                                                   },
+                                                      "estado":  "pronto",
+                                                      "estadoTela":  "Arquivo pronto",
+                                                      "resumo":  {
+                                                                     "bodies":  400,
+                                                                     "solids":  400,
+                                                                     "faces":  5600,
+                                                                     "edges":  14400,
+                                                                     "vertices":  9600,
+                                                                     "volume":  93417876.01976398,
+                                                                     "area":  21743752.11187289,
+                                                                     "bbox":  {
+                                                                                  "min":  {
+                                                                                              "x":  -3.552713678801E-15,
+                                                                                              "y":  -3.552713678801E-15,
+                                                                                              "z":  0
+                                                                                          },
+                                                                                  "max":  {
+                                                                                              "x":  4380,
+                                                                                              "y":  2780,
+                                                                                              "z":  10
+                                                                                          }
+                                                                              },
+                                                                     "open":  0,
+                                                                     "invalid":  0
+                                                                 },
+                                                      "unidade":  {
+                                                                      "name":  "mm",
+                                                                      "toMm":  1,
+                                                                      "source":  "SI_UNIT"
+                                                                  }
+                                                  },
+                                          "processoAberto":  {
+                                                                 "processos":  7,
+                                                                 "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                                 "memoriaMB":  888.9,
+                                                                 "privadaMB":  807.5,
+                                                                 "cpuSegundos":  30.25
+                                                             },
+                                          "processoFechado":  {
+                                                                  "processos":  7,
+                                                                  "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                                  "memoriaMB":  667.2,
+                                                                  "privadaMB":  561.6,
+                                                                  "cpuSegundos":  30.47
+                                                              },
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  665.2,
+                                                           "privadaMB":  559.6,
+                                                           "cpuSegundos":  30.47
+                                                       }
+                                      }
+                      },
+                      {
+                          "arquivo":  "nao_step.step",
+                          "bytes":  18,
+                          "testes":  [
+                                         {
+                                             "id":  "P1",
+                                             "nome":  "STEP da linha de comando abre no visualizador (documento próprio)",
+                                             "ok":  true,
+                                             "detalhe":  "aba STEP",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P2",
+                                             "nome":  "arquivo inválido: \u0027Falha na leitura\u0027 com mensagem clara",
+                                             "ok":  true,
+                                             "detalhe":  "O arquivo não é um STEP válido (cabeçalho ISO-10303-21 ausente).",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P3",
+                                             "nome":  "app continua respondendo após a falha",
+                                             "ok":  true,
+                                             "detalhe":  "",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "sem violação de CSP/segurança (página e worker)",
+                                             "ok":  true,
+                                             "detalhe":  "eventos 16; segurança 0; securitypolicyviolation []"
+                                         },
+                                         {
+                                             "id":  "RO",
+                                             "nome":  "arquivo de origem intacto (mesmo SHA-256 antes e depois)",
+                                             "ok":  true,
+                                             "detalhe":  "C90CFEDF99DA3E42B37D2C2ADD4FEA38C5149C651608D37FD6C07CBA3AE126F6"
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "app":  {
+                                                      "total_ms":  804,
+                                                      "fases_ms":  {
+
+                                                                   },
+                                                      "estado":  "falha",
+                                                      "estadoTela":  "Falha na leitura"
+                                                  },
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  400.6,
+                                                           "privadaMB":  333.2,
+                                                           "cpuSegundos":  2.81
+                                                       }
+                                      }
+                      },
+                      {
+                          "arquivo":  "vazio.stp",
+                          "bytes":  0,
+                          "testes":  [
+                                         {
+                                             "id":  "P1",
+                                             "nome":  "STEP da linha de comando abre no visualizador (documento próprio)",
+                                             "ok":  true,
+                                             "detalhe":  "aba STEP",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P2",
+                                             "nome":  "arquivo inválido: \u0027Falha na leitura\u0027 com mensagem clara",
+                                             "ok":  true,
+                                             "detalhe":  "Arquivo STEP vazio.",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P3",
+                                             "nome":  "app continua respondendo após a falha",
+                                             "ok":  true,
+                                             "detalhe":  "",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "sem violação de CSP/segurança (página e worker)",
+                                             "ok":  true,
+                                             "detalhe":  "eventos 26; segurança 0; securitypolicyviolation []"
+                                         },
+                                         {
+                                             "id":  "RO",
+                                             "nome":  "arquivo de origem intacto (mesmo SHA-256 antes e depois)",
+                                             "ok":  true,
+                                             "detalhe":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "app":  {
+                                                      "total_ms":  667,
+                                                      "fases_ms":  {
+
+                                                                   },
+                                                      "estado":  "falha",
+                                                      "estadoTela":  "Falha na leitura"
+                                                  },
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  408.4,
+                                                           "privadaMB":  327.1,
+                                                           "cpuSegundos":  2.84
+                                                       }
+                                      }
+                      },
+                      {
+                          "arquivo":  "cobertura_r12.dxf",
+                          "bytes":  7659,
+                          "testes":  [
+                                         {
+                                             "id":  "D1",
+                                             "nome":  "DXF da linha de comando aberto no desenho",
+                                             "ok":  true,
+                                             "detalhe":  "DXF aberto: 10 objeto(s). Unidade não declarada no arquivo: interpretado como mm, sem escala. Todas as entidades suportadas.",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "D2",
+                                             "nome":  "objetos = leitor de referência",
+                                             "ok":  true,
+                                             "detalhe":  "10 (ref 10)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "D3",
+                                             "nome":  "unidade explícita na mensagem",
+                                             "ok":  true,
+                                             "detalhe":  "Unidade não declarada no arquivo: interpretado como mm, sem escala. Todas as entidades suportadas.",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "D5",
+                                             "nome":  "somente leitura: o desenho não fica ligado ao .dxf (Salvar pede .agtncad)",
+                                             "ok":  true,
+                                             "detalhe":  "{\"name\":\"cobertura_r12\",\"path\":null}",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "sem violação de CSP/segurança (página e worker)",
+                                             "ok":  true,
+                                             "detalhe":  "eventos 18; segurança 0; securitypolicyviolation []"
+                                         },
+                                         {
+                                             "id":  "RO",
+                                             "nome":  "arquivo de origem intacto (mesmo SHA-256 antes e depois)",
+                                             "ok":  true,
+                                             "detalhe":  "4203EC78B582CF0897A40776C2D545FE8766FF9F86D561D88A70C95E469A21CB"
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "app":  {
+                                                      "mensagem":  "DXF aberto: 10 objeto(s). Unidade não declarada no arquivo: interpretado como mm, sem escala. Todas as entidades suportadas."
+                                                  },
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  403.8,
+                                                           "privadaMB":  311.9,
+                                                           "cpuSegundos":  2.64
+                                                       }
+                                      }
+                      },
+                      {
+                          "arquivo":  "cobertura_r2000.dxf",
+                          "bytes":  19944,
+                          "testes":  [
+                                         {
+                                             "id":  "D1",
+                                             "nome":  "DXF da linha de comando aberto no desenho",
+                                             "ok":  true,
+                                             "detalhe":  "DXF aberto: 15 objeto(s). Unidade do arquivo: mm. Não suportadas: 3DFACE (1), RAY (1), XLINE (1).",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "D2",
+                                             "nome":  "objetos = leitor de referência",
+                                             "ok":  true,
+                                             "detalhe":  "15 (ref 15)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "D3",
+                                             "nome":  "unidade explícita na mensagem",
+                                             "ok":  true,
+                                             "detalhe":  "Unidade do arquivo: mm. Não suportadas: 3DFACE (1), RAY (1), XLINE (1).",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "D4",
+                                             "nome":  "entidades não suportadas avisadas",
+                                             "ok":  true,
+                                             "detalhe":  "Unidade do arquivo: mm. Não suportadas: 3DFACE (1), RAY (1), XLINE (1).",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "D5",
+                                             "nome":  "somente leitura: o desenho não fica ligado ao .dxf (Salvar pede .agtncad)",
+                                             "ok":  true,
+                                             "detalhe":  "{\"name\":\"cobertura_r2000\",\"path\":null}",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "sem violação de CSP/segurança (página e worker)",
+                                             "ok":  true,
+                                             "detalhe":  "eventos 18; segurança 0; securitypolicyviolation []"
+                                         },
+                                         {
+                                             "id":  "RO",
+                                             "nome":  "arquivo de origem intacto (mesmo SHA-256 antes e depois)",
+                                             "ok":  true,
+                                             "detalhe":  "9BE8DC0BD44D007E0BA3BFFF5FFF08EC0A35D6643EA276E6392B3AD5BD4A4220"
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "app":  {
+                                                      "mensagem":  "DXF aberto: 15 objeto(s). Unidade do arquivo: mm. Não suportadas: 3DFACE (1), RAY (1), XLINE (1)."
+                                                  },
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  404.9,
+                                                           "privadaMB":  338.7,
+                                                           "cpuSegundos":  2.72
+                                                       }
+                                      }
+                      },
+                      {
+                          "arquivo":  "unidade_cm.dxf",
+                          "bytes":  14088,
+                          "testes":  [
+                                         {
+                                             "id":  "D1",
+                                             "nome":  "DXF da linha de comando aberto no desenho",
+                                             "ok":  true,
+                                             "detalhe":  "DXF aberto: 2 objeto(s). Unidade do arquivo convertida para mm (×10). Todas as entidades suportadas.",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "D2",
+                                             "nome":  "objetos = leitor de referência",
+                                             "ok":  true,
+                                             "detalhe":  "2 (ref 2)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "D3",
+                                             "nome":  "unidade explícita na mensagem",
+                                             "ok":  true,
+                                             "detalhe":  "Unidade do arquivo convertida para mm (×10). Todas as entidades suportadas.",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "D5",
+                                             "nome":  "somente leitura: o desenho não fica ligado ao .dxf (Salvar pede .agtncad)",
+                                             "ok":  true,
+                                             "detalhe":  "{\"name\":\"unidade_cm\",\"path\":null}",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "sem violação de CSP/segurança (página e worker)",
+                                             "ok":  true,
+                                             "detalhe":  "eventos 18; segurança 0; securitypolicyviolation []"
+                                         },
+                                         {
+                                             "id":  "RO",
+                                             "nome":  "arquivo de origem intacto (mesmo SHA-256 antes e depois)",
+                                             "ok":  true,
+                                             "detalhe":  "31E51C01F48E5D91A5F873FF932C62153EA7A9A5B7999FA2267C67A9F4E6E374"
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "app":  {
+                                                      "mensagem":  "DXF aberto: 2 objeto(s). Unidade do arquivo convertida para mm (×10). Todas as entidades suportadas."
+                                                  },
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  403,
+                                                           "privadaMB":  335.1,
+                                                           "cpuSegundos":  2.67
+                                                       }
+                                      }
+                      }
+                  ]
+}

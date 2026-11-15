@@ -1,0 +1,245 @@
+﻿{
+    "data":  "2026-11-15T13:16:06",
+    "app":  "C:\\Users\\Luiza\\AppData\\Local\\AGTN Industrial CAD\\agtn-cad.exe",
+    "versaoArquivo":  "3.2.0-2",
+    "versaoRegistro":  "3.2.0-2",
+    "verificacoes":  22,
+    "aprovadas":  22,
+    "resultado":  "APROVADO",
+    "execucoes":  [
+                      {
+                          "arquivo":  "box_100x50x20.step",
+                          "bytes":  15845,
+                          "testes":  [
+                                         {
+                                             "id":  "P1",
+                                             "nome":  "STEP da linha de comando abre no visualizador (documento próprio)",
+                                             "ok":  true,
+                                             "detalhe":  "aba STEP",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P2",
+                                             "nome":  "estado \u0027Arquivo pronto\u0027",
+                                             "ok":  true,
+                                             "detalhe":  "Arquivo pronto; ",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P3",
+                                             "nome":  "quantidade de sólidos = referência",
+                                             "ok":  true,
+                                             "detalhe":  "1 (ref 1)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P4",
+                                             "nome":  "volume (B-rep) = referência independente (erro relativo \u003c 1e-6)",
+                                             "ok":  true,
+                                             "detalhe":  "99999.99999999997 (ref 99999.99999999997)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P5",
+                                             "nome":  "área (B-rep) = referência (\u003c 1e-6)",
+                                             "ok":  true,
+                                             "detalhe":  "15999.999999999998 (ref 15999.999999999998)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P6",
+                                             "nome":  "caixa delimitadora = referência (± 0,05 mm)",
+                                             "ok":  true,
+                                             "detalhe":  "0.000 0.000 0.000 100.000 50.000 20.000",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P7",
+                                             "nome":  "unidade do arquivo informada",
+                                             "ok":  true,
+                                             "detalhe":  "mm (ref mm); tela: mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P8",
+                                             "nome":  "nenhum corpo inválido",
+                                             "ok":  true,
+                                             "detalhe":  "0 inválido(s)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P9",
+                                             "nome":  "7 vistas padrão",
+                                             "ok":  true,
+                                             "detalhe":  "Frente, Trás, Sup., Inf., Esq., Dir., Iso",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P10",
+                                             "nome":  "ajustar, arame/sólido e malha de exibição gerada",
+                                             "ok":  true,
+                                             "detalhe":  "triângulos 12; altura vista 127.2 → 127.2",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P11",
+                                             "nome":  "fechar o documento: visualizador e aba STEP somem, gancho liberado",
+                                             "ok":  true,
+                                             "detalhe":  "",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P12",
+                                             "nome":  "volta ao DESENHO com o desenho intacto (vazio, sem caminho)",
+                                             "ok":  true,
+                                             "detalhe":  "0 objeto(s)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "P14",
+                                             "nome":  "memória (app + WebView2) não cresce depois de fechar o documento",
+                                             "ok":  true,
+                                             "detalhe":  "privada 524.1 MB aberto → 319.9 MB fechado; conjunto de trabalho 527.7 → 461.1 MB; processos 7 → 7"
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "sem violação de CSP/segurança (página e worker)",
+                                             "ok":  true,
+                                             "detalhe":  "eventos 22; segurança 0; securitypolicyviolation []"
+                                         },
+                                         {
+                                             "id":  "RO",
+                                             "nome":  "arquivo de origem intacto (mesmo SHA-256 antes e depois)",
+                                             "ok":  true,
+                                             "detalhe":  "40B952E4C195EC419F261AA1F2D594AA4E4C10D31DDBE0E276306170C292C72A"
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "app":  {
+                                                      "total_ms":  1426,
+                                                      "fases_ms":  {
+                                                                       "carregando":  0.10000000009313226,
+                                                                       "interpretando":  516.8999999999069,
+                                                                       "gerando":  78.10000000009313
+                                                                   },
+                                                      "estado":  "pronto",
+                                                      "estadoTela":  "Arquivo pronto",
+                                                      "resumo":  {
+                                                                     "bodies":  1,
+                                                                     "solids":  1,
+                                                                     "faces":  6,
+                                                                     "edges":  12,
+                                                                     "vertices":  8,
+                                                                     "volume":  99999.99999999997,
+                                                                     "area":  15999.999999999998,
+                                                                     "bbox":  {
+                                                                                  "min":  {
+                                                                                              "x":  0,
+                                                                                              "y":  0,
+                                                                                              "z":  0
+                                                                                          },
+                                                                                  "max":  {
+                                                                                              "x":  100,
+                                                                                              "y":  50,
+                                                                                              "z":  20
+                                                                                          }
+                                                                              },
+                                                                     "open":  0,
+                                                                     "invalid":  0
+                                                                 },
+                                                      "unidade":  {
+                                                                      "name":  "mm",
+                                                                      "toMm":  1,
+                                                                      "source":  "SI_UNIT"
+                                                                  }
+                                                  },
+                                          "processoAberto":  {
+                                                                 "processos":  7,
+                                                                 "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                                 "memoriaMB":  527.7,
+                                                                 "privadaMB":  524.1,
+                                                                 "cpuSegundos":  7.89
+                                                             },
+                                          "processoFechado":  {
+                                                                  "processos":  7,
+                                                                  "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                                  "memoriaMB":  461.1,
+                                                                  "privadaMB":  319.9,
+                                                                  "cpuSegundos":  8.08
+                                                              },
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  459.2,
+                                                           "privadaMB":  317.9,
+                                                           "cpuSegundos":  8.08
+                                                       }
+                                      }
+                      },
+                      {
+                          "arquivo":  "cobertura_r2000.dxf",
+                          "bytes":  19944,
+                          "testes":  [
+                                         {
+                                             "id":  "D1",
+                                             "nome":  "DXF da linha de comando aberto no desenho",
+                                             "ok":  true,
+                                             "detalhe":  "DXF aberto: 15 objeto(s). Unidade do arquivo: mm. Não suportadas: 3DFACE (1), RAY (1), XLINE (1).",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "D2",
+                                             "nome":  "objetos = leitor de referência",
+                                             "ok":  true,
+                                             "detalhe":  "15 (ref 15)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "D3",
+                                             "nome":  "unidade explícita na mensagem",
+                                             "ok":  true,
+                                             "detalhe":  "Unidade do arquivo: mm. Não suportadas: 3DFACE (1), RAY (1), XLINE (1).",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "D4",
+                                             "nome":  "entidades não suportadas avisadas",
+                                             "ok":  true,
+                                             "detalhe":  "Unidade do arquivo: mm. Não suportadas: 3DFACE (1), RAY (1), XLINE (1).",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "D5",
+                                             "nome":  "somente leitura: o desenho não fica ligado ao .dxf (Salvar pede .agtncad)",
+                                             "ok":  true,
+                                             "detalhe":  "{\"name\":\"cobertura_r2000\",\"path\":null}",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "sem violação de CSP/segurança (página e worker)",
+                                             "ok":  true,
+                                             "detalhe":  "eventos 18; segurança 0; securitypolicyviolation []"
+                                         },
+                                         {
+                                             "id":  "RO",
+                                             "nome":  "arquivo de origem intacto (mesmo SHA-256 antes e depois)",
+                                             "ok":  true,
+                                             "detalhe":  "9BE8DC0BD44D007E0BA3BFFF5FFF08EC0A35D6643EA276E6392B3AD5BD4A4220"
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "app":  {
+                                                      "mensagem":  "DXF aberto: 15 objeto(s). Unidade do arquivo: mm. Não suportadas: 3DFACE (1), RAY (1), XLINE (1)."
+                                                  },
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  392.1,
+                                                           "privadaMB":  313.3,
+                                                           "cpuSegundos":  2.73
+                                                       }
+                                      }
+                      }
+                  ]
+}

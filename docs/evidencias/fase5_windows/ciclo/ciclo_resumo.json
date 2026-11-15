@@ -1,0 +1,156 @@
+﻿{
+    "inicio":  "2026-11-15T13:09:55",
+    "itens":  {
+                  "W2-metadados":  {
+                                       "status":  "APROVADO",
+                                       "detalhe":  "produto \u0027AGTN Industrial CAD\u0027, versao \u00273.2.0-2\u0027, PE do instalador x86 (stub NSIS), assinatura NotSigned, 8875779 bytes, SHA-256 EF4DA3DDB5FB4BD8C33F65799E25558AF4E7C2D6688FA83C289FEA1934798900"
+                                   },
+                  "I1-instalacao":  {
+                                        "status":  "APROVADO",
+                                        "detalhe":  "codigo 0; AGTN Industrial CAD 3.2.0-2 em C:\\Users\\Luiza\\AppData\\Local\\AGTN Industrial CAD; 3 arquivos (\\agtn-cad.exe, \\occt\\occt-wasm.wasm, \\uninstall.exe); exe x64 x build: IGUAL (so o marcador UNK-\u003eNSS no offset 11708295 difere); WASM do motor incluido e igual ao build: True; atalhos: 2"
+                                    },
+                  "I1-sem-associacao-step":  {
+                                                 "status":  "APROVADO",
+                                                 "detalhe":  "o instalador nao cria associacao de .step/.stp (antes {\"step\":null,\"stp\":null}; depois {\"step\":null,\"stp\":null})"
+                                             },
+                  "I2-atalho":  {
+                                    "status":  "APROVADO",
+                                    "detalhe":  "atalho \u0027C:\\Users\\Luiza\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\AGTN Industrial CAD.lnk\u0027 abriu \u0027AGTN Industrial CAD\u0027 em 684 ms; 45 modulos, 0 fora do Windows/instalacao; fechou: True"
+                                },
+                  "I3-executavel-reabrir":  {
+                                                "status":  "APROVADO",
+                                                "detalhe":  "abriu \u0027AGTN Industrial CAD\u0027 (524 ms), fechou: True; reabriu \u0027AGTN Industrial CAD\u0027 (527 ms), fechou: True"
+                                            },
+                  "I4-regressao-2D-3D-planificacao":  {
+                                                          "status":  "APROVADO",
+                                                          "detalhe":  "app instalado (WebView2): 76/76 verificacoes (projetos 2D/3D/chapa, planificacao, DXF R12/R2000 com SHA-256, DWG, .agtncad, CSP)"
+                                                      },
+                  "I5-dxf-step-instalado":  {
+                                                "status":  "APROVADO",
+                                                "detalhe":  "app instalado (WebView2): 138/138 verificacoes; falhas: "
+                                            },
+                  "W6-sem-ferramentas":  {
+                                             "status":  "APROVADO",
+                                             "detalhe":  "processo sem git/node/npm/cargo/rustc/cl/link no PATH: True; modulos fora do sistema/instalacao: 0"
+                                         },
+                  "I6-desinstalacao":  {
+                                           "status":  "APROVADO",
+                                           "detalhe":  "codigo 0; registro removido: True; pasta do programa: removida; atalhos: 0; perfil do app (dados do usuario) mantido: True"
+                                       },
+                  "U1-base":  {
+                                  "status":  "APROVADO",
+                                  "detalhe":  "3.2.0-1 instalada em C:\\Users\\Luiza\\AppData\\Local\\AGTN Industrial CAD (codigo 0)"
+                              },
+                  "U2-atualizacao":  {
+                                         "status":  "APROVADO",
+                                         "detalhe":  "codigo 0; de 3.2.0-1 para 3.2.0-2; entradas: 1; mesma pasta: True; exe x build: IGUAL (so o marcador UNK-\u003eNSS no offset 11708295 difere)"
+                                     },
+                  "U3-dados-preservados":  {
+                                               "status":  "APROVADO",
+                                               "detalhe":  "perfil do app: 342 arquivos, 0 alterados pelo instalador; projeto do usuario intacto: True"
+                                           },
+                  "U4-recentes":  {
+                                      "status":  "APROVADO",
+                                      "detalhe":  "recentes na 3.2.0-1 contem o projeto: True; a 3.2.0-2 le a mesma lista: True"
+                                  },
+                  "U5-funcional-pos-atualizacao":  {
+                                                       "status":  "APROVADO",
+                                                       "detalhe":  "STEP+DXF no app atualizado: 22/22"
+                                                   },
+                  "U6-desinstalacao-final":  {
+                                                 "status":  "APROVADO",
+                                                 "detalhe":  "codigo 0; registro removido: True; pasta: removida; atalhos: 0; projeto do usuario intacto: True; perfil do app mantido: True"
+                                             }
+              },
+    "dados":  {
+                  "ferramentasNoPath":  {
+                                            "git":  null,
+                                            "node":  null,
+                                            "npm":  null,
+                                            "cargo":  null,
+                                            "rustc":  null,
+                                            "cl":  null,
+                                            "link":  null
+                                        },
+                  "instalador":  {
+                                     "arquivo":  "AGTN Industrial CAD_3.2.0-2_x64-setup.exe",
+                                     "bytes":  8875779,
+                                     "sha256":  "EF4DA3DDB5FB4BD8C33F65799E25558AF4E7C2D6688FA83C289FEA1934798900",
+                                     "pe":  "x86",
+                                     "produto":  "AGTN Industrial CAD",
+                                     "versaoProduto":  "3.2.0-2",
+                                     "versaoArquivo":  "3.2.0-2",
+                                     "assinatura":  "NotSigned"
+                                 },
+                  "estadoInicial":  {
+                                        "instalados":  [
+
+                                                       ],
+                                        "atalhos":  [
+
+                                                    ],
+                                        "assoc":  {
+                                                      "agtncad":  "Projeto AGTN Industrial CAD",
+                                                      "dxf":  "",
+                                                      "dwg":  "",
+                                                      "dxfUserChoice":  null,
+                                                      "dwgUserChoice":  null,
+                                                      "prefAGTN":  true
+                                                  },
+                                        "dadosApp":  true
+                                    },
+                  "tempo_instalar_limpa":  5,
+                  "instalado":  {
+                                    "nome":  "AGTN Industrial CAD",
+                                    "versao":  "3.2.0-2",
+                                    "pasta":  "C:\\Users\\Luiza\\AppData\\Local\\AGTN Industrial CAD",
+                                    "arquivos":  {
+                                                     "\\agtn-cad.exe":  "02BEEEABDC429F85BA85C8172AC0DF29F1B7D5F43D22784DA0436734AEE2181E",
+                                                     "\\occt\\occt-wasm.wasm":  "CEA5998C8FA6E6EFCFF216F8E5257145E36156300FEF4808189B88976BB2BD88",
+                                                     "\\uninstall.exe":  "023D0F2FD8D9ACA0F547529A9F9887BBDC8CC0CD3BBD04FF14756BD0FB34608F"
+                                                 },
+                                    "atalhos":  [
+                                                    "C:\\Users\\Luiza\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\AGTN Industrial CAD.lnk",
+                                                    "C:\\Users\\Luiza\\OneDrive\\Desktop\\AGTN Industrial CAD.lnk"
+                                                ],
+                                    "assoc":  {
+                                                  "agtncad":  "Projeto AGTN Industrial CAD",
+                                                  "dxf":  "",
+                                                  "dwg":  "",
+                                                  "dxfUserChoice":  null,
+                                                  "dwgUserChoice":  null,
+                                                  "prefAGTN":  true
+                                              },
+                                    "stepAssoc":  {
+                                                      "step":  null,
+                                                      "stp":  null
+                                                  },
+                                    "exePE":  "x64"
+                                },
+                  "janela_ms_atalho":  684,
+                  "janela_ms_exe1":  524,
+                  "janela_ms_exe2":  527,
+                  "tempo_desinstalar_limpa":  4,
+                  "tempo_instalar_anterior":  5,
+                  "janela_ms_anterior_projeto":  574,
+                  "tempo_instalar_atualizacao":  5,
+                  "tempo_desinstalar_final":  4,
+                  "estadoFinal":  {
+                                      "instalados":  [
+
+                                                     ],
+                                      "atalhos":  [
+
+                                                  ],
+                                      "assoc":  {
+                                                    "agtncad":  "Projeto AGTN Industrial CAD",
+                                                    "dxf":  "",
+                                                    "dwg":  "",
+                                                    "dxfUserChoice":  null,
+                                                    "dwgUserChoice":  null,
+                                                    "prefAGTN":  true
+                                                }
+                                  }
+              },
+    "fim":  "2026-11-15T13:16:13"
+}

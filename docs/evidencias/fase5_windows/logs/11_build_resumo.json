@@ -1,43 +1,43 @@
 ﻿{
-    "inicio":  "2026-11-14T22:33:30",
+    "inicio":  "2026-11-15T12:38:33",
     "etapas":  {
                    "npm_ci":  {
                                   "codigo":  0,
-                                  "segundos":  29,
-                                  "fim":  " | added 82 packages in 26s"
+                                  "segundos":  46,
+                                  "fim":  " | added 82 packages in 41s"
                               },
                    "typecheck":  {
                                      "codigo":  0,
-                                     "segundos":  15,
+                                     "segundos":  17,
                                      "fim":  " | \u003e agtn-industrial-cad-system@3.2.0-2 typecheck | \u003e tsc -p tsconfig.json --noEmit | "
                                  },
                    "vitest":  {
-                                  "codigo":  1,
-                                  "segundos":  62,
-                                  "fim":  "\u001b[2m   Start at \u001b[22m 22:34:33 | \u001b[2m   Duration \u001b[22m 59.45s\u001b[2m (tests 90%, import 5%, transform 5%, worker 1%)\u001b[22m |  | \u001b[2m    Isolate \u001b[22m \u001b[33m62 workers spawned\u001b[39m\u001b[2m Â· ~461ms startup each (spawn + environment, per file)\u001b[22m | \u001b[2m            \u001b[22m \u001b[2mat least ~5.26s faster with \u001b[22m\u001b[33misolate: false\u001b[39m\u001b[2m â€” reuses workers across files instead of one per file\u001b[22m | "
+                                  "codigo":  0,
+                                  "segundos":  64,
+                                  "fim":  "\u001b[2m   Start at \u001b[22m 12:39:56 | \u001b[2m   Duration \u001b[22m 59.85s\u001b[2m (tests 91%, import 5%, transform 3%, worker 1%)\u001b[22m |  | \u001b[2m    Isolate \u001b[22m \u001b[33m62 workers spawned\u001b[39m\u001b[2m Â· ~388ms startup each (spawn + environment, per file)\u001b[22m | \u001b[2m            \u001b[22m \u001b[2mat least ~4.42s faster with \u001b[22m\u001b[33misolate: false\u001b[39m\u001b[2m â€” reuses workers across files instead of one per file\u001b[22m | "
                               },
                    "sem_eval":  {
-                                    "codigo":  1,
-                                    "segundos":  55,
-                                    "fim":  "\u001b[2m   Start at \u001b[22m 22:35:36 | \u001b[2m   Duration \u001b[22m 51.56s\u001b[2m (tests 96%, import 3%, transform 1%)\u001b[22m |  | \u001b[2m    Isolate \u001b[22m \u001b[33m62 workers spawned\u001b[39m\u001b[2m Â· ~370ms startup each (spawn + environment, per file)\u001b[22m | \u001b[2m            \u001b[22m \u001b[2mat least ~4.22s faster with \u001b[22m\u001b[33misolate: false\u001b[39m\u001b[2m â€” reuses workers across files instead of one per file\u001b[22m | "
+                                    "codigo":  0,
+                                    "segundos":  62,
+                                    "fim":  "\u001b[2m   Start at \u001b[22m 12:41:03 | \u001b[2m   Duration \u001b[22m 54.88s\u001b[2m (tests 95%, import 3%, transform 1%)\u001b[22m |  | \u001b[2m    Isolate \u001b[22m \u001b[33m62 workers spawned\u001b[39m\u001b[2m Â· ~378ms startup each (spawn + environment, per file)\u001b[22m | \u001b[2m            \u001b[22m \u001b[2mat least ~4.31s faster with \u001b[22m\u001b[33misolate: false\u001b[39m\u001b[2m â€” reuses workers across files instead of one per file\u001b[22m | "
                                 },
                    "cargo_test":  {
                                       "codigo":  0,
-                                      "segundos":  300,
+                                      "segundos":  275,
                                       "fim":  "   Doc-tests agtn_cad_lib |  | running 0 tests |  | test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s | "
                                   },
                    "tauri_build":  {
                                        "codigo":  0,
-                                       "segundos":  378,
-                                       "fim":  "        Info Patching D:\\AGTN_DEV\\src\\agtn\\apps\\desktop\\src-tauri\\target\\release\\agtn-cad.exe with bundle type information: nsis |         Info Target: x64 |      Running makensis to produce D:\\AGTN_DEV\\src\\agtn\\apps\\desktop\\src-tauri\\target\\release\\bundle\\nsis\\AGTN Industrial CAD_3.2.0-2_x64-setup.exe |     Finished 1 bundle at: |         D:\\AGTN_DEV\\src\\agtn\\apps\\desktop\\src-tauri\\target\\release\\bundle\\nsis\\AGTN Industrial CAD_3.2.0-2_x64-setup.exe (8.47 MiB) | "
+                                       "segundos":  387,
+                                       "fim":  "        Info Patching D:\\AGTN_DEV\\src\\agtn\\apps\\desktop\\src-tauri\\target\\release\\agtn-cad.exe with bundle type information: nsis |         Info Target: x64 |      Running makensis to produce D:\\AGTN_DEV\\src\\agtn\\apps\\desktop\\src-tauri\\target\\release\\bundle\\nsis\\AGTN Industrial CAD_3.2.0-2_x64-setup.exe |     Finished 1 bundle at: |         D:\\AGTN_DEV\\src\\agtn\\apps\\desktop\\src-tauri\\target\\release\\bundle\\nsis\\AGTN Industrial CAD_3.2.0-2_x64-setup.exe (8.46 MiB) | "
                                    }
                },
-    "commit":  "49872dc538f1ec239fffc408f416eded7903346a",
+    "commit":  "c3497a320a45d335c1ee9d2d41b1814a557ce27e",
     "instalador":  {
                        "caminho":  "D:\\AGTN_DEV\\homologacao\\AGTN Industrial CAD_3.2.0-2_x64-setup.exe",
-                       "sha256":  "A5886F483138FEB1E1043FA8A7C993E02DC3B1C230B3667D561F607B31E7C61E",
-                       "bytes":  8878035,
+                       "sha256":  "EF4DA3DDB5FB4BD8C33F65799E25558AF4E7C2D6688FA83C289FEA1934798900",
+                       "bytes":  8875779,
                        "versaoProduto":  "3.2.0-2"
                    },
-    "fim":  "2026-11-14T22:47:47"
+    "fim":  "2026-11-15T12:53:01"
 }
