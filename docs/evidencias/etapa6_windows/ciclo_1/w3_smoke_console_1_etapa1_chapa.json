@@ -1,0 +1,127 @@
+﻿[
+    {
+        "t":  "21:16:25.630",
+        "sessao":  null,
+        "metodo":  "Runtime.executionContextCreated",
+        "params":  {
+                       "context":  {
+                                       "id":  1,
+                                       "origin":  "://",
+                                       "name":  "",
+                                       "uniqueId":  "-5135911145735579812.2769222454332028903",
+                                       "auxData":  {
+                                                       "isDefault":  true,
+                                                       "type":  "default",
+                                                       "frameId":  "55CC1E090FFC8A76221E6FE4B5229FB0"
+                                                   }
+                                   }
+                   }
+    },
+    {
+        "t":  "21:16:25.634",
+        "sessao":  null,
+        "metodo":  "Page.frameStartedNavigating",
+        "params":  {
+                       "frameId":  "55CC1E090FFC8A76221E6FE4B5229FB0",
+                       "url":  "http://tauri.localhost/",
+                       "loaderId":  "472725C694A7CF07C8669F6ADCAA6D40",
+                       "navigationType":  "differentDocument"
+                   }
+    },
+    {
+        "t":  "21:16:25.650",
+        "sessao":  null,
+        "metodo":  "Page.frameStartedNavigating",
+        "params":  {
+                       "frameId":  "55CC1E090FFC8A76221E6FE4B5229FB0",
+                       "url":  "about:blank",
+                       "loaderId":  "4E2AA726C69D997E3DDAD54C546468AC",
+                       "navigationType":  "reloadBypassingCache"
+                   }
+    },
+    {
+        "t":  "21:16:25.651",
+        "sessao":  null,
+        "metodo":  "Page.frameStartedLoading",
+        "params":  {
+                       "frameId":  "55CC1E090FFC8A76221E6FE4B5229FB0"
+                   }
+    },
+    {
+        "t":  "21:16:25.910",
+        "sessao":  null,
+        "metodo":  "Runtime.executionContextsCleared",
+        "params":  {
+
+                   }
+    },
+    {
+        "t":  "21:16:25.911",
+        "sessao":  null,
+        "metodo":  "Page.frameNavigated",
+        "params":  {
+                       "frame":  {
+                                     "id":  "55CC1E090FFC8A76221E6FE4B5229FB0",
+                                     "loaderId":  "4E2AA726C69D997E3DDAD54C546468AC",
+                                     "url":  "about:blank",
+                                     "domainAndRegistry":  "",
+                                     "securityOrigin":  "://",
+                                     "securityOriginDetails":  {
+                                                                   "isLocalhost":  false
+                                                               },
+                                     "mimeType":  "text/html",
+                                     "adFrameStatus":  {
+                                                           "adFrameType":  "none"
+                                                       },
+                                     "secureContextType":  "InsecureScheme",
+                                     "crossOriginIsolatedContextType":  "NotIsolated",
+                                     "gatedAPIFeatures":  [
+
+                                                          ]
+                                 },
+                       "type":  "Navigation"
+                   }
+    },
+    {
+        "t":  "21:16:25.912",
+        "sessao":  null,
+        "metodo":  "Runtime.executionContextCreated",
+        "params":  {
+                       "context":  {
+                                       "id":  2,
+                                       "origin":  "://",
+                                       "name":  "",
+                                       "uniqueId":  "8151861596941453165.-635914655444768399",
+                                       "auxData":  {
+                                                       "isDefault":  true,
+                                                       "type":  "default",
+                                                       "frameId":  "55CC1E090FFC8A76221E6FE4B5229FB0"
+                                                   }
+                                   }
+                   }
+    },
+    {
+        "t":  "21:16:25.913",
+        "sessao":  null,
+        "metodo":  "Page.domContentEventFired",
+        "params":  {
+                       "timestamp":  8380.49793
+                   }
+    },
+    {
+        "t":  "21:16:25.914",
+        "sessao":  null,
+        "metodo":  "Page.loadEventFired",
+        "params":  {
+                       "timestamp":  8380.498234
+                   }
+    },
+    {
+        "t":  "21:16:25.914",
+        "sessao":  null,
+        "metodo":  "Page.frameStoppedLoading",
+        "params":  {
+                       "frameId":  "55CC1E090FFC8A76221E6FE4B5229FB0"
+                   }
+    }
+]

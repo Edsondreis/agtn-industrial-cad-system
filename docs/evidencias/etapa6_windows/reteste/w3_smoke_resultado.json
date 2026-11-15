@@ -1,0 +1,2197 @@
+﻿{
+    "data":  "2026-11-14T21:35:07",
+    "app":  "C:\\Users\\Luiza\\AppData\\Local\\AGTN Industrial CAD\\agtn-cad.exe",
+    "versaoArquivo":  "3.2.0-1",
+    "versaoRegistro":  "3.2.0-1",
+    "webview2":  "157.0.4341.46",
+    "windows":  "Microsoft Windows 11 Pro 10.0.26200",
+    "verificacoes":  228,
+    "aprovadas":  228,
+    "resultado":  "APROVADO",
+    "execucoes":  [
+                      {
+                          "repeticao":  1,
+                          "arquivo":  "etapa2_completo.agtncad",
+                          "pid":  4684,
+                          "testes":  [
+                                         {
+                                             "id":  "S1",
+                                             "nome":  "aplicativo abre (interface 2D montada)",
+                                             "ok":  true,
+                                             "detalhe":  "origem http://tauri.localhost; Tauri sim; DOM 34 ms",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S1b",
+                                             "nome":  "arquivo aberto pela linha de comando (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "título \"etapa2_completo — AGTN Industrial CAD\"",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S2",
+                                             "nome":  "motor WebAssembly inicializa no worker",
+                                             "ok":  true,
+                                             "detalhe":  "pronto",
+                                             "ms":  699
+                                         },
+                                         {
+                                             "id":  "S3",
+                                             "nome":  "OCCT carrega (kernel identificado)",
+                                             "ok":  true,
+                                             "detalhe":  "OCCT 8 (WebAssembly); init 280 ms; texto: OCCT 8 (WebAssembly) · pronto em 280 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S4",
+                                             "nome":  "sólidos 3D regenerados com volume de referência (1e-9)",
+                                             "ok":  true,
+                                             "detalhe":  "Peça 1: 19837.522264378968 (ref 19837.522264378968)",
+                                             "ms":  632
+                                         },
+                                         {
+                                             "id":  "S4b",
+                                             "nome":  "todas as operações sem erro",
+                                             "ok":  true,
+                                             "detalhe":  "8 operações; erros 0",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S6",
+                                             "nome":  "planificação de Peça 1",
+                                             "ok":  true,
+                                             "detalhe":  "estado valida; área 9891.931929277966 (ref 9891.931929277966); blank 136.49247749463342 × 86.4924774946334 (ref 136.49247749463342 × 86.4924774946334); corte 532.9698974745324",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-R2000",
+                                             "nome":  "DXF R2000 gerado e conferido no app",
+                                             "ok":  true,
+                                             "detalhe":  "15 conferências OK",
+                                             "ms":  6
+                                         },
+                                         {
+                                             "id":  "S7-R12",
+                                             "nome":  "DXF R12 gerado e conferido no app",
+                                             "ok":  true,
+                                             "detalhe":  "15 conferências OK",
+                                             "ms":  1
+                                         },
+                                         {
+                                             "id":  "S7-R2000-hash",
+                                             "nome":  "DXF R2000 idêntico ao de referência (SHA-256)",
+                                             "ok":  true,
+                                             "detalhe":  "aa992550bb55a9a9… (ref aa992550bb55a9a9…)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-R12-hash",
+                                             "nome":  "DXF R12 idêntico ao de referência (SHA-256)",
+                                             "ok":  true,
+                                             "detalhe":  "e7e90f212497cc6f… (ref e7e90f212497cc6f…)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-disco-dxf",
+                                             "nome":  "DXF gravado pelo Rust e relido igual (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\etapa2_completo peça ção.dxf (9921 bytes)",
+                                             "ms":  49
+                                         },
+                                         {
+                                             "id":  "S7-dwg",
+                                             "nome":  "DWG gravado pelo conversor nativo e relido (camada CUT_OUTER presente)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\etapa2_completo peça ção.dwg → DXF de volta 49644 bytes",
+                                             "ms":  161
+                                         },
+                                         {
+                                             "id":  "S8-salvar",
+                                             "nome":  "projeto .agtncad salvo e relido (caminho com acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\etapa2_completo — cópia ção.agtncad (3307 bytes)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "nenhuma violação de CSP registrada na página",
+                                             "ok":  true,
+                                             "detalhe":  "0 violações (ouvinte securitypolicyviolation)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9-cdp",
+                                             "nome":  "console sem erro de segurança (página e worker, via CDP)",
+                                             "ok":  true,
+                                             "detalhe":  "19 eventos; segurança 0; exceções 0; alvos: worker http://tauri.localhost/assets/engine.worker-B8FrtAMX.js",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S11",
+                                             "nome":  "CSP no worker do motor (informativo) e motor pronto mesmo assim",
+                                             "ok":  true,
+                                             "detalhe":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                             "ms":  null
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "janela_ms":  942,
+                                          "url":  "http://tauri.localhost/",
+                                          "navegador":  "Edg/157.0.4341.46",
+                                          "userAgent":  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+                                          "recarga_ms":  271,
+                                          "app":  {
+                                                      "domPronto_ms":  34,
+                                                      "carregado_ms":  35,
+                                                      "aberturaArquivo_ms":  0,
+                                                      "webassembly":  true,
+                                                      "worker":  true,
+                                                      "motorPronto_ms":  280,
+                                                      "regeneracao_ms":  632,
+                                                      "comunicacao_ms":  0.1,
+                                                      "memoriaJS_MB":  8,
+                                                      "statusMotor":  "OCCT 8 (WebAssembly) · pronto em 280 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm"
+                                                  },
+                                          "cspNoWorker":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  541.5,
+                                                           "privadaMB":  608.6,
+                                                           "cpuSegundos":  6.03
+                                                       }
+                                      }
+                      },
+                      {
+                          "repeticao":  1,
+                          "arquivo":  "fase3_peca_parametrica.agtncad",
+                          "pid":  1656,
+                          "testes":  [
+                                         {
+                                             "id":  "S1",
+                                             "nome":  "aplicativo abre (interface 2D montada)",
+                                             "ok":  true,
+                                             "detalhe":  "origem http://tauri.localhost; Tauri sim; DOM 36 ms",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S1b",
+                                             "nome":  "arquivo aberto pela linha de comando (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "título \"fase3_peca_parametrica — AGTN Industrial CAD\"",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S2",
+                                             "nome":  "motor WebAssembly inicializa no worker",
+                                             "ok":  true,
+                                             "detalhe":  "pronto",
+                                             "ms":  675
+                                         },
+                                         {
+                                             "id":  "S3",
+                                             "nome":  "OCCT carrega (kernel identificado)",
+                                             "ok":  true,
+                                             "detalhe":  "OCCT 8 (WebAssembly); init 298 ms; texto: OCCT 8 (WebAssembly) · pronto em 298 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S4",
+                                             "nome":  "sólidos 3D regenerados com volume de referência (1e-9)",
+                                             "ok":  true,
+                                             "detalhe":  "Peça 1: 233609.51377451912 (ref 233609.51377451912)",
+                                             "ms":  404
+                                         },
+                                         {
+                                             "id":  "S4b",
+                                             "nome":  "todas as operações sem erro",
+                                             "ok":  true,
+                                             "detalhe":  "5 operações; erros 0",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S5",
+                                             "nome":  "operação booleana (corte/união) com volume exato",
+                                             "ok":  true,
+                                             "detalhe":  "sketch,extrude:new,sketch,extrude:cut,fillet",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S8-salvar",
+                                             "nome":  "projeto .agtncad salvo e relido (caminho com acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\fase3_peca_parametrica — cópia ção.agtncad (2703 bytes)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "nenhuma violação de CSP registrada na página",
+                                             "ok":  true,
+                                             "detalhe":  "0 violações (ouvinte securitypolicyviolation)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9-cdp",
+                                             "nome":  "console sem erro de segurança (página e worker, via CDP)",
+                                             "ok":  true,
+                                             "detalhe":  "19 eventos; segurança 0; exceções 0; alvos: worker http://tauri.localhost/assets/engine.worker-B8FrtAMX.js",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S11",
+                                             "nome":  "CSP no worker do motor (informativo) e motor pronto mesmo assim",
+                                             "ok":  true,
+                                             "detalhe":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                             "ms":  null
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "janela_ms":  786,
+                                          "url":  "http://tauri.localhost/",
+                                          "navegador":  "Edg/157.0.4341.46",
+                                          "userAgent":  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+                                          "recarga_ms":  270,
+                                          "app":  {
+                                                      "domPronto_ms":  36,
+                                                      "carregado_ms":  37,
+                                                      "aberturaArquivo_ms":  0,
+                                                      "webassembly":  true,
+                                                      "worker":  true,
+                                                      "motorPronto_ms":  298,
+                                                      "regeneracao_ms":  404,
+                                                      "comunicacao_ms":  0.1,
+                                                      "memoriaJS_MB":  8,
+                                                      "statusMotor":  "OCCT 8 (WebAssembly) · pronto em 298 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm"
+                                                  },
+                                          "cspNoWorker":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  502.4,
+                                                           "privadaMB":  588.8,
+                                                           "cpuSegundos":  4.69
+                                                       }
+                                      }
+                      },
+                      {
+                          "repeticao":  1,
+                          "arquivo":  "fase2_projeto_3d.agtncad",
+                          "pid":  14924,
+                          "testes":  [
+                                         {
+                                             "id":  "S1",
+                                             "nome":  "aplicativo abre (interface 2D montada)",
+                                             "ok":  true,
+                                             "detalhe":  "origem http://tauri.localhost; Tauri sim; DOM 37 ms",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S1b",
+                                             "nome":  "arquivo aberto pela linha de comando (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "título \"fase2_projeto_3d — AGTN Industrial CAD\"",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S2",
+                                             "nome":  "motor WebAssembly inicializa no worker",
+                                             "ok":  true,
+                                             "detalhe":  "pronto",
+                                             "ms":  687
+                                         },
+                                         {
+                                             "id":  "S3",
+                                             "nome":  "OCCT carrega (kernel identificado)",
+                                             "ok":  true,
+                                             "detalhe":  "OCCT 8 (WebAssembly); init 287 ms; texto: OCCT 8 (WebAssembly) · pronto em 287 ms3 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S4",
+                                             "nome":  "sólidos 3D regenerados com volume de referência (1e-9)",
+                                             "ok":  true,
+                                             "detalhe":  "CHAPA: 1500000 (ref 1500000); COLUNA: 782400 (ref 782400); TUBO_SUPORTE: 173168.4355168697 (ref 173168.4355168697)",
+                                             "ms":  203
+                                         },
+                                         {
+                                             "id":  "S4b",
+                                             "nome":  "todas as operações sem erro",
+                                             "ok":  true,
+                                             "detalhe":  "0 operações; erros 0",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S8-salvar",
+                                             "nome":  "projeto .agtncad salvo e relido (caminho com acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\fase2_projeto_3d — cópia ção.agtncad (1675 bytes)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "nenhuma violação de CSP registrada na página",
+                                             "ok":  true,
+                                             "detalhe":  "0 violações (ouvinte securitypolicyviolation)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9-cdp",
+                                             "nome":  "console sem erro de segurança (página e worker, via CDP)",
+                                             "ok":  true,
+                                             "detalhe":  "19 eventos; segurança 0; exceções 0; alvos: worker http://tauri.localhost/assets/engine.worker-B8FrtAMX.js",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S11",
+                                             "nome":  "CSP no worker do motor (informativo) e motor pronto mesmo assim",
+                                             "ok":  true,
+                                             "detalhe":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                             "ms":  null
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "janela_ms":  1316,
+                                          "url":  "http://tauri.localhost/",
+                                          "navegador":  "Edg/157.0.4341.46",
+                                          "userAgent":  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+                                          "recarga_ms":  272,
+                                          "app":  {
+                                                      "domPronto_ms":  37,
+                                                      "carregado_ms":  38,
+                                                      "aberturaArquivo_ms":  0,
+                                                      "webassembly":  true,
+                                                      "worker":  true,
+                                                      "motorPronto_ms":  287,
+                                                      "regeneracao_ms":  203,
+                                                      "comunicacao_ms":  0.1,
+                                                      "memoriaJS_MB":  8,
+                                                      "statusMotor":  "OCCT 8 (WebAssembly) · pronto em 287 ms3 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm"
+                                                  },
+                                          "cspNoWorker":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  495.6,
+                                                           "privadaMB":  585.4,
+                                                           "cpuSegundos":  3.92
+                                                       }
+                                      }
+                      },
+                      {
+                          "repeticao":  1,
+                          "arquivo":  "etapa1_chapa.agtncad",
+                          "pid":  14240,
+                          "testes":  [
+                                         {
+                                             "id":  "S1",
+                                             "nome":  "aplicativo abre (interface 2D montada)",
+                                             "ok":  true,
+                                             "detalhe":  "origem http://tauri.localhost; Tauri sim; DOM 57 ms",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S1b",
+                                             "nome":  "arquivo aberto pela linha de comando (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "título \"etapa1_chapa — AGTN Industrial CAD\"",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S2",
+                                             "nome":  "motor WebAssembly inicializa no worker",
+                                             "ok":  true,
+                                             "detalhe":  "pronto",
+                                             "ms":  690
+                                         },
+                                         {
+                                             "id":  "S3",
+                                             "nome":  "OCCT carrega (kernel identificado)",
+                                             "ok":  true,
+                                             "detalhe":  "OCCT 8 (WebAssembly); init 297 ms; texto: OCCT 8 (WebAssembly) · pronto em 297 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S4",
+                                             "nome":  "sólidos 3D regenerados com volume de referência (1e-9)",
+                                             "ok":  true,
+                                             "detalhe":  "Peça 1: 26027.433388230813 (ref 26027.433388230813)",
+                                             "ms":  405
+                                         },
+                                         {
+                                             "id":  "S4b",
+                                             "nome":  "todas as operações sem erro",
+                                             "ok":  true,
+                                             "detalhe":  "4 operações; erros 0",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S6",
+                                             "nome":  "planificação de Peça 1",
+                                             "ok":  true,
+                                             "detalhe":  "estado valida; área 12947.743248390021 (ref 12947.743248390021); blank 100 × 129.4774324839002 (ref 100 × 129.4774324839002); corte 458.9548649678004",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-R2000",
+                                             "nome":  "DXF R2000 gerado e conferido no app",
+                                             "ok":  true,
+                                             "detalhe":  "15 conferências OK",
+                                             "ms":  6
+                                         },
+                                         {
+                                             "id":  "S7-R12",
+                                             "nome":  "DXF R12 gerado e conferido no app",
+                                             "ok":  true,
+                                             "detalhe":  "15 conferências OK",
+                                             "ms":  1
+                                         },
+                                         {
+                                             "id":  "S7-R2000-hash",
+                                             "nome":  "DXF R2000 idêntico ao de referência (SHA-256)",
+                                             "ok":  true,
+                                             "detalhe":  "ff657d333b14026c… (ref ff657d333b14026c…)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-R12-hash",
+                                             "nome":  "DXF R12 idêntico ao de referência (SHA-256)",
+                                             "ok":  true,
+                                             "detalhe":  "205235a11a468b0f… (ref 205235a11a468b0f…)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-disco-dxf",
+                                             "nome":  "DXF gravado pelo Rust e relido igual (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\etapa1_chapa peça ção.dxf (9499 bytes)",
+                                             "ms":  41
+                                         },
+                                         {
+                                             "id":  "S7-dwg",
+                                             "nome":  "DWG gravado pelo conversor nativo e relido (camada CUT_OUTER presente)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\etapa1_chapa peça ção.dwg → DXF de volta 48938 bytes",
+                                             "ms":  157
+                                         },
+                                         {
+                                             "id":  "S8-salvar",
+                                             "nome":  "projeto .agtncad salvo e relido (caminho com acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\etapa1_chapa — cópia ção.agtncad (2386 bytes)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "nenhuma violação de CSP registrada na página",
+                                             "ok":  true,
+                                             "detalhe":  "0 violações (ouvinte securitypolicyviolation)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9-cdp",
+                                             "nome":  "console sem erro de segurança (página e worker, via CDP)",
+                                             "ok":  true,
+                                             "detalhe":  "23 eventos; segurança 0; exceções 0; alvos: worker http://tauri.localhost/assets/engine.worker-B8FrtAMX.js",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S11",
+                                             "nome":  "CSP no worker do motor (informativo) e motor pronto mesmo assim",
+                                             "ok":  true,
+                                             "detalhe":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                             "ms":  null
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "janela_ms":  782,
+                                          "url":  "http://tauri.localhost/",
+                                          "navegador":  "Edg/157.0.4341.46",
+                                          "userAgent":  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+                                          "recarga_ms":  277,
+                                          "app":  {
+                                                      "domPronto_ms":  57,
+                                                      "carregado_ms":  58,
+                                                      "aberturaArquivo_ms":  0,
+                                                      "webassembly":  true,
+                                                      "worker":  true,
+                                                      "motorPronto_ms":  297,
+                                                      "regeneracao_ms":  405,
+                                                      "comunicacao_ms":  0,
+                                                      "memoriaJS_MB":  8,
+                                                      "statusMotor":  "OCCT 8 (WebAssembly) · pronto em 297 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm"
+                                                  },
+                                          "cspNoWorker":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  504.7,
+                                                           "privadaMB":  563.9,
+                                                           "cpuSegundos":  5.02
+                                                       }
+                                      }
+                      },
+                      {
+                          "repeticao":  1,
+                          "arquivo":  "grande_120furos.agtncad",
+                          "pid":  3888,
+                          "testes":  [
+                                         {
+                                             "id":  "S1",
+                                             "nome":  "aplicativo abre (interface 2D montada)",
+                                             "ok":  true,
+                                             "detalhe":  "origem http://tauri.localhost; Tauri sim; DOM 37 ms",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S1b",
+                                             "nome":  "arquivo aberto pela linha de comando (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "título \"grande_120furos — AGTN Industrial CAD\"",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S2",
+                                             "nome":  "motor WebAssembly inicializa no worker",
+                                             "ok":  true,
+                                             "detalhe":  "pronto",
+                                             "ms":  696
+                                         },
+                                         {
+                                             "id":  "S3",
+                                             "nome":  "OCCT carrega (kernel identificado)",
+                                             "ok":  true,
+                                             "detalhe":  "OCCT 8 (WebAssembly); init 307 ms; texto: OCCT 8 (WebAssembly) · pronto em 307 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S4",
+                                             "nome":  "sólidos 3D regenerados com volume de referência (1e-9)",
+                                             "ok":  true,
+                                             "detalhe":  "Chapa grande 120 furos: 4537296.987404675 (ref 4537296.987404675)",
+                                             "ms":  2217
+                                         },
+                                         {
+                                             "id":  "S4b",
+                                             "nome":  "todas as operações sem erro",
+                                             "ok":  true,
+                                             "detalhe":  "7 operações; erros 0",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S6",
+                                             "nome":  "planificação de Chapa grande 120 furos",
+                                             "ok":  true,
+                                             "detalhe":  "estado valida; área 2267371.24779308 (ref 2267371.24779308); blank 2092.984954989267 × 1092.9849549892667 (ref 2092.984954989267 × 1092.9849549892667); corte 10107.868767403263",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-R2000",
+                                             "nome":  "DXF R2000 gerado e conferido no app",
+                                             "ok":  true,
+                                             "detalhe":  "15 conferências OK",
+                                             "ms":  8
+                                         },
+                                         {
+                                             "id":  "S7-R12",
+                                             "nome":  "DXF R12 gerado e conferido no app",
+                                             "ok":  true,
+                                             "detalhe":  "15 conferências OK",
+                                             "ms":  3
+                                         },
+                                         {
+                                             "id":  "S7-R2000-hash",
+                                             "nome":  "DXF R2000 idêntico ao de referência (SHA-256)",
+                                             "ok":  true,
+                                             "detalhe":  "b17787182a531734… (ref b17787182a531734…)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-R12-hash",
+                                             "nome":  "DXF R12 idêntico ao de referência (SHA-256)",
+                                             "ok":  true,
+                                             "detalhe":  "a89db6e3c8e777b5… (ref a89db6e3c8e777b5…)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-disco-dxf",
+                                             "nome":  "DXF gravado pelo Rust e relido igual (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\grande_120furos peça ção.dxf (32328 bytes)",
+                                             "ms":  36
+                                         },
+                                         {
+                                             "id":  "S7-dwg",
+                                             "nome":  "DWG gravado pelo conversor nativo e relido (camada CUT_OUTER presente)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\grande_120furos peça ção.dwg → DXF de volta 73003 bytes",
+                                             "ms":  142
+                                         },
+                                         {
+                                             "id":  "S8-salvar",
+                                             "nome":  "projeto .agtncad salvo e relido (caminho com acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\grande_120furos — cópia ção.agtncad (19405 bytes)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "nenhuma violação de CSP registrada na página",
+                                             "ok":  true,
+                                             "detalhe":  "0 violações (ouvinte securitypolicyviolation)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9-cdp",
+                                             "nome":  "console sem erro de segurança (página e worker, via CDP)",
+                                             "ok":  true,
+                                             "detalhe":  "19 eventos; segurança 0; exceções 0; alvos: worker http://tauri.localhost/assets/engine.worker-B8FrtAMX.js",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S11",
+                                             "nome":  "CSP no worker do motor (informativo) e motor pronto mesmo assim",
+                                             "ok":  true,
+                                             "detalhe":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                             "ms":  null
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "janela_ms":  777,
+                                          "url":  "http://tauri.localhost/",
+                                          "navegador":  "Edg/157.0.4341.46",
+                                          "userAgent":  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+                                          "recarga_ms":  277,
+                                          "app":  {
+                                                      "domPronto_ms":  37,
+                                                      "carregado_ms":  38,
+                                                      "aberturaArquivo_ms":  0,
+                                                      "webassembly":  true,
+                                                      "worker":  true,
+                                                      "motorPronto_ms":  307,
+                                                      "regeneracao_ms":  2217,
+                                                      "comunicacao_ms":  0.1,
+                                                      "memoriaJS_MB":  10,
+                                                      "statusMotor":  "OCCT 8 (WebAssembly) · pronto em 307 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm"
+                                                  },
+                                          "cspNoWorker":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  597.1,
+                                                           "privadaMB":  596.9,
+                                                           "cpuSegundos":  7.7
+                                                       }
+                                      }
+                      },
+                      {
+                          "repeticao":  1,
+                          "arquivo":  "v311_desenho.agtncad",
+                          "pid":  4672,
+                          "testes":  [
+                                         {
+                                             "id":  "S1",
+                                             "nome":  "aplicativo abre (interface 2D montada)",
+                                             "ok":  true,
+                                             "detalhe":  "origem http://tauri.localhost; Tauri sim; DOM 52 ms",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S1b",
+                                             "nome":  "arquivo aberto pela linha de comando (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "título \"v311_desenho — AGTN Industrial CAD\"",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S2D",
+                                             "nome":  "desenho 2D da v3.1.1 aberto com todos os objetos",
+                                             "ok":  true,
+                                             "detalhe":  "114 objeto(s) (ref 114)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9-cdp",
+                                             "nome":  "console sem erro de segurança (página e worker, via CDP)",
+                                             "ok":  true,
+                                             "detalhe":  "18 eventos; segurança 0; exceções 0; alvos: ",
+                                             "ms":  null
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "janela_ms":  783,
+                                          "url":  "http://tauri.localhost/",
+                                          "navegador":  "Edg/157.0.4341.46",
+                                          "userAgent":  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+                                          "recarga_ms":  299,
+                                          "app":  {
+                                                      "domPronto_ms":  52,
+                                                      "carregado_ms":  53,
+                                                      "aberturaArquivo_ms":  0
+                                                  },
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  395.2,
+                                                           "privadaMB":  298.6,
+                                                           "cpuSegundos":  2.53
+                                                       }
+                                      }
+                      },
+                      {
+                          "repeticao":  2,
+                          "arquivo":  "etapa2_completo.agtncad",
+                          "pid":  7424,
+                          "testes":  [
+                                         {
+                                             "id":  "S1",
+                                             "nome":  "aplicativo abre (interface 2D montada)",
+                                             "ok":  true,
+                                             "detalhe":  "origem http://tauri.localhost; Tauri sim; DOM 44 ms",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S1b",
+                                             "nome":  "arquivo aberto pela linha de comando (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "título \"etapa2_completo — AGTN Industrial CAD\"",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S2",
+                                             "nome":  "motor WebAssembly inicializa no worker",
+                                             "ok":  true,
+                                             "detalhe":  "pronto",
+                                             "ms":  718
+                                         },
+                                         {
+                                             "id":  "S3",
+                                             "nome":  "OCCT carrega (kernel identificado)",
+                                             "ok":  true,
+                                             "detalhe":  "OCCT 8 (WebAssembly); init 336 ms; texto: OCCT 8 (WebAssembly) · pronto em 336 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S4",
+                                             "nome":  "sólidos 3D regenerados com volume de referência (1e-9)",
+                                             "ok":  true,
+                                             "detalhe":  "Peça 1: 19837.522264378968 (ref 19837.522264378968)",
+                                             "ms":  606
+                                         },
+                                         {
+                                             "id":  "S4b",
+                                             "nome":  "todas as operações sem erro",
+                                             "ok":  true,
+                                             "detalhe":  "8 operações; erros 0",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S6",
+                                             "nome":  "planificação de Peça 1",
+                                             "ok":  true,
+                                             "detalhe":  "estado valida; área 9891.931929277966 (ref 9891.931929277966); blank 136.49247749463342 × 86.4924774946334 (ref 136.49247749463342 × 86.4924774946334); corte 532.9698974745324",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-R2000",
+                                             "nome":  "DXF R2000 gerado e conferido no app",
+                                             "ok":  true,
+                                             "detalhe":  "15 conferências OK",
+                                             "ms":  6
+                                         },
+                                         {
+                                             "id":  "S7-R12",
+                                             "nome":  "DXF R12 gerado e conferido no app",
+                                             "ok":  true,
+                                             "detalhe":  "15 conferências OK",
+                                             "ms":  1
+                                         },
+                                         {
+                                             "id":  "S7-R2000-hash",
+                                             "nome":  "DXF R2000 idêntico ao de referência (SHA-256)",
+                                             "ok":  true,
+                                             "detalhe":  "aa992550bb55a9a9… (ref aa992550bb55a9a9…)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-R12-hash",
+                                             "nome":  "DXF R12 idêntico ao de referência (SHA-256)",
+                                             "ok":  true,
+                                             "detalhe":  "e7e90f212497cc6f… (ref e7e90f212497cc6f…)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-disco-dxf",
+                                             "nome":  "DXF gravado pelo Rust e relido igual (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\etapa2_completo peça ção.dxf (9921 bytes)",
+                                             "ms":  34
+                                         },
+                                         {
+                                             "id":  "S7-dwg",
+                                             "nome":  "DWG gravado pelo conversor nativo e relido (camada CUT_OUTER presente)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\etapa2_completo peça ção.dwg → DXF de volta 49644 bytes",
+                                             "ms":  155
+                                         },
+                                         {
+                                             "id":  "S8-salvar",
+                                             "nome":  "projeto .agtncad salvo e relido (caminho com acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\etapa2_completo — cópia ção.agtncad (3307 bytes)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "nenhuma violação de CSP registrada na página",
+                                             "ok":  true,
+                                             "detalhe":  "0 violações (ouvinte securitypolicyviolation)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9-cdp",
+                                             "nome":  "console sem erro de segurança (página e worker, via CDP)",
+                                             "ok":  true,
+                                             "detalhe":  "23 eventos; segurança 0; exceções 0; alvos: worker http://tauri.localhost/assets/engine.worker-B8FrtAMX.js",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S11",
+                                             "nome":  "CSP no worker do motor (informativo) e motor pronto mesmo assim",
+                                             "ok":  true,
+                                             "detalhe":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                             "ms":  null
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "janela_ms":  791,
+                                          "url":  "http://tauri.localhost/",
+                                          "navegador":  "Edg/157.0.4341.46",
+                                          "userAgent":  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+                                          "recarga_ms":  301,
+                                          "app":  {
+                                                      "domPronto_ms":  44,
+                                                      "carregado_ms":  45,
+                                                      "aberturaArquivo_ms":  0,
+                                                      "webassembly":  true,
+                                                      "worker":  true,
+                                                      "motorPronto_ms":  336,
+                                                      "regeneracao_ms":  606,
+                                                      "comunicacao_ms":  0.1,
+                                                      "memoriaJS_MB":  10,
+                                                      "statusMotor":  "OCCT 8 (WebAssembly) · pronto em 336 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm"
+                                                  },
+                                          "cspNoWorker":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  533.3,
+                                                           "privadaMB":  618.4,
+                                                           "cpuSegundos":  5.53
+                                                       }
+                                      }
+                      },
+                      {
+                          "repeticao":  2,
+                          "arquivo":  "fase3_peca_parametrica.agtncad",
+                          "pid":  10368,
+                          "testes":  [
+                                         {
+                                             "id":  "S1",
+                                             "nome":  "aplicativo abre (interface 2D montada)",
+                                             "ok":  true,
+                                             "detalhe":  "origem http://tauri.localhost; Tauri sim; DOM 58 ms",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S1b",
+                                             "nome":  "arquivo aberto pela linha de comando (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "título \"fase3_peca_parametrica — AGTN Industrial CAD\"",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S2",
+                                             "nome":  "motor WebAssembly inicializa no worker",
+                                             "ok":  true,
+                                             "detalhe":  "pronto",
+                                             "ms":  740
+                                         },
+                                         {
+                                             "id":  "S3",
+                                             "nome":  "OCCT carrega (kernel identificado)",
+                                             "ok":  true,
+                                             "detalhe":  "OCCT 8 (WebAssembly); init 346 ms; texto: OCCT 8 (WebAssembly) · pronto em 346 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S4",
+                                             "nome":  "sólidos 3D regenerados com volume de referência (1e-9)",
+                                             "ok":  true,
+                                             "detalhe":  "Peça 1: 233609.51377451912 (ref 233609.51377451912)",
+                                             "ms":  405
+                                         },
+                                         {
+                                             "id":  "S4b",
+                                             "nome":  "todas as operações sem erro",
+                                             "ok":  true,
+                                             "detalhe":  "5 operações; erros 0",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S5",
+                                             "nome":  "operação booleana (corte/união) com volume exato",
+                                             "ok":  true,
+                                             "detalhe":  "sketch,extrude:new,sketch,extrude:cut,fillet",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S8-salvar",
+                                             "nome":  "projeto .agtncad salvo e relido (caminho com acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\fase3_peca_parametrica — cópia ção.agtncad (2703 bytes)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "nenhuma violação de CSP registrada na página",
+                                             "ok":  true,
+                                             "detalhe":  "0 violações (ouvinte securitypolicyviolation)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9-cdp",
+                                             "nome":  "console sem erro de segurança (página e worker, via CDP)",
+                                             "ok":  true,
+                                             "detalhe":  "21 eventos; segurança 0; exceções 0; alvos: worker http://tauri.localhost/assets/engine.worker-B8FrtAMX.js",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S11",
+                                             "nome":  "CSP no worker do motor (informativo) e motor pronto mesmo assim",
+                                             "ok":  true,
+                                             "detalhe":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                             "ms":  null
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "janela_ms":  790,
+                                          "url":  "http://tauri.localhost/",
+                                          "navegador":  "Edg/157.0.4341.46",
+                                          "userAgent":  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+                                          "recarga_ms":  288,
+                                          "app":  {
+                                                      "domPronto_ms":  58,
+                                                      "carregado_ms":  58,
+                                                      "aberturaArquivo_ms":  0,
+                                                      "webassembly":  true,
+                                                      "worker":  true,
+                                                      "motorPronto_ms":  346,
+                                                      "regeneracao_ms":  405,
+                                                      "comunicacao_ms":  0.1,
+                                                      "memoriaJS_MB":  8,
+                                                      "statusMotor":  "OCCT 8 (WebAssembly) · pronto em 346 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm"
+                                                  },
+                                          "cspNoWorker":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  527.8,
+                                                           "privadaMB":  587.5,
+                                                           "cpuSegundos":  4.38
+                                                       }
+                                      }
+                      },
+                      {
+                          "repeticao":  2,
+                          "arquivo":  "fase2_projeto_3d.agtncad",
+                          "pid":  17524,
+                          "testes":  [
+                                         {
+                                             "id":  "S1",
+                                             "nome":  "aplicativo abre (interface 2D montada)",
+                                             "ok":  true,
+                                             "detalhe":  "origem http://tauri.localhost; Tauri sim; DOM 49 ms",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S1b",
+                                             "nome":  "arquivo aberto pela linha de comando (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "título \"fase2_projeto_3d — AGTN Industrial CAD\"",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S2",
+                                             "nome":  "motor WebAssembly inicializa no worker",
+                                             "ok":  true,
+                                             "detalhe":  "pronto",
+                                             "ms":  746
+                                         },
+                                         {
+                                             "id":  "S3",
+                                             "nome":  "OCCT carrega (kernel identificado)",
+                                             "ok":  true,
+                                             "detalhe":  "OCCT 8 (WebAssembly); init 364 ms; texto: OCCT 8 (WebAssembly) · pronto em 364 ms3 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S4",
+                                             "nome":  "sólidos 3D regenerados com volume de referência (1e-9)",
+                                             "ok":  true,
+                                             "detalhe":  "CHAPA: 1500000 (ref 1500000); COLUNA: 782400 (ref 782400); TUBO_SUPORTE: 173168.4355168697 (ref 173168.4355168697)",
+                                             "ms":  203
+                                         },
+                                         {
+                                             "id":  "S4b",
+                                             "nome":  "todas as operações sem erro",
+                                             "ok":  true,
+                                             "detalhe":  "0 operações; erros 0",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S8-salvar",
+                                             "nome":  "projeto .agtncad salvo e relido (caminho com acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\fase2_projeto_3d — cópia ção.agtncad (1675 bytes)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "nenhuma violação de CSP registrada na página",
+                                             "ok":  true,
+                                             "detalhe":  "0 violações (ouvinte securitypolicyviolation)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9-cdp",
+                                             "nome":  "console sem erro de segurança (página e worker, via CDP)",
+                                             "ok":  true,
+                                             "detalhe":  "19 eventos; segurança 0; exceções 0; alvos: worker http://tauri.localhost/assets/engine.worker-B8FrtAMX.js",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S11",
+                                             "nome":  "CSP no worker do motor (informativo) e motor pronto mesmo assim",
+                                             "ok":  true,
+                                             "detalhe":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                             "ms":  null
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "janela_ms":  783,
+                                          "url":  "http://tauri.localhost/",
+                                          "navegador":  "Edg/157.0.4341.46",
+                                          "userAgent":  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+                                          "recarga_ms":  271,
+                                          "app":  {
+                                                      "domPronto_ms":  49,
+                                                      "carregado_ms":  50,
+                                                      "aberturaArquivo_ms":  0,
+                                                      "webassembly":  true,
+                                                      "worker":  true,
+                                                      "motorPronto_ms":  364,
+                                                      "regeneracao_ms":  203,
+                                                      "comunicacao_ms":  0,
+                                                      "memoriaJS_MB":  7,
+                                                      "statusMotor":  "OCCT 8 (WebAssembly) · pronto em 364 ms3 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm"
+                                                  },
+                                          "cspNoWorker":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  504.1,
+                                                           "privadaMB":  583.5,
+                                                           "cpuSegundos":  4.36
+                                                       }
+                                      }
+                      },
+                      {
+                          "repeticao":  2,
+                          "arquivo":  "etapa1_chapa.agtncad",
+                          "pid":  14284,
+                          "testes":  [
+                                         {
+                                             "id":  "S1",
+                                             "nome":  "aplicativo abre (interface 2D montada)",
+                                             "ok":  true,
+                                             "detalhe":  "origem http://tauri.localhost; Tauri sim; DOM 55 ms",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S1b",
+                                             "nome":  "arquivo aberto pela linha de comando (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "título \"etapa1_chapa — AGTN Industrial CAD\"",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S2",
+                                             "nome":  "motor WebAssembly inicializa no worker",
+                                             "ok":  true,
+                                             "detalhe":  "pronto",
+                                             "ms":  729
+                                         },
+                                         {
+                                             "id":  "S3",
+                                             "nome":  "OCCT carrega (kernel identificado)",
+                                             "ok":  true,
+                                             "detalhe":  "OCCT 8 (WebAssembly); init 314 ms; texto: OCCT 8 (WebAssembly) · pronto em 314 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S4",
+                                             "nome":  "sólidos 3D regenerados com volume de referência (1e-9)",
+                                             "ok":  true,
+                                             "detalhe":  "Peça 1: 26027.433388230813 (ref 26027.433388230813)",
+                                             "ms":  405
+                                         },
+                                         {
+                                             "id":  "S4b",
+                                             "nome":  "todas as operações sem erro",
+                                             "ok":  true,
+                                             "detalhe":  "4 operações; erros 0",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S6",
+                                             "nome":  "planificação de Peça 1",
+                                             "ok":  true,
+                                             "detalhe":  "estado valida; área 12947.743248390021 (ref 12947.743248390021); blank 100 × 129.4774324839002 (ref 100 × 129.4774324839002); corte 458.9548649678004",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-R2000",
+                                             "nome":  "DXF R2000 gerado e conferido no app",
+                                             "ok":  true,
+                                             "detalhe":  "15 conferências OK",
+                                             "ms":  6
+                                         },
+                                         {
+                                             "id":  "S7-R12",
+                                             "nome":  "DXF R12 gerado e conferido no app",
+                                             "ok":  true,
+                                             "detalhe":  "15 conferências OK",
+                                             "ms":  1
+                                         },
+                                         {
+                                             "id":  "S7-R2000-hash",
+                                             "nome":  "DXF R2000 idêntico ao de referência (SHA-256)",
+                                             "ok":  true,
+                                             "detalhe":  "ff657d333b14026c… (ref ff657d333b14026c…)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-R12-hash",
+                                             "nome":  "DXF R12 idêntico ao de referência (SHA-256)",
+                                             "ok":  true,
+                                             "detalhe":  "205235a11a468b0f… (ref 205235a11a468b0f…)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-disco-dxf",
+                                             "nome":  "DXF gravado pelo Rust e relido igual (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\etapa1_chapa peça ção.dxf (9499 bytes)",
+                                             "ms":  94
+                                         },
+                                         {
+                                             "id":  "S7-dwg",
+                                             "nome":  "DWG gravado pelo conversor nativo e relido (camada CUT_OUTER presente)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\etapa1_chapa peça ção.dwg → DXF de volta 48938 bytes",
+                                             "ms":  124
+                                         },
+                                         {
+                                             "id":  "S8-salvar",
+                                             "nome":  "projeto .agtncad salvo e relido (caminho com acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\etapa1_chapa — cópia ção.agtncad (2386 bytes)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "nenhuma violação de CSP registrada na página",
+                                             "ok":  true,
+                                             "detalhe":  "0 violações (ouvinte securitypolicyviolation)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9-cdp",
+                                             "nome":  "console sem erro de segurança (página e worker, via CDP)",
+                                             "ok":  true,
+                                             "detalhe":  "21 eventos; segurança 0; exceções 0; alvos: worker http://tauri.localhost/assets/engine.worker-B8FrtAMX.js",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S11",
+                                             "nome":  "CSP no worker do motor (informativo) e motor pronto mesmo assim",
+                                             "ok":  true,
+                                             "detalhe":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                             "ms":  null
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "janela_ms":  1037,
+                                          "url":  "http://tauri.localhost/",
+                                          "navegador":  "Edg/157.0.4341.46",
+                                          "userAgent":  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+                                          "recarga_ms":  314,
+                                          "app":  {
+                                                      "domPronto_ms":  55,
+                                                      "carregado_ms":  56,
+                                                      "aberturaArquivo_ms":  0,
+                                                      "webassembly":  true,
+                                                      "worker":  true,
+                                                      "motorPronto_ms":  314,
+                                                      "regeneracao_ms":  405,
+                                                      "comunicacao_ms":  0.1,
+                                                      "memoriaJS_MB":  8,
+                                                      "statusMotor":  "OCCT 8 (WebAssembly) · pronto em 314 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm"
+                                                  },
+                                          "cspNoWorker":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  508,
+                                                           "privadaMB":  567,
+                                                           "cpuSegundos":  4.77
+                                                       }
+                                      }
+                      },
+                      {
+                          "repeticao":  2,
+                          "arquivo":  "grande_120furos.agtncad",
+                          "pid":  6928,
+                          "testes":  [
+                                         {
+                                             "id":  "S1",
+                                             "nome":  "aplicativo abre (interface 2D montada)",
+                                             "ok":  true,
+                                             "detalhe":  "origem http://tauri.localhost; Tauri sim; DOM 49 ms",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S1b",
+                                             "nome":  "arquivo aberto pela linha de comando (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "título \"grande_120furos — AGTN Industrial CAD\"",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S2",
+                                             "nome":  "motor WebAssembly inicializa no worker",
+                                             "ok":  true,
+                                             "detalhe":  "pronto",
+                                             "ms":  714
+                                         },
+                                         {
+                                             "id":  "S3",
+                                             "nome":  "OCCT carrega (kernel identificado)",
+                                             "ok":  true,
+                                             "detalhe":  "OCCT 8 (WebAssembly); init 329 ms; texto: OCCT 8 (WebAssembly) · pronto em 329 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S4",
+                                             "nome":  "sólidos 3D regenerados com volume de referência (1e-9)",
+                                             "ok":  true,
+                                             "detalhe":  "Chapa grande 120 furos: 4537296.987404675 (ref 4537296.987404675)",
+                                             "ms":  2216
+                                         },
+                                         {
+                                             "id":  "S4b",
+                                             "nome":  "todas as operações sem erro",
+                                             "ok":  true,
+                                             "detalhe":  "7 operações; erros 0",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S6",
+                                             "nome":  "planificação de Chapa grande 120 furos",
+                                             "ok":  true,
+                                             "detalhe":  "estado valida; área 2267371.24779308 (ref 2267371.24779308); blank 2092.984954989267 × 1092.9849549892667 (ref 2092.984954989267 × 1092.9849549892667); corte 10107.868767403263",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-R2000",
+                                             "nome":  "DXF R2000 gerado e conferido no app",
+                                             "ok":  true,
+                                             "detalhe":  "15 conferências OK",
+                                             "ms":  9
+                                         },
+                                         {
+                                             "id":  "S7-R12",
+                                             "nome":  "DXF R12 gerado e conferido no app",
+                                             "ok":  true,
+                                             "detalhe":  "15 conferências OK",
+                                             "ms":  3
+                                         },
+                                         {
+                                             "id":  "S7-R2000-hash",
+                                             "nome":  "DXF R2000 idêntico ao de referência (SHA-256)",
+                                             "ok":  true,
+                                             "detalhe":  "b17787182a531734… (ref b17787182a531734…)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-R12-hash",
+                                             "nome":  "DXF R12 idêntico ao de referência (SHA-256)",
+                                             "ok":  true,
+                                             "detalhe":  "a89db6e3c8e777b5… (ref a89db6e3c8e777b5…)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-disco-dxf",
+                                             "nome":  "DXF gravado pelo Rust e relido igual (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\grande_120furos peça ção.dxf (32328 bytes)",
+                                             "ms":  45
+                                         },
+                                         {
+                                             "id":  "S7-dwg",
+                                             "nome":  "DWG gravado pelo conversor nativo e relido (camada CUT_OUTER presente)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\grande_120furos peça ção.dwg → DXF de volta 73003 bytes",
+                                             "ms":  186
+                                         },
+                                         {
+                                             "id":  "S8-salvar",
+                                             "nome":  "projeto .agtncad salvo e relido (caminho com acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\grande_120furos — cópia ção.agtncad (19405 bytes)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "nenhuma violação de CSP registrada na página",
+                                             "ok":  true,
+                                             "detalhe":  "0 violações (ouvinte securitypolicyviolation)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9-cdp",
+                                             "nome":  "console sem erro de segurança (página e worker, via CDP)",
+                                             "ok":  true,
+                                             "detalhe":  "27 eventos; segurança 0; exceções 0; alvos: worker http://tauri.localhost/assets/engine.worker-B8FrtAMX.js",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S11",
+                                             "nome":  "CSP no worker do motor (informativo) e motor pronto mesmo assim",
+                                             "ok":  true,
+                                             "detalhe":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                             "ms":  null
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "janela_ms":  765,
+                                          "url":  "http://tauri.localhost/",
+                                          "navegador":  "Edg/157.0.4341.46",
+                                          "userAgent":  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+                                          "recarga_ms":  318,
+                                          "app":  {
+                                                      "domPronto_ms":  49,
+                                                      "carregado_ms":  50,
+                                                      "aberturaArquivo_ms":  0,
+                                                      "webassembly":  true,
+                                                      "worker":  true,
+                                                      "motorPronto_ms":  329,
+                                                      "regeneracao_ms":  2216,
+                                                      "comunicacao_ms":  0.1,
+                                                      "memoriaJS_MB":  12,
+                                                      "statusMotor":  "OCCT 8 (WebAssembly) · pronto em 329 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm"
+                                                  },
+                                          "cspNoWorker":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  588.9,
+                                                           "privadaMB":  611.5,
+                                                           "cpuSegundos":  8.22
+                                                       }
+                                      }
+                      },
+                      {
+                          "repeticao":  2,
+                          "arquivo":  "v311_desenho.agtncad",
+                          "pid":  10776,
+                          "testes":  [
+                                         {
+                                             "id":  "S1",
+                                             "nome":  "aplicativo abre (interface 2D montada)",
+                                             "ok":  true,
+                                             "detalhe":  "origem http://tauri.localhost; Tauri sim; DOM 45 ms",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S1b",
+                                             "nome":  "arquivo aberto pela linha de comando (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "título \"v311_desenho — AGTN Industrial CAD\"",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S2D",
+                                             "nome":  "desenho 2D da v3.1.1 aberto com todos os objetos",
+                                             "ok":  true,
+                                             "detalhe":  "114 objeto(s) (ref 114)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9-cdp",
+                                             "nome":  "console sem erro de segurança (página e worker, via CDP)",
+                                             "ok":  true,
+                                             "detalhe":  "18 eventos; segurança 0; exceções 0; alvos: ",
+                                             "ms":  null
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "janela_ms":  1289,
+                                          "url":  "http://tauri.localhost/",
+                                          "navegador":  "Edg/157.0.4341.46",
+                                          "userAgent":  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+                                          "recarga_ms":  280,
+                                          "app":  {
+                                                      "domPronto_ms":  45,
+                                                      "carregado_ms":  46,
+                                                      "aberturaArquivo_ms":  0
+                                                  },
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  388.5,
+                                                           "privadaMB":  289.1,
+                                                           "cpuSegundos":  2.38
+                                                       }
+                                      }
+                      },
+                      {
+                          "repeticao":  3,
+                          "arquivo":  "etapa2_completo.agtncad",
+                          "pid":  3848,
+                          "testes":  [
+                                         {
+                                             "id":  "S1",
+                                             "nome":  "aplicativo abre (interface 2D montada)",
+                                             "ok":  true,
+                                             "detalhe":  "origem http://tauri.localhost; Tauri sim; DOM 48 ms",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S1b",
+                                             "nome":  "arquivo aberto pela linha de comando (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "título \"etapa2_completo — AGTN Industrial CAD\"",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S2",
+                                             "nome":  "motor WebAssembly inicializa no worker",
+                                             "ok":  true,
+                                             "detalhe":  "pronto",
+                                             "ms":  787
+                                         },
+                                         {
+                                             "id":  "S3",
+                                             "nome":  "OCCT carrega (kernel identificado)",
+                                             "ok":  true,
+                                             "detalhe":  "OCCT 8 (WebAssembly); init 353 ms; texto: OCCT 8 (WebAssembly) · pronto em 353 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S4",
+                                             "nome":  "sólidos 3D regenerados com volume de referência (1e-9)",
+                                             "ok":  true,
+                                             "detalhe":  "Peça 1: 19837.522264378968 (ref 19837.522264378968)",
+                                             "ms":  608
+                                         },
+                                         {
+                                             "id":  "S4b",
+                                             "nome":  "todas as operações sem erro",
+                                             "ok":  true,
+                                             "detalhe":  "8 operações; erros 0",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S6",
+                                             "nome":  "planificação de Peça 1",
+                                             "ok":  true,
+                                             "detalhe":  "estado valida; área 9891.931929277966 (ref 9891.931929277966); blank 136.49247749463342 × 86.4924774946334 (ref 136.49247749463342 × 86.4924774946334); corte 532.9698974745324",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-R2000",
+                                             "nome":  "DXF R2000 gerado e conferido no app",
+                                             "ok":  true,
+                                             "detalhe":  "15 conferências OK",
+                                             "ms":  5
+                                         },
+                                         {
+                                             "id":  "S7-R12",
+                                             "nome":  "DXF R12 gerado e conferido no app",
+                                             "ok":  true,
+                                             "detalhe":  "15 conferências OK",
+                                             "ms":  1
+                                         },
+                                         {
+                                             "id":  "S7-R2000-hash",
+                                             "nome":  "DXF R2000 idêntico ao de referência (SHA-256)",
+                                             "ok":  true,
+                                             "detalhe":  "aa992550bb55a9a9… (ref aa992550bb55a9a9…)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-R12-hash",
+                                             "nome":  "DXF R12 idêntico ao de referência (SHA-256)",
+                                             "ok":  true,
+                                             "detalhe":  "e7e90f212497cc6f… (ref e7e90f212497cc6f…)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-disco-dxf",
+                                             "nome":  "DXF gravado pelo Rust e relido igual (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\etapa2_completo peça ção.dxf (9921 bytes)",
+                                             "ms":  42
+                                         },
+                                         {
+                                             "id":  "S7-dwg",
+                                             "nome":  "DWG gravado pelo conversor nativo e relido (camada CUT_OUTER presente)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\etapa2_completo peça ção.dwg → DXF de volta 49644 bytes",
+                                             "ms":  214
+                                         },
+                                         {
+                                             "id":  "S8-salvar",
+                                             "nome":  "projeto .agtncad salvo e relido (caminho com acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\etapa2_completo — cópia ção.agtncad (3307 bytes)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "nenhuma violação de CSP registrada na página",
+                                             "ok":  true,
+                                             "detalhe":  "0 violações (ouvinte securitypolicyviolation)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9-cdp",
+                                             "nome":  "console sem erro de segurança (página e worker, via CDP)",
+                                             "ok":  true,
+                                             "detalhe":  "21 eventos; segurança 0; exceções 0; alvos: worker http://tauri.localhost/assets/engine.worker-B8FrtAMX.js",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S11",
+                                             "nome":  "CSP no worker do motor (informativo) e motor pronto mesmo assim",
+                                             "ok":  true,
+                                             "detalhe":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                             "ms":  null
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "janela_ms":  1037,
+                                          "url":  "http://tauri.localhost/",
+                                          "navegador":  "Edg/157.0.4341.46",
+                                          "userAgent":  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+                                          "recarga_ms":  291,
+                                          "app":  {
+                                                      "domPronto_ms":  48,
+                                                      "carregado_ms":  48,
+                                                      "aberturaArquivo_ms":  0,
+                                                      "webassembly":  true,
+                                                      "worker":  true,
+                                                      "motorPronto_ms":  353,
+                                                      "regeneracao_ms":  608,
+                                                      "comunicacao_ms":  0,
+                                                      "memoriaJS_MB":  11,
+                                                      "statusMotor":  "OCCT 8 (WebAssembly) · pronto em 353 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm"
+                                                  },
+                                          "cspNoWorker":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  539.6,
+                                                           "privadaMB":  612.7,
+                                                           "cpuSegundos":  5.73
+                                                       }
+                                      }
+                      },
+                      {
+                          "repeticao":  3,
+                          "arquivo":  "fase3_peca_parametrica.agtncad",
+                          "pid":  15860,
+                          "testes":  [
+                                         {
+                                             "id":  "S1",
+                                             "nome":  "aplicativo abre (interface 2D montada)",
+                                             "ok":  true,
+                                             "detalhe":  "origem http://tauri.localhost; Tauri sim; DOM 36 ms",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S1b",
+                                             "nome":  "arquivo aberto pela linha de comando (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "título \"fase3_peca_parametrica — AGTN Industrial CAD\"",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S2",
+                                             "nome":  "motor WebAssembly inicializa no worker",
+                                             "ok":  true,
+                                             "detalhe":  "pronto",
+                                             "ms":  779
+                                         },
+                                         {
+                                             "id":  "S3",
+                                             "nome":  "OCCT carrega (kernel identificado)",
+                                             "ok":  true,
+                                             "detalhe":  "OCCT 8 (WebAssembly); init 321 ms; texto: OCCT 8 (WebAssembly) · pronto em 321 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S4",
+                                             "nome":  "sólidos 3D regenerados com volume de referência (1e-9)",
+                                             "ok":  true,
+                                             "detalhe":  "Peça 1: 233609.51377451912 (ref 233609.51377451912)",
+                                             "ms":  202
+                                         },
+                                         {
+                                             "id":  "S4b",
+                                             "nome":  "todas as operações sem erro",
+                                             "ok":  true,
+                                             "detalhe":  "5 operações; erros 0",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S5",
+                                             "nome":  "operação booleana (corte/união) com volume exato",
+                                             "ok":  true,
+                                             "detalhe":  "sketch,extrude:new,sketch,extrude:cut,fillet",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S8-salvar",
+                                             "nome":  "projeto .agtncad salvo e relido (caminho com acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\fase3_peca_parametrica — cópia ção.agtncad (2703 bytes)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "nenhuma violação de CSP registrada na página",
+                                             "ok":  true,
+                                             "detalhe":  "0 violações (ouvinte securitypolicyviolation)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9-cdp",
+                                             "nome":  "console sem erro de segurança (página e worker, via CDP)",
+                                             "ok":  true,
+                                             "detalhe":  "19 eventos; segurança 0; exceções 0; alvos: worker http://tauri.localhost/assets/engine.worker-B8FrtAMX.js",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S11",
+                                             "nome":  "CSP no worker do motor (informativo) e motor pronto mesmo assim",
+                                             "ok":  true,
+                                             "detalhe":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                             "ms":  null
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "janela_ms":  786,
+                                          "url":  "http://tauri.localhost/",
+                                          "navegador":  "Edg/157.0.4341.46",
+                                          "userAgent":  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+                                          "recarga_ms":  278,
+                                          "app":  {
+                                                      "domPronto_ms":  36,
+                                                      "carregado_ms":  37,
+                                                      "aberturaArquivo_ms":  0,
+                                                      "webassembly":  true,
+                                                      "worker":  true,
+                                                      "motorPronto_ms":  321,
+                                                      "regeneracao_ms":  202,
+                                                      "comunicacao_ms":  0,
+                                                      "memoriaJS_MB":  8,
+                                                      "statusMotor":  "OCCT 8 (WebAssembly) · pronto em 321 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm"
+                                                  },
+                                          "cspNoWorker":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  513.3,
+                                                           "privadaMB":  599.4,
+                                                           "cpuSegundos":  4.25
+                                                       }
+                                      }
+                      },
+                      {
+                          "repeticao":  3,
+                          "arquivo":  "fase2_projeto_3d.agtncad",
+                          "pid":  17948,
+                          "testes":  [
+                                         {
+                                             "id":  "S1",
+                                             "nome":  "aplicativo abre (interface 2D montada)",
+                                             "ok":  true,
+                                             "detalhe":  "origem http://tauri.localhost; Tauri sim; DOM 43 ms",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S1b",
+                                             "nome":  "arquivo aberto pela linha de comando (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "título \"fase2_projeto_3d — AGTN Industrial CAD\"",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S2",
+                                             "nome":  "motor WebAssembly inicializa no worker",
+                                             "ok":  true,
+                                             "detalhe":  "pronto",
+                                             "ms":  699
+                                         },
+                                         {
+                                             "id":  "S3",
+                                             "nome":  "OCCT carrega (kernel identificado)",
+                                             "ok":  true,
+                                             "detalhe":  "OCCT 8 (WebAssembly); init 319 ms; texto: OCCT 8 (WebAssembly) · pronto em 319 ms3 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S4",
+                                             "nome":  "sólidos 3D regenerados com volume de referência (1e-9)",
+                                             "ok":  true,
+                                             "detalhe":  "CHAPA: 1500000 (ref 1500000); COLUNA: 782400 (ref 782400); TUBO_SUPORTE: 173168.4355168697 (ref 173168.4355168697)",
+                                             "ms":  204
+                                         },
+                                         {
+                                             "id":  "S4b",
+                                             "nome":  "todas as operações sem erro",
+                                             "ok":  true,
+                                             "detalhe":  "0 operações; erros 0",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S8-salvar",
+                                             "nome":  "projeto .agtncad salvo e relido (caminho com acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\fase2_projeto_3d — cópia ção.agtncad (1675 bytes)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "nenhuma violação de CSP registrada na página",
+                                             "ok":  true,
+                                             "detalhe":  "0 violações (ouvinte securitypolicyviolation)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9-cdp",
+                                             "nome":  "console sem erro de segurança (página e worker, via CDP)",
+                                             "ok":  true,
+                                             "detalhe":  "19 eventos; segurança 0; exceções 0; alvos: worker http://tauri.localhost/assets/engine.worker-B8FrtAMX.js",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S11",
+                                             "nome":  "CSP no worker do motor (informativo) e motor pronto mesmo assim",
+                                             "ok":  true,
+                                             "detalhe":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                             "ms":  null
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "janela_ms":  1043,
+                                          "url":  "http://tauri.localhost/",
+                                          "navegador":  "Edg/157.0.4341.46",
+                                          "userAgent":  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+                                          "recarga_ms":  288,
+                                          "app":  {
+                                                      "domPronto_ms":  43,
+                                                      "carregado_ms":  43,
+                                                      "aberturaArquivo_ms":  0,
+                                                      "webassembly":  true,
+                                                      "worker":  true,
+                                                      "motorPronto_ms":  319,
+                                                      "regeneracao_ms":  204,
+                                                      "comunicacao_ms":  0.1,
+                                                      "memoriaJS_MB":  7,
+                                                      "statusMotor":  "OCCT 8 (WebAssembly) · pronto em 319 ms3 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm"
+                                                  },
+                                          "cspNoWorker":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  490.3,
+                                                           "privadaMB":  553,
+                                                           "cpuSegundos":  4.08
+                                                       }
+                                      }
+                      },
+                      {
+                          "repeticao":  3,
+                          "arquivo":  "etapa1_chapa.agtncad",
+                          "pid":  1060,
+                          "testes":  [
+                                         {
+                                             "id":  "S1",
+                                             "nome":  "aplicativo abre (interface 2D montada)",
+                                             "ok":  true,
+                                             "detalhe":  "origem http://tauri.localhost; Tauri sim; DOM 70 ms",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S1b",
+                                             "nome":  "arquivo aberto pela linha de comando (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "título \"etapa1_chapa — AGTN Industrial CAD\"",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S2",
+                                             "nome":  "motor WebAssembly inicializa no worker",
+                                             "ok":  true,
+                                             "detalhe":  "pronto",
+                                             "ms":  723
+                                         },
+                                         {
+                                             "id":  "S3",
+                                             "nome":  "OCCT carrega (kernel identificado)",
+                                             "ok":  true,
+                                             "detalhe":  "OCCT 8 (WebAssembly); init 327 ms; texto: OCCT 8 (WebAssembly) · pronto em 327 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S4",
+                                             "nome":  "sólidos 3D regenerados com volume de referência (1e-9)",
+                                             "ok":  true,
+                                             "detalhe":  "Peça 1: 26027.433388230813 (ref 26027.433388230813)",
+                                             "ms":  404
+                                         },
+                                         {
+                                             "id":  "S4b",
+                                             "nome":  "todas as operações sem erro",
+                                             "ok":  true,
+                                             "detalhe":  "4 operações; erros 0",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S6",
+                                             "nome":  "planificação de Peça 1",
+                                             "ok":  true,
+                                             "detalhe":  "estado valida; área 12947.743248390021 (ref 12947.743248390021); blank 100 × 129.4774324839002 (ref 100 × 129.4774324839002); corte 458.9548649678004",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-R2000",
+                                             "nome":  "DXF R2000 gerado e conferido no app",
+                                             "ok":  true,
+                                             "detalhe":  "15 conferências OK",
+                                             "ms":  5
+                                         },
+                                         {
+                                             "id":  "S7-R12",
+                                             "nome":  "DXF R12 gerado e conferido no app",
+                                             "ok":  true,
+                                             "detalhe":  "15 conferências OK",
+                                             "ms":  1
+                                         },
+                                         {
+                                             "id":  "S7-R2000-hash",
+                                             "nome":  "DXF R2000 idêntico ao de referência (SHA-256)",
+                                             "ok":  true,
+                                             "detalhe":  "ff657d333b14026c… (ref ff657d333b14026c…)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-R12-hash",
+                                             "nome":  "DXF R12 idêntico ao de referência (SHA-256)",
+                                             "ok":  true,
+                                             "detalhe":  "205235a11a468b0f… (ref 205235a11a468b0f…)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-disco-dxf",
+                                             "nome":  "DXF gravado pelo Rust e relido igual (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\etapa1_chapa peça ção.dxf (9499 bytes)",
+                                             "ms":  307
+                                         },
+                                         {
+                                             "id":  "S7-dwg",
+                                             "nome":  "DWG gravado pelo conversor nativo e relido (camada CUT_OUTER presente)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\etapa1_chapa peça ção.dwg → DXF de volta 48938 bytes",
+                                             "ms":  151
+                                         },
+                                         {
+                                             "id":  "S8-salvar",
+                                             "nome":  "projeto .agtncad salvo e relido (caminho com acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\etapa1_chapa — cópia ção.agtncad (2386 bytes)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "nenhuma violação de CSP registrada na página",
+                                             "ok":  true,
+                                             "detalhe":  "0 violações (ouvinte securitypolicyviolation)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9-cdp",
+                                             "nome":  "console sem erro de segurança (página e worker, via CDP)",
+                                             "ok":  true,
+                                             "detalhe":  "23 eventos; segurança 0; exceções 0; alvos: worker http://tauri.localhost/assets/engine.worker-B8FrtAMX.js",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S11",
+                                             "nome":  "CSP no worker do motor (informativo) e motor pronto mesmo assim",
+                                             "ok":  true,
+                                             "detalhe":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                             "ms":  null
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "janela_ms":  799,
+                                          "url":  "http://tauri.localhost/",
+                                          "navegador":  "Edg/157.0.4341.46",
+                                          "userAgent":  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+                                          "recarga_ms":  300,
+                                          "app":  {
+                                                      "domPronto_ms":  70,
+                                                      "carregado_ms":  70,
+                                                      "aberturaArquivo_ms":  0,
+                                                      "webassembly":  true,
+                                                      "worker":  true,
+                                                      "motorPronto_ms":  327,
+                                                      "regeneracao_ms":  404,
+                                                      "comunicacao_ms":  0,
+                                                      "memoriaJS_MB":  10,
+                                                      "statusMotor":  "OCCT 8 (WebAssembly) · pronto em 327 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm"
+                                                  },
+                                          "cspNoWorker":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  507,
+                                                           "privadaMB":  590.9,
+                                                           "cpuSegundos":  4.83
+                                                       }
+                                      }
+                      },
+                      {
+                          "repeticao":  3,
+                          "arquivo":  "grande_120furos.agtncad",
+                          "pid":  892,
+                          "testes":  [
+                                         {
+                                             "id":  "S1",
+                                             "nome":  "aplicativo abre (interface 2D montada)",
+                                             "ok":  true,
+                                             "detalhe":  "origem http://tauri.localhost; Tauri sim; DOM 107 ms",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S1b",
+                                             "nome":  "arquivo aberto pela linha de comando (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "título \"grande_120furos — AGTN Industrial CAD\"",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S2",
+                                             "nome":  "motor WebAssembly inicializa no worker",
+                                             "ok":  true,
+                                             "detalhe":  "pronto",
+                                             "ms":  784
+                                         },
+                                         {
+                                             "id":  "S3",
+                                             "nome":  "OCCT carrega (kernel identificado)",
+                                             "ok":  true,
+                                             "detalhe":  "OCCT 8 (WebAssembly); init 340 ms; texto: OCCT 8 (WebAssembly) · pronto em 340 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S4",
+                                             "nome":  "sólidos 3D regenerados com volume de referência (1e-9)",
+                                             "ok":  true,
+                                             "detalhe":  "Chapa grande 120 furos: 4537296.987404675 (ref 4537296.987404675)",
+                                             "ms":  2220
+                                         },
+                                         {
+                                             "id":  "S4b",
+                                             "nome":  "todas as operações sem erro",
+                                             "ok":  true,
+                                             "detalhe":  "7 operações; erros 0",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S6",
+                                             "nome":  "planificação de Chapa grande 120 furos",
+                                             "ok":  true,
+                                             "detalhe":  "estado valida; área 2267371.24779308 (ref 2267371.24779308); blank 2092.984954989267 × 1092.9849549892667 (ref 2092.984954989267 × 1092.9849549892667); corte 10107.868767403263",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-R2000",
+                                             "nome":  "DXF R2000 gerado e conferido no app",
+                                             "ok":  true,
+                                             "detalhe":  "15 conferências OK",
+                                             "ms":  8
+                                         },
+                                         {
+                                             "id":  "S7-R12",
+                                             "nome":  "DXF R12 gerado e conferido no app",
+                                             "ok":  true,
+                                             "detalhe":  "15 conferências OK",
+                                             "ms":  4
+                                         },
+                                         {
+                                             "id":  "S7-R2000-hash",
+                                             "nome":  "DXF R2000 idêntico ao de referência (SHA-256)",
+                                             "ok":  true,
+                                             "detalhe":  "b17787182a531734… (ref b17787182a531734…)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-R12-hash",
+                                             "nome":  "DXF R12 idêntico ao de referência (SHA-256)",
+                                             "ok":  true,
+                                             "detalhe":  "a89db6e3c8e777b5… (ref a89db6e3c8e777b5…)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S7-disco-dxf",
+                                             "nome":  "DXF gravado pelo Rust e relido igual (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\grande_120furos peça ção.dxf (32328 bytes)",
+                                             "ms":  60
+                                         },
+                                         {
+                                             "id":  "S7-dwg",
+                                             "nome":  "DWG gravado pelo conversor nativo e relido (camada CUT_OUTER presente)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\grande_120furos peça ção.dwg → DXF de volta 73003 bytes",
+                                             "ms":  138
+                                         },
+                                         {
+                                             "id":  "S8-salvar",
+                                             "nome":  "projeto .agtncad salvo e relido (caminho com acento)",
+                                             "ok":  true,
+                                             "detalhe":  "D:\\AGTN_DEV\\homologacao\\reteste_20261114_213207\\w3_smoke\\Projetos AGTN\\Peça ção #1 (rev.2)\\grande_120furos — cópia ção.agtncad (19405 bytes)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9",
+                                             "nome":  "nenhuma violação de CSP registrada na página",
+                                             "ok":  true,
+                                             "detalhe":  "0 violações (ouvinte securitypolicyviolation)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9-cdp",
+                                             "nome":  "console sem erro de segurança (página e worker, via CDP)",
+                                             "ok":  true,
+                                             "detalhe":  "29 eventos; segurança 0; exceções 0; alvos: worker http://tauri.localhost/assets/engine.worker-B8FrtAMX.js",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S11",
+                                             "nome":  "CSP no worker do motor (informativo) e motor pronto mesmo assim",
+                                             "ok":  true,
+                                             "detalhe":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                             "ms":  null
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "janela_ms":  773,
+                                          "url":  "http://tauri.localhost/",
+                                          "navegador":  "Edg/157.0.4341.46",
+                                          "userAgent":  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+                                          "recarga_ms":  321,
+                                          "app":  {
+                                                      "domPronto_ms":  107,
+                                                      "carregado_ms":  108,
+                                                      "aberturaArquivo_ms":  0,
+                                                      "webassembly":  true,
+                                                      "worker":  true,
+                                                      "motorPronto_ms":  340,
+                                                      "regeneracao_ms":  2220,
+                                                      "comunicacao_ms":  0.1,
+                                                      "memoriaJS_MB":  10,
+                                                      "statusMotor":  "OCCT 8 (WebAssembly) · pronto em 340 ms1 corpo(s)0 triângulosIsométricaOrtográficaSeleção: InteligenteX —  Y —  Z —mm"
+                                                  },
+                                          "cspNoWorker":  "{\"wasm\":true,\"eval\":\"permitido (worker SEM CSP)\"}",
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  588.6,
+                                                           "privadaMB":  597.4,
+                                                           "cpuSegundos":  8.23
+                                                       }
+                                      }
+                      },
+                      {
+                          "repeticao":  3,
+                          "arquivo":  "v311_desenho.agtncad",
+                          "pid":  16952,
+                          "testes":  [
+                                         {
+                                             "id":  "S1",
+                                             "nome":  "aplicativo abre (interface 2D montada)",
+                                             "ok":  true,
+                                             "detalhe":  "origem http://tauri.localhost; Tauri sim; DOM 44 ms",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S1b",
+                                             "nome":  "arquivo aberto pela linha de comando (caminho com espaço e acento)",
+                                             "ok":  true,
+                                             "detalhe":  "título \"v311_desenho — AGTN Industrial CAD\"",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S2D",
+                                             "nome":  "desenho 2D da v3.1.1 aberto com todos os objetos",
+                                             "ok":  true,
+                                             "detalhe":  "114 objeto(s) (ref 114)",
+                                             "ms":  null
+                                         },
+                                         {
+                                             "id":  "S9-cdp",
+                                             "nome":  "console sem erro de segurança (página e worker, via CDP)",
+                                             "ok":  true,
+                                             "detalhe":  "18 eventos; segurança 0; exceções 0; alvos: ",
+                                             "ms":  null
+                                         }
+                                     ],
+                          "medidas":  {
+                                          "janela_ms":  1032,
+                                          "url":  "http://tauri.localhost/",
+                                          "navegador":  "Edg/157.0.4341.46",
+                                          "userAgent":  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+                                          "recarga_ms":  281,
+                                          "app":  {
+                                                      "domPronto_ms":  44,
+                                                      "carregado_ms":  45,
+                                                      "aberturaArquivo_ms":  0
+                                                  },
+                                          "processo":  {
+                                                           "processos":  7,
+                                                           "nomes":  "agtn-cad.exe×1, msedgewebview2.exe×6",
+                                                           "memoriaMB":  386.8,
+                                                           "privadaMB":  287.3,
+                                                           "cpuSegundos":  2.38
+                                                       }
+                                      }
+                      }
+                  ]
+}

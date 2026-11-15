@@ -1,0 +1,23 @@
+﻿data 2026-11-14T21:40:36
+C: livre 144,5 GB de 475,9 GB
+D: livre 439,5 GB de 465,8 GB
+D:\AGTN_DEV -> 8,80 GB
+D:\AGTN_DEV\BuildTools -> 1,63 GB
+D:\AGTN_DEV\vs -> 0,57 GB
+D:\AGTN_DEV\rust -> 1,07 GB
+D:\AGTN_DEV\tools -> 0,48 GB
+D:\AGTN_DEV\src -> 4,42 GB
+D:\AGTN_DEV\cache -> 0,04 GB
+D:\AGTN_DEV\homologacao -> 0,47 GB
+D:\Windows Kits -> 1,68 GB
+C:\Program Files (x86)\Windows Kits -> ausente
+C:\Program Files (x86)\Microsoft Visual Studio -> 0,17 GB
+C:\ProgramData\Microsoft\VisualStudio -> 0,02 GB
+C:\ProgramData\Package Cache -> 0,73 GB
+C:\Users\Luiza\AppData\Local\tauri -> 0,01 GB
+C:\Users\Luiza\AppData\Local\br.com.agtn.cad -> 0,01 GB
+C:\Users\Luiza\AppData\Local\AGTN Industrial CAD -> ausente
+programas (AGTN / Build Tools / SDK): Windows Software Development Kit - Windows 10.0.26100.9457 10.1.26100.9457
+PATH usuario: C:\Users\Luiza\AppData\Local\Microsoft\WindowsApps;
+PATH maquina: C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common
+variaveis RUSTUP/CARGO/npm no usuario: 

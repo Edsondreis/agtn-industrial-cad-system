@@ -1,0 +1,154 @@
+﻿AGTN ETAPA 6 auditoria 2026-11-14T19:49:37
+
+== sistema
+Microsoft Windows 11 Pro 10.0.26200 build 26200 arq 64 bits
+PROCESSOR_ARCHITECTURE=AMD64; CPU=AMD Ryzen 5 3500X 6-Core Processor             ; nucleos=6; RAM_GB=7.9
+DisplayVersion=25H2 UBR=9711 Edition=Professional
+
+== discos
+
+DeviceID VolumeName  FileSystem LivreGB TotalGB
+-------- ----------  ---------- ------- -------
+C:                   NTFS         147,1   475,9
+D:       Novo volume NTFS         449,5   465,8
+
+== usuario e privilegios
+desktop-p4d6iou\luiza
+processo elevado agora: False
+membro do grupo Administradores: True
+UAC EnableLUA=1 ConsentPromptBehaviorAdmin=5 PromptOnSecureDesktop=1
+
+== reinicializacao pendente
+HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending -> True
+HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired -> True
+PendingFileRenameOperations: True
+
+== caminhos longos
+LongPathsEnabled=1
+
+== PowerShell
+PS 5.1.26100.9711; pwsh: False
+
+        Scope ExecutionPolicy
+        ----- ---------------
+MachinePolicy       Undefined
+   UserPolicy       Undefined
+      Process          Bypass
+  CurrentUser       Undefined
+ LocalMachine       Undefined
+
+== winget
+winget v1.29.380
+
+Name                          Version
+----                          -------
+Microsoft.DesktopAppInstaller 1.29.379.0
+
+== ferramentas no PATH
+git -> AUSENTE
+node -> AUSENTE
+npm -> AUSENTE
+npx -> AUSENTE
+cargo -> AUSENTE
+rustc -> AUSENTE
+rustup -> AUSENTE
+cl -> AUSENTE
+link -> AUSENTE
+makensis -> AUSENTE
+candle -> AUSENTE
+python -> C:\Users\Luiza\AppData\Local\Microsoft\WindowsApps\python.exe
+py -> AUSENTE
+
+== rust (pastas padrao)
+C:\Users\Luiza\.cargo existe=False
+C:\Users\Luiza\.rustup existe=False
+D:\.cargo existe=False
+D:\.rustup existe=False
+RUSTUP_HOME= CARGO_HOME= CARGO_TARGET_DIR=
+
+== Visual Studio / Build Tools
+vswhere ausente (nenhum Visual Studio / Build Tools)
+C:\Program Files\Microsoft Visual Studio existe=False
+C:\Program Files (x86)\Microsoft Visual Studio existe=False
+D:\BuildTools existe=False
+C:\ProgramData\Microsoft\VisualStudio\Packages existe=False
+
+== Windows SDK
+Windows 10/11 SDK: AUSENTE
+pasta Windows Kits\10\Include ausente
+
+== VC++ Redistributable
+
+
+Installed : 1
+Version   : v14.51.36247.00
+
+== .NET Framework / recursos opcionais
+NET4 Release=533509
+vbscript.dll presente=True
+
+== WebView2 Runtime
+HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5} -> 157.0.4341.46
+HKCU:\Software\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5} ->
+
+== AGTN instalado (desinstaladores)
+nenhuma instalacao do AGTN encontrada
+
+== dados do AGTN no perfil
+C:\Users\Luiza\AppData\Local\br.com.agtn.cad existe; 0,0 MB
+C:\Users\Luiza\AppData\Roaming\br.com.agtn.cad ausente
+C:\Users\Luiza\AppData\Local\AGTN Industrial CAD ausente
+C:\Users\Luiza\AppData\Local\Programs\AGTN Industrial CAD ausente
+HKCU:\Software\AGTN\AGTN Industrial CAD ausente
+associacoes .agtncad/.dxf/.dwg (HKCU Classes): .agtncad=; .dxf=; .dwg=
+programa padrao (UserChoice) .dxf= .dwg=
+
+== projetos .agtncad do usuario (contagem em Documents/Desktop/OneDrive)
+C:\Users\Luiza\OneDrive\Documentos -> 0 arquivo(s)
+C:\Users\Luiza\OneDrive\Desktop -> 6 arquivo(s)
+C:\Users\Luiza\OneDrive -> 6 arquivo(s)
+
+== variaveis de ambiente
+TEMP=C:\Users\Luiza\AppData\Local\Temp
+PATH (usuario)=C:\Users\Luiza\AppData\Local\Microsoft\WindowsApps;
+PATH (maquina)=C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common
+(nada)
+
+== antivirus (somente leitura)
+Defender tempo real=True; antimalware=True
+
+displayName
+-----------
+Windows Defender
+
+== Smart App Control
+VerifiedAndReputablePolicyState=0
+
+== rede (HEAD, sem download)
+https://github.com -> 200
+https://static.rust-lang.org -> 200
+https://win.rustup.rs -> 200
+https://nodejs.org -> 307
+https://registry.npmjs.org -> 200
+https://index.crates.io/config.json -> 200
+https://static.crates.io -> HTTP 404 (alcancavel)
+https://aka.ms/vs/17/release/vs_buildtools.exe -> FALHOU: A operação não é válida devido ao estado atual do objeto.
+https://download.visualstudio.microsoft.com -> HTTP 404 (alcancavel)
+https://cdn.winget.microsoft.com/cache -> HTTP 404 (alcancavel)
+
+== pasta de teste da ETAPA 5
+
+Name                  Length
+----                  ------
+app
+resultados
+smoke
+ambiente.txt          2057
+diag_ambiente.cmd     1725
+homologacao.ps1       8547
+rodar_homologacao.cmd 420
+rodar_webview2.cmd    492
+rodar_webview2_r2.cmd 508
+rodar_webview2_r3.cmd 508
+
+== FIM

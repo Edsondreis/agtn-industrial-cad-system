@@ -1,0 +1,32 @@
+﻿{
+    "inicio":  "2026-11-14T21:01:39",
+    "etapas":  {
+                   "b_npm_ci":  {
+                                    "codigo":  0,
+                                    "segundos":  29
+                                },
+                   "b_typecheck":  {
+                                       "codigo":  0,
+                                       "segundos":  16
+                                   },
+                   "b_vitest":  {
+                                    "codigo":  1,
+                                    "segundos":  59
+                                },
+                   "b_sem_eval":  {
+                                      "codigo":  1,
+                                      "segundos":  56
+                                  },
+                   "b_cargo_test":  {
+                                        "codigo":  0,
+                                        "segundos":  241
+                                    },
+                   "b_tauri_build":  {
+                                         "codigo":  0,
+                                         "segundos":  382
+                                     }
+               },
+    "commitBranch":  "c35c0a001815c3237a838cfdb6a0034dec789534",
+    "commitMain":  "23a25404e9cc49e6eca10f84d85fffceb2014650",
+    "fim":  "2026-11-14T21:14:47"
+}

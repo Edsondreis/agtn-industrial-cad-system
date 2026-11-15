@@ -1,0 +1,237 @@
+﻿{
+    "inicio":  "2026-11-14T21:14:48",
+    "itens":  {
+                  "W2-metadados":  {
+                                       "status":  "REPROVADO",
+                                       "detalhe":  "produto \u0027AGTN Industrial CAD\u0027, empresa \u0027\u0027, versao \u00273.2.0-1\u0027, PE do instalador x86 (stub NSIS), assinatura NotSigned, 8860779 bytes"
+                                   },
+                  "W3-instalacao":  {
+                                        "status":  "REPROVADO",
+                                        "detalhe":  "codigo 0; AGTN Industrial CAD 3.2.0-1 de \u0027AGTN\u0027 em C:\\Users\\Luiza\\AppData\\Local\\AGTN Industrial CAD; 3 arquivos; exe x64 igual ao build: False; occt-wasm igual ao build: True; entradas no registro: 1; atalhos: 2"
+                                    },
+                  "W3-atalho":  {
+                                    "status":  "APROVADO",
+                                    "detalhe":  "atalho \u0027C:\\Users\\Luiza\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\AGTN Industrial CAD.lnk\u0027 abriu janela \u0027AGTN Industrial CAD\u0027 em 726 ms; 45 modulos carregados, 0 fora do Windows/instalacao (ex.: pasta do repositorio); fechou pela janela: True"
+                                },
+                  "W3-executavel-reabrir":  {
+                                                "status":  "APROVADO",
+                                                "detalhe":  "abriu \u0027AGTN Industrial CAD\u0027 (554 ms), fechou: True; reabriu \u0027AGTN Industrial CAD\u0027 (524 ms), fechou: True"
+                                            },
+                  "W3-funcional":  {
+                                       "status":  "REPROVADO",
+                                       "detalhe":  "app instalado: 18/36 verificacoes (3 repeticoes x 6 projetos; codigo 1)"
+                                   },
+                  "W6":  {
+                             "status":  "REPROVADO",
+                             "detalhe":  "processo sem git/node/npm/cargo/rustc/cl/link no PATH: True; DLLs do exe: bcryptprimitives.dll, ntdll.dll, kernel32.dll, api-ms-win-core-synch-l1-2-0.dll, user32.dll, gdi32.dll, oleaut32.dll, shell32.dll, combase.dll, ole32.dll, dwmapi.dll, imm32.dll, comctl32.dll, shlwapi.dll, advapi32.dll, api-ms-win-core-winrt-error-l1-1-0.dll, ADVAPI32.dll, KERNEL32.dll, api-ms-win-crt-math-l1-1-0.dll, api-ms-win-crt-string-l1-1-0.dll, api-ms-win-crt-convert-l1-1-0.dll, api-ms-win-crt-runtime-l1-1-0.dll, api-ms-win-crt-stdio-l1-1-0.dll, api-ms-win-crt-locale-l1-1-0.dll, api-ms-win-crt-heap-l1-1-0.dll; modulos fora do sistema/instalacao: 0"
+                         },
+                  "W4-desinstalacao-1":  {
+                                             "status":  "APROVADO",
+                                             "detalhe":  "codigo 0; registro removido: True; pasta do programa: removida; atalhos restantes: 0; associacao .agtncad: \u0027\u0027; dados do app (perfil WebView2) mantidos: True"
+                                         },
+                  "W4-base-311":  {
+                                      "status":  "REPROVADO",
+                                      "detalhe":  "3.1.1 instalada em C:\\Users\\Luiza\\AppData\\Local\\AGTN Industrial CAD (exe igual ao build da main: False)"
+                                  },
+                  "W4-atualizacao":  {
+                                         "status":  "REPROVADO",
+                                         "detalhe":  "codigo 0; de 3.1.1 para 3.2.0-1; entradas no registro: 1; mesma pasta: True; exe novo igual ao build: False; occt-wasm presente: True"
+                                     },
+                  "W4-dados-intactos":  {
+                                            "status":  "APROVADO",
+                                            "detalhe":  "perfil do app: 208 arquivos, 0 alterados pelo instalador; projeto do usuario intacto: True"
+                                        },
+                  "W4-preferencias":  {
+                                          "status":  "APROVADO",
+                                          "detalhe":  "lista de recentes na 3.1.1 contem o projeto: True; depois da atualizacao, a 3.2.0-1 le a mesma lista: True"
+                                      },
+                  "W4-funcional-pos-atualizacao":  {
+                                                       "status":  "REPROVADO",
+                                                       "detalhe":  "app atualizado: 6/12 verificacoes"
+                                                   },
+                  "W4-desinstalacao-final":  {
+                                                 "status":  "REPROVADO",
+                                                 "detalhe":  "codigo 0; registro removido: True; pasta do programa: removida; atalhos: 0; associacoes depois: {\"agtncad\":\"Projeto AGTN Industrial CAD\",\"dxf\":\"\",\"dwg\":\"\",\"dxfUserChoice\":null,\"dwgUserChoice\":null,\"prefAGTN\":true}; projeto do usuario intacto: True; perfil do app mantido (comportamento esperado): True"
+                                             }
+              },
+    "dados":  {
+                  "ferramentasNoPath":  {
+                                            "git":  null,
+                                            "node":  null,
+                                            "npm":  null,
+                                            "cargo":  null,
+                                            "rustc":  null,
+                                            "cl":  null,
+                                            "link":  null
+                                        },
+                  "instalador_novo":  {
+                                          "arquivo":  "AGTN Industrial CAD_3.2.0-1_x64-setup.exe",
+                                          "bytes":  8860779,
+                                          "sha256":  "35262E34A8082B35DF5698B842E50FB87A6970D6804AD2E552CD3B04E49D4C5C",
+                                          "pe":  "x86",
+                                          "produto":  "AGTN Industrial CAD",
+                                          "empresa":  "",
+                                          "versaoProduto":  "3.2.0-1",
+                                          "versaoArquivo":  "3.2.0-1",
+                                          "descricao":  "AGTN Industrial CAD",
+                                          "copyright":  "© AGTN. Todos os direitos reservados.",
+                                          "assinatura":  "NotSigned"
+                                      },
+                  "instalador_311":  {
+                                         "arquivo":  "AGTN Industrial CAD_3.1.1_x64-setup.exe",
+                                         "bytes":  4006579,
+                                         "sha256":  "28129A73EA451AD2CF81ADE6C72AFEA4B3BDF5C73D8ABA93C1A9FD9246F6F24A",
+                                         "pe":  "x86",
+                                         "produto":  "AGTN Industrial CAD",
+                                         "empresa":  "",
+                                         "versaoProduto":  "3.1.1",
+                                         "versaoArquivo":  "3.1.1",
+                                         "descricao":  "AGTN Industrial CAD",
+                                         "copyright":  "© AGTN. Todos os direitos reservados.",
+                                         "assinatura":  "NotSigned"
+                                     },
+                  "dependenciasExe":  [
+                                          "bcryptprimitives.dll",
+                                          "ntdll.dll",
+                                          "kernel32.dll",
+                                          "api-ms-win-core-synch-l1-2-0.dll",
+                                          "user32.dll",
+                                          "gdi32.dll",
+                                          "oleaut32.dll",
+                                          "shell32.dll",
+                                          "combase.dll",
+                                          "ole32.dll",
+                                          "dwmapi.dll",
+                                          "imm32.dll",
+                                          "comctl32.dll",
+                                          "shlwapi.dll",
+                                          "advapi32.dll",
+                                          "api-ms-win-core-winrt-error-l1-1-0.dll",
+                                          "ADVAPI32.dll",
+                                          "KERNEL32.dll",
+                                          "api-ms-win-crt-math-l1-1-0.dll",
+                                          "api-ms-win-crt-string-l1-1-0.dll",
+                                          "api-ms-win-crt-convert-l1-1-0.dll",
+                                          "api-ms-win-crt-runtime-l1-1-0.dll",
+                                          "api-ms-win-crt-stdio-l1-1-0.dll",
+                                          "api-ms-win-crt-locale-l1-1-0.dll",
+                                          "api-ms-win-crt-heap-l1-1-0.dll"
+                                      ],
+                  "estadoInicial":  {
+                                        "instalados":  [
+
+                                                       ],
+                                        "atalhos":  [
+
+                                                    ],
+                                        "assoc":  {
+                                                      "agtncad":  null,
+                                                      "dxf":  null,
+                                                      "dwg":  null,
+                                                      "dxfUserChoice":  null,
+                                                      "dwgUserChoice":  null,
+                                                      "prefAGTN":  false
+                                                  },
+                                        "dadosApp":  true
+                                    },
+                  "tempo_instalar_limpa":  6,
+                  "instalado":  {
+                                    "chave":  "AGTN Industrial CAD",
+                                    "nome":  "AGTN Industrial CAD",
+                                    "versao":  "3.2.0-1",
+                                    "fabricante":  "AGTN",
+                                    "pasta":  "C:\\Users\\Luiza\\AppData\\Local\\AGTN Industrial CAD",
+                                    "tamanhoKB":  32860,
+                                    "arquivos":  {
+                                                     "\\agtn-cad.exe":  "49D3AEA075095C5B99FAECDB63219AC9180F0577B8F0B144C40F8A8E79565319",
+                                                     "\\occt\\occt-wasm.wasm":  "CEA5998C8FA6E6EFCFF216F8E5257145E36156300FEF4808189B88976BB2BD88",
+                                                     "\\uninstall.exe":  "8F5184071A28D1197AF98EF22F6C4FC7B00044C90496A27BD3F7B6298A3DD8DD"
+                                                 },
+                                    "atalhos":  [
+                                                    "C:\\Users\\Luiza\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\AGTN Industrial CAD.lnk",
+                                                    "C:\\Users\\Luiza\\OneDrive\\Desktop\\AGTN Industrial CAD.lnk"
+                                                ],
+                                    "assoc":  {
+                                                  "agtncad":  "Projeto AGTN Industrial CAD",
+                                                  "dxf":  "",
+                                                  "dwg":  "",
+                                                  "dxfUserChoice":  null,
+                                                  "dwgUserChoice":  null,
+                                                  "prefAGTN":  true
+                                              },
+                                    "exePE":  "x64"
+                                },
+                  "janela_ms_atalho":  726,
+                  "modulosCarregados":  [
+                                            "C:\\Users\\Luiza\\AppData\\Local\\AGTN Industrial CAD\\agtn-cad.exe",
+                                            "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+                                            "C:\\WINDOWS\\System32\\KERNEL32.DLL",
+                                            "C:\\WINDOWS\\System32\\KERNELBASE.dll",
+                                            "C:\\WINDOWS\\SYSTEM32\\apphelp.dll",
+                                            "C:\\WINDOWS\\System32\\bcryptprimitives.dll",
+                                            "C:\\WINDOWS\\System32\\user32.dll",
+                                            "C:\\WINDOWS\\System32\\win32u.dll",
+                                            "C:\\WINDOWS\\System32\\GDI32.dll",
+                                            "C:\\WINDOWS\\System32\\gdi32full.dll",
+                                            "C:\\WINDOWS\\System32\\msvcp_win.dll",
+                                            "C:\\WINDOWS\\System32\\ucrtbase.dll",
+                                            "C:\\WINDOWS\\System32\\oleaut32.dll",
+                                            "C:\\WINDOWS\\System32\\combase.dll",
+                                            "C:\\WINDOWS\\System32\\RPCRT4.dll",
+                                            "C:\\WINDOWS\\System32\\shell32.dll",
+                                            "C:\\WINDOWS\\System32\\ole32.dll",
+                                            "C:\\WINDOWS\\System32\\imm32.dll",
+                                            "C:\\WINDOWS\\System32\\shlwapi.dll",
+                                            "C:\\WINDOWS\\System32\\advapi32.dll",
+                                            "C:\\WINDOWS\\System32\\msvcrt.dll",
+                                            "C:\\WINDOWS\\WinSxS\\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.26100.9711_none_3e07b8b0e334e825\\comctl32.dll",
+                                            "C:\\WINDOWS\\System32\\sechost.dll",
+                                            "C:\\WINDOWS\\SYSTEM32\\dwmapi.dll",
+                                            "C:\\WINDOWS\\system32\\uxtheme.dll",
+                                            "C:\\WINDOWS\\system32\\IconCodecService.dll",
+                                            "C:\\WINDOWS\\SYSTEM32\\WindowsCodecs.dll",
+                                            "C:\\WINDOWS\\System32\\MSCTF.dll",
+                                            "C:\\WINDOWS\\SYSTEM32\\windows.storage.dll",
+                                            "C:\\WINDOWS\\System32\\SHCORE.dll",
+                                            "C:\\WINDOWS\\SYSTEM32\\kernel.appcore.dll",
+                                            "C:\\WINDOWS\\System32\\clbcatq.dll",
+                                            "C:\\WINDOWS\\system32\\dataexchange.dll",
+                                            "C:\\WINDOWS\\system32\\twinapi.appcore.dll",
+                                            "C:\\WINDOWS\\SYSTEM32\\textinputframework.dll",
+                                            "C:\\WINDOWS\\SYSTEM32\\CoreMessaging.dll",
+                                            "C:\\WINDOWS\\SYSTEM32\\CoreUIComponents.dll",
+                                            "C:\\WINDOWS\\SYSTEM32\\wintypes.dll",
+                                            "C:\\WINDOWS\\SYSTEM32\\CRYPTBASE.DLL",
+                                            "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\157.0.4341.46\\EBWebView\\x64\\EmbeddedBrowserWebView.dll",
+                                            "C:\\WINDOWS\\SYSTEM32\\VERSION.dll",
+                                            "C:\\WINDOWS\\SYSTEM32\\PROPSYS.dll",
+                                            "C:\\WINDOWS\\system32\\edputil.dll",
+                                            "C:\\WINDOWS\\SYSTEM32\\bcrypt.dll",
+                                            "C:\\Windows\\System32\\twinapi.dll"
+                                        ],
+                  "janela_ms_exe1":  554,
+                  "janela_ms_exe2":  524,
+                  "tempo_desinstalar_limpa":  5,
+                  "tempo_instalar_311":  6,
+                  "janela_ms_311_projeto":  564,
+                  "tempo_instalar_atualizacao":  5,
+                  "tempo_desinstalar_final":  4,
+                  "estadoFinal":  {
+                                      "instalados":  [
+                                                         " "
+                                                     ],
+                                      "atalhos":  [
+
+                                                  ],
+                                      "assoc":  {
+                                                    "agtncad":  "Projeto AGTN Industrial CAD",
+                                                    "dxf":  "",
+                                                    "dwg":  "",
+                                                    "dxfUserChoice":  null,
+                                                    "dwgUserChoice":  null,
+                                                    "prefAGTN":  true
+                                                }
+                                  }
+              },
+    "fim":  "2026-11-14T21:25:36"
+}

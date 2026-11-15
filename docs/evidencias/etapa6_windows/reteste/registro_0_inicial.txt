@@ -1,0 +1,33 @@
+### HKCU\Software\Classes\.agtncad
+
+HKEY_CURRENT_USER\Software\Classes\.agtncad
+    Projeto AGTN Industrial CAD_backup    REG_SZ    Projeto AGTN Industrial CAD
+    (padrão)    REG_SZ    Projeto AGTN Industrial CAD
+
+### HKCU\Software\Classes\.dxf
+
+HKEY_CURRENT_USER\Software\Classes\.dxf
+    AGTNCAD.DXF_backup    REG_SZ    
+    (padrão)    REG_SZ    
+
+HKEY_CURRENT_USER\Software\Classes\.dxf\OpenWithProgids
+
+### HKCU\Software\Classes\.dwg
+
+HKEY_CURRENT_USER\Software\Classes\.dwg
+    AGTNCAD.DWG_backup    REG_SZ    
+    (padrão)    REG_SZ    
+
+HKEY_CURRENT_USER\Software\Classes\.dwg\OpenWithProgids
+
+### HKCU\Software\Classes\Projeto AGTN Industrial CAD
+ERRO: O sistema não pôde localizar a chave do Registro ou valor especificado.
+### HKCU\Software\Classes\AGTNCAD.DXF
+ERRO: O sistema não pôde localizar a chave do Registro ou valor especificado.
+### HKCU\Software\Classes\AGTNCAD.DWG
+ERRO: O sistema não pôde localizar a chave do Registro ou valor especificado.
+### HKCU\Software\AGTN
+
+HKEY_CURRENT_USER\Software\AGTN\AGTN Industrial CAD
+    (padrão)    REG_SZ    C:\Users\Luiza\AppData\Local\AGTN Industrial CAD
+

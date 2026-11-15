@@ -1,0 +1,80 @@
+### HKCU\Software\Classes\.agtncad
+
+HKEY_CURRENT_USER\Software\Classes\.agtncad
+    Projeto AGTN Industrial CAD_backup    REG_SZ    Projeto AGTN Industrial CAD
+    (padrão)    REG_SZ    Projeto AGTN Industrial CAD
+
+### HKCU\Software\Classes\.dxf
+
+HKEY_CURRENT_USER\Software\Classes\.dxf
+    AGTNCAD.DXF_backup    REG_SZ    
+    (padrão)    REG_SZ    
+
+HKEY_CURRENT_USER\Software\Classes\.dxf\OpenWithProgids
+    AGTNCAD.DXF    REG_SZ    
+
+### HKCU\Software\Classes\.dwg
+
+HKEY_CURRENT_USER\Software\Classes\.dwg
+    AGTNCAD.DWG_backup    REG_SZ    
+    (padrão)    REG_SZ    
+
+HKEY_CURRENT_USER\Software\Classes\.dwg\OpenWithProgids
+    AGTNCAD.DWG    REG_SZ    
+
+### HKCU\Software\Classes\Projeto AGTN Industrial CAD
+
+HKEY_CURRENT_USER\Software\Classes\Projeto AGTN Industrial CAD
+    (padrão)    REG_SZ    Projeto AGTN Industrial CAD
+
+HKEY_CURRENT_USER\Software\Classes\Projeto AGTN Industrial CAD\DefaultIcon
+    (padrão)    REG_SZ    "C:\Users\Luiza\AppData\Local\AGTN Industrial CAD\agtn-cad.exe",0
+
+HKEY_CURRENT_USER\Software\Classes\Projeto AGTN Industrial CAD\shell
+    (padrão)    REG_SZ    open
+
+HKEY_CURRENT_USER\Software\Classes\Projeto AGTN Industrial CAD\shell\open
+    (padrão)    REG_SZ    Open with AGTN Industrial CAD
+
+HKEY_CURRENT_USER\Software\Classes\Projeto AGTN Industrial CAD\shell\open\command
+    (padrão)    REG_SZ    "C:\Users\Luiza\AppData\Local\AGTN Industrial CAD\agtn-cad.exe" "%1"
+
+### HKCU\Software\Classes\AGTNCAD.DXF
+
+HKEY_CURRENT_USER\Software\Classes\AGTNCAD.DXF
+    (padrão)    REG_SZ    Desenho DXF
+
+HKEY_CURRENT_USER\Software\Classes\AGTNCAD.DXF\DefaultIcon
+    (padrão)    REG_SZ    "C:\Users\Luiza\AppData\Local\AGTN Industrial CAD\agtn-cad.exe",0
+
+HKEY_CURRENT_USER\Software\Classes\AGTNCAD.DXF\shell
+    (padrão)    REG_SZ    open
+
+HKEY_CURRENT_USER\Software\Classes\AGTNCAD.DXF\shell\open
+    (padrão)    REG_SZ    Open with AGTN Industrial CAD
+
+HKEY_CURRENT_USER\Software\Classes\AGTNCAD.DXF\shell\open\command
+    (padrão)    REG_SZ    "C:\Users\Luiza\AppData\Local\AGTN Industrial CAD\agtn-cad.exe" "%1"
+
+### HKCU\Software\Classes\AGTNCAD.DWG
+
+HKEY_CURRENT_USER\Software\Classes\AGTNCAD.DWG
+    (padrão)    REG_SZ    Desenho DWG (AutoCAD)
+
+HKEY_CURRENT_USER\Software\Classes\AGTNCAD.DWG\DefaultIcon
+    (padrão)    REG_SZ    "C:\Users\Luiza\AppData\Local\AGTN Industrial CAD\agtn-cad.exe",0
+
+HKEY_CURRENT_USER\Software\Classes\AGTNCAD.DWG\shell
+    (padrão)    REG_SZ    open
+
+HKEY_CURRENT_USER\Software\Classes\AGTNCAD.DWG\shell\open
+    (padrão)    REG_SZ    Open with AGTN Industrial CAD
+
+HKEY_CURRENT_USER\Software\Classes\AGTNCAD.DWG\shell\open\command
+    (padrão)    REG_SZ    "C:\Users\Luiza\AppData\Local\AGTN Industrial CAD\agtn-cad.exe" "%1"
+
+### HKCU\Software\AGTN
+
+HKEY_CURRENT_USER\Software\AGTN\AGTN Industrial CAD
+    (padrão)    REG_SZ    C:\Users\Luiza\AppData\Local\AGTN Industrial CAD
+
