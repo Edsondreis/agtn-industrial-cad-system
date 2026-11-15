@@ -18,7 +18,7 @@ const ps1 = walk(join(ROOT, "scripts/windows")).filter((f) => f.endsWith(".ps1")
 
 describe("scripts de homologação do Windows", () => {
   it("existem os três scripts", () => {
-    expect(ps1.map((f) => f.slice(ROOT.length)).sort()).toEqual(["scripts/windows/homologacao.ps1", "scripts/windows/smoke/webview2_smoke.ps1", "scripts/windows/validar_instalado.ps1"]);
+    expect(ps1.map((f) => f.slice(ROOT.length).replace(/\\/g, "/")).sort()).toEqual(["scripts/windows/homologacao.ps1", "scripts/windows/smoke/webview2_smoke.ps1", "scripts/windows/validar_instalado.ps1"]);
   });
   for (const f of ps1)
     it(`${f.slice(ROOT.length)}: UTF-8 com BOM (PowerShell 5.1 não lê acento/— sem BOM)`, () => {
