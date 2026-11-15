@@ -3,7 +3,7 @@
  * Worker do motor 3D: todo cálculo B-Rep (OCCT/WASM) acontece aqui, fora da thread da interface,
  * para a navegação do viewport nunca travar durante uma regeneração.
  */
-import { BodyCache, type Model3D, modelToStepTree, partOf, worldMatrix } from "@agtn/model3d";
+import { BodyCache, type Model3D, modelToStepTree, partOf, scanStep, worldMatrix } from "@agtn/model3d";
 import { type SheetState, createSheetBackend, edgeFromFaces } from "@agtn/sheet3d";
 import { type Loop2, flatPattern, genericOpReason, sheetMath as SM } from "@agtn/sheetgraph";
 import { OcctSolidKernel, PartEvaluator, type PartResult, SolidError, type SolidRef, invertRigid } from "@agtn/solid";
@@ -262,6 +262,25 @@ const api: Omit<EngineApi, "init"> = {
   },
   importStep({ text }) {
     return K().k.importStepTree(text);
+  },
+  openStep({ text }) {
+    const scan = scanStep(text);
+    if (!scan.valid) throw new SolidError("IO", "O arquivo não é um STEP válido (cabeçalho ISO-10303-21 ausente).");
+    return { scan, nodes: K().k.importStepTree(text) };
+  },
+  checkBodies({ ids }) {
+    const { k, c } = K();
+    const out: Record<string, boolean> = {};
+    for (const id of ids) {
+      const r = c.get(id);
+      if (r === undefined) continue;
+      try {
+        out[id] = k.isValid(r);
+      } catch {
+        out[id] = false;
+      }
+    }
+    return out;
   },
   exportStep({ model, ids }) {
     const { k } = K();

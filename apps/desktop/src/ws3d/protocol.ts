@@ -1,4 +1,4 @@
-import type { Model3D, NodeId } from "@agtn/model3d";
+import type { Model3D, NodeId, StepScan } from "@agtn/model3d";
 import type { FlatPattern, SheetMat } from "@agtn/sheetgraph";
 import type { EdgeRef, FaceRef, Feature, FeatureStatus, Frame, MassProps, Measurement, SheetEdgeRef, StepNode, TopoInfo, TopoKind } from "@agtn/solid";
 
@@ -94,6 +94,10 @@ export interface EngineApi {
   /** sólido PLANIFICADO (contorno × T, mesmo grafo) no lugar da base, com as linhas de dobra (XYZ, pares) */
   sheetFlat(a: { body: NodeId; model?: Model3D }): { readonly geom: BodyGeom; readonly bendLines: Float32Array; readonly regionLines: Float32Array };
   importStep(a: { text: string }): StepNode[];
+  /** FASE 5 — abrir STEP como documento: cabeçalho/unidades (leitura própria) + árvore do OCCT, tudo no worker */
+  openStep(a: { text: string }): { readonly scan: StepScan; readonly nodes: StepNode[] };
+  /** verificador de forma do OCCT (BRepCheck) por corpo exibido: false = geometria inválida */
+  checkBodies(a: { ids: NodeId[] }): Record<NodeId, boolean>;
   exportStep(a: { model: Model3D; ids?: NodeId[] }): string;
   exportStl(a: { ids: NodeId[] }): Uint8Array;
   stats(a: Record<string, never>): EngineStats;

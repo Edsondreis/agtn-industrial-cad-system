@@ -21,10 +21,11 @@ const FILTERS: Record<FileKind, { name: string; extensions: string[] }[]> = {
     { name: "DXF", extensions: ["dxf"] },
   ],
   drawing: [
-    { name: "Desenhos (AGTN CAD, DWG, DXF)", extensions: ["agtncad", "dwg", "dxf"] },
+    { name: "Desenhos e modelos (AGTN CAD, DWG, DXF, STEP)", extensions: ["agtncad", "dwg", "dxf", "step", "stp"] },
     { name: "Projeto AGTN CAD", extensions: ["agtncad"] },
     { name: "DWG", extensions: ["dwg"] },
     { name: "DXF", extensions: ["dxf"] },
+    { name: "STEP (somente visualização)", extensions: ["step", "stp"] },
   ],
 };
 
@@ -332,4 +333,4 @@ export function setDropTarget(fn: ((paths: string[]) => void) | null): void {
 export const currentDropTarget = () => dropTarget;
 
 export const isCadPath = (p: string) => /\.(dwg|dxf)$/i.test(p);
-export const isOpenablePath = (p: string) => /\.(dwg|dxf|agtncad)$/i.test(p);
+export const isOpenablePath = (p: string) => /\.(dwg|dxf|agtncad|step|stp)$/i.test(p);

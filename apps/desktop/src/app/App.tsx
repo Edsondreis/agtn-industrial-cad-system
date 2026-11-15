@@ -11,6 +11,7 @@ import { toast } from "../ui/toast";
 import { ConvertDialog, DefaultAppButtons } from "../ui/CadConvert";
 // módulos pesados (cálculo de chapas, fontes, booleanas) carregados sob demanda: abertura mais rápida
 const SheetMetalWorkspace = lazy(() => import("../sheetmetal/SheetMetalWorkspace").then((m) => ({ default: m.SheetMetalWorkspace })));
+const StepViewer = lazy(() => import("../stepview/StepViewer").then((m) => ({ default: m.StepViewer })));
 const Workspace3D = lazy(() => import("../ws3d/Workspace3D").then((m) => ({ default: m.Workspace3D })));
 const PartsWorkspace = lazy(() => import("../parts/PartsWorkspace").then((m) => ({ default: m.PartsWorkspace })));
 const LaserTextDialog = lazy(() => import("../lasertext/LaserTextDialog").then((m) => ({ default: m.LaserTextDialog })));
@@ -35,6 +36,7 @@ import { PropertiesPanel } from "../ui/PropertiesPanel";
 import { StatusBar } from "../ui/StatusBar";
 import { FileActions, PRODUCT } from "./files";
 import { StartCenter, type StartTarget } from "./StartCenter";
+import type { StepFile } from "../stepview/StepViewer";
 import { recents } from "./recents";
 import { type AppPrefs, CAD_VERSIONS, type CadVersion, loadPrefs, savePrefs } from "./prefs";
 import { Toasts } from "../ui/toast";
@@ -75,7 +77,34 @@ export function App() {
   files.dxfVersion = prefs.dxfVersion;
   const [start, setStart] = useState<boolean>(() => prefs.showStartCenter);
   const [leaving, setLeaving] = useState(false);
+  /* FASE 5 — documento STEP aberto (somente leitura, motor 3D próprio; liberado ao fechar) */
+  const [stepFile, setStepFile] = useState<StepFile | null>(null);
+  /** o último "abrir" foi um STEP: quem chama depois com "desenho" (Start Center, soltar arquivo) vai para a aba STEP */
+  const stepJust = useRef(false);
+  files.onStep = (f) => {
+    stepJust.current = true;
+    // vale só para a continuação imediata de quem pediu a abertura (microtarefas); depois, "desenho" é desenho
+    window.setTimeout(() => (stepJust.current = false), 0);
+    setStepFile(f);
+    setWs("step");
+    setStart(false);
+  };
+  // gancho de teste (FASE 5): o desenho 2D fica intacto ao abrir/fechar STEP — só com a flag de teste
+  useEffect(() => {
+    if (import.meta.env.DEV || localStorage.getItem("agtn.e2e") === "1")
+      (window as unknown as { __agtn2d?: unknown }).__agtn2d = { size: () => ctl.doc.size, dirty: () => ctl.doc.dirty, file: () => files.file };
+  }, [ctl, files]);
+  const closeStep = useCallback(() => {
+    setStepFile(null);
+    setWs("desenho");
+  }, []);
   const enterCad = useCallback((target: StartTarget) => {
+    if (target === "desenho" && stepJust.current) {
+      stepJust.current = false;
+      setStart(false);
+      setWs("step");
+      return;
+    }
     setWs(target === "lasertext" ? "desenho" : target);
     if (target === "lasertext") setDialog("lasertext");
     setLeaving(true);
@@ -144,12 +173,12 @@ export function App() {
     if (e.files.length) {
       // navegador: abre o primeiro arquivo solto
       const f = e.files.find((x) => isOpenablePath(x.name));
-      if (!f) return toast("Arraste um arquivo .dwg, .dxf ou .agtncad.", "warn");
+      if (!f) return toast("Arraste um arquivo .dwg, .dxf, .agtncad ou .step.", "warn");
       void files.openDropped(f).then((ok) => ok && start && enterCad("desenho"));
       return;
     }
     const ok = e.paths.filter(isOpenablePath);
-    if (!ok.length) return toast("Arraste um arquivo .dwg, .dxf ou .agtncad.", "warn");
+    if (!ok.length) return toast("Arraste um arquivo .dwg, .dxf, .agtncad ou .step.", "warn");
     const cad = ok.filter(isCadPath);
     if (ok.length > 1 && cad.length > 1) {
       // vários desenhos: abre o conversor já com a lista
@@ -161,7 +190,8 @@ export function App() {
     void files.openPath(ok[0], true).then((opened) => {
       if (opened) {
         setStart(false);
-        setWs("desenho");
+        setWs(stepJust.current ? "step" : "desenho");
+        stepJust.current = false;
       }
     });
   };
@@ -450,8 +480,8 @@ export function App() {
   ];
 
   return (
-    <div className={`app${ws === "modelo3d" ? " app-3d" : ""}`}>
-      <TopBar ctl={ctl} files={files} ws={ws} setWs={setWs} onHome={goHome} />
+    <div className={`app${ws === "modelo3d" || ws === "step" ? " app-3d" : ""}`}>
+      <TopBar ctl={ctl} files={files} ws={ws} setWs={setWs} onHome={goHome} stepName={stepFile?.name ?? null} />
       <MenuBar menus={menus} />
       {ws === "desenho" ? (
         <div className="work">
@@ -481,6 +511,10 @@ export function App() {
         <Suspense fallback={<Loading label="Carregando planificação…" />}>
           <SheetMetalWorkspace ctl={ctl} onInsert={insertGenerated} onExportDxf={exportGenerated} />
         </Suspense>
+      ) : ws === "step" && stepFile ? (
+        <Suspense fallback={<Loading label="Carregando visualizador STEP…" />}>
+          <StepViewer key={`${stepFile.path ?? ""}|${stepFile.name}|${stepFile.bytes.length}`} file={stepFile} onClose={closeStep} />
+        </Suspense>
       ) : ws === "modelo3d" ? (
         <Suspense fallback={<Loading label="Carregando AGTN 3D…" />}>
           <Workspace3D ctl={ctl} onInsert={insertGenerated} />
@@ -490,8 +524,8 @@ export function App() {
           <PartsWorkspace ctl={ctl} onInsert={insertGenerated} onExportDxf={exportGenerated} />
         </Suspense>
       )}
-      {ws === "modelo3d" ? null : ws === "desenho" ? <CommandLine ref={cmd} ctl={ctl} showHistory={panels.history} /> : <div />}
-      {ws === "modelo3d" ? null : <StatusBar ctl={ctl} />}
+      {ws === "modelo3d" || ws === "step" ? null : ws === "desenho" ? <CommandLine ref={cmd} ctl={ctl} showHistory={panels.history} /> : <div />}
+      {ws === "modelo3d" || ws === "step" ? null : <StatusBar ctl={ctl} />}
 
       {dialog === "about" && <AboutDialog onClose={() => setDialog(null)} />}
       {dialog === "lasertext" && (

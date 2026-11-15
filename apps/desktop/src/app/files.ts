@@ -6,6 +6,7 @@ import { type DxfImportReport, type DxfVersion, dxfBytes, readDxf, writeDxf } fr
 import { type Entity, newId } from "@agtn/geometry";
 import { type PlotPage, plotToPdf, plotToSvg, scaleLabel } from "@agtn/plot";
 import type { CadController } from "../cad/controller";
+import type { StepFile } from "../stepview/StepViewer";
 import {
   baseName,
   clearRecovery,
@@ -31,6 +32,9 @@ export interface FileState {
   name: string;
   path: string | null;
 }
+
+/** .step/.stp (abre no visualizador STEP, não no desenho) */
+export const isStepName = (n: string) => /\.(step|stp)$/i.test(n);
 
 export class FileActions {
   file: FileState = { name: "Sem título", path: null };
@@ -90,14 +94,36 @@ export class FileActions {
   }
 
   /** Abre projeto .agtncad, DWG ou DXF (DWG/DXF abrem como novo desenho). Retorna true se abriu. */
+  /** FASE 5: STEP abre como documento próprio, só de leitura (o desenho/projeto atual não é tocado). */
+  onStep: ((f: StepFile) => void) | null = null;
+  private openStep(f: StepFile): boolean {
+    if (!this.onStep) {
+      toast("Visualizador STEP indisponível.", "error");
+      return false;
+    }
+    this.onStep(f);
+    if (f.path) recents.touch(f.path);
+    return true;
+  }
+
   async open(): Promise<boolean> {
-    if (!(await this.confirmDiscard())) return false;
+    // o STEP não descarta o desenho atual: escolhe primeiro, confirma o descarte só para desenhos
     const f = await pickAndRead("drawing");
     if (!f) return false;
+    if (isStepName(f.name)) return this.openStep({ name: f.name, path: f.path, bytes: f.bytes });
+    if (!(await this.confirmDiscard())) return false;
     return this.withBusy(`Abrindo ${f.name}…`, () => this.loadBytes(f.name, f.path, f.bytes));
   }
 
   async openPath(path: string, confirm = false): Promise<boolean> {
+    if (isStepName(path)) {
+      try {
+        return this.openStep({ name: baseName(path), path, bytes: await readPath(path) });
+      } catch (e) {
+        toast(String(e), "error");
+        return false;
+      }
+    }
     if (confirm && !(await this.confirmDiscard())) return false;
     try {
       return await this.withBusy(`Abrindo ${baseName(path)}…`, async () =>
@@ -123,6 +149,7 @@ export class FileActions {
 
   /** Abre um arquivo solto na janela no navegador (sem caminho; DWG só no desktop). */
   async openDropped(file: File): Promise<boolean> {
+    if (isStepName(file.name)) return this.openStep({ name: file.name, path: null, bytes: new Uint8Array(await file.arrayBuffer()) });
     if (!(await this.confirmDiscard())) return false;
     return this.withBusy(`Abrindo ${file.name}…`, async () => this.loadBytes(file.name, null, new Uint8Array(await file.arrayBuffer())));
   }
@@ -146,7 +173,7 @@ export class FileActions {
         // DXF/DWG aberto vira desenho sem caminho nativo (salvar pede .agtncad)
         const fmt = dwg ? "DWG" : "DXF";
         this.setFile({ name: name.replace(/\.(dxf|dwg)$/i, ""), path: null });
-        this.ctl.message(`${fmt} aberto: ${r.entities.length} objeto(s). ${summarizeUnsupported(r.report)}`);
+        this.ctl.message(`${fmt} aberto: ${r.entities.length} objeto(s). ${unitNote(r.report)} ${summarizeUnsupported(r.report)}`, r.report.unitSource === "INSUNITS" ? "info" : "warn");
         toast(`${fmt} aberto: ${r.entities.length} objeto(s).`, Object.keys(r.report.unsupported).length ? "warn" : "ok");
         if (path) recents.touch(path);
         this.ctl.actions.get("__DXF_REPORT__")?.();
@@ -210,7 +237,7 @@ export class FileActions {
       changes.push(...doc.addChanges(ents));
       doc.commit(`Importar ${fmt} (${ents.length} objetos)`, changes);
       this.lastDxfReport = r.report;
-      this.ctl.message(`${fmt} importado: ${ents.length} objeto(s). ${summarizeUnsupported(r.report)}`);
+      this.ctl.message(`${fmt} importado: ${ents.length} objeto(s). ${unitNote(r.report)} ${summarizeUnsupported(r.report)}`, r.report.unitSource === "INSUNITS" ? "info" : "warn");
       toast(`${fmt} importado: ${ents.length} objeto(s).`, Object.keys(r.report.unsupported).length ? "warn" : "ok");
       this.ctl.actions.get("__DXF_REPORT__")?.();
       this.ctl.zoomExtents();
@@ -310,6 +337,11 @@ export class FileActions {
       return false;
     }
   }
+}
+
+/** FASE 5: unidade sempre explícita na mensagem de abertura/importação (nunca escala em silêncio). */
+export function unitNote(r: DxfImportReport): string {
+  return r.unitSource === "INSUNITS" ? (r.unitFactor === 1 ? "Unidade do arquivo: mm." : `Unidade do arquivo convertida para mm (×${r.unitFactor}).`) : "Unidade não declarada no arquivo: interpretado como mm, sem escala.";
 }
 
 export function summarizeUnsupported(r: DxfImportReport): string {

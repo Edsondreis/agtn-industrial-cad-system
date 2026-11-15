@@ -362,6 +362,7 @@ h4 { font-weight: 600; }
 .recent .ty.agtn { color: var(--accent-hi); border-color: var(--accent-line); }
 .recent .ty.dxf, .conv-row .ty.dxf { color: var(--m-ext); border-color: color-mix(in srgb, var(--m-ext) 50%, transparent); }
 .recent .ty.dwg, .conv-row .ty.dwg { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 50%, transparent); }
+.recent .ty.step { color: var(--accent-hi); border-color: color-mix(in srgb, var(--accent-hi) 50%, transparent); }
 .recent .nm b { display: block; color: var(--text-hi); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .recent .nm span { display: block; margin-top: 1px; color: var(--text-faint); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .recent .dt { color: var(--text-dim); font-size: 11px; white-space: nowrap; font-family: var(--mono); }

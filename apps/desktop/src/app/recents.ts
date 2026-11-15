@@ -5,7 +5,7 @@
 export interface RecentItem {
   path: string;
   name: string;
-  kind: "agtncad" | "dxf" | "dwg";
+  kind: "agtncad" | "dxf" | "dwg" | "step";
   lastOpened: string;
 }
 
@@ -18,7 +18,7 @@ export const RECENTS_KEY = "agtncad.recents.v1";
 export const MAX_RECENTS = 15;
 
 const baseName = (p: string) => p.split(/[\\/]/).pop() ?? p;
-const kindOf = (p: string): RecentItem["kind"] => (/\.dxf$/i.test(p) ? "dxf" : /\.dwg$/i.test(p) ? "dwg" : "agtncad");
+const kindOf = (p: string): RecentItem["kind"] => (/\.dxf$/i.test(p) ? "dxf" : /\.dwg$/i.test(p) ? "dwg" : /\.(step|stp)$/i.test(p) ? "step" : "agtncad");
 export const dirName = (p: string) => {
   const i = Math.max(p.lastIndexOf("/"), p.lastIndexOf("\\"));
   return i > 0 ? p.slice(0, i) : p;
@@ -59,7 +59,7 @@ export class RecentStore {
     if (!path) return;
     const key = path.toLowerCase();
     const rest = this.items.filter((i) => i.path.toLowerCase() !== key);
-    const name = baseName(path).replace(/\.(agtncad|dxf|dwg)$/i, "");
+    const name = baseName(path).replace(/\.(agtncad|dxf|dwg|step|stp)$/i, "");
     const item: RecentItem = { path, name, kind: kindOf(path), lastOpened: when.toISOString() };
     this.items = [item, ...rest].slice(0, MAX_RECENTS);
     this.save();

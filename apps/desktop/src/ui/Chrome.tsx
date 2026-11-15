@@ -4,7 +4,7 @@ import type { FileActions } from "../app/files";
 import { Icon } from "./Icons";
 import { useCtl } from "./hooks";
 
-export type Workspace = "desenho" | "planificacao" | "pecas" | "modelo3d";
+export type Workspace = "desenho" | "planificacao" | "pecas" | "modelo3d" | "step";
 
 export interface MenuItem {
   label?: string;
@@ -22,12 +22,15 @@ export function TopBar({
   ws,
   setWs,
   onHome,
+  stepName = null,
 }: {
   ctl: CadController;
   files: FileActions;
   ws: Workspace;
   setWs: (w: Workspace) => void;
   onHome: () => void;
+  /** documento STEP aberto (aba aparece só enquanto houver um) */
+  stepName?: string | null;
 }) {
   useCtl(ctl, "state");
   const [, force] = useState(0);
@@ -45,7 +48,7 @@ export function TopBar({
       <button className="ibtn" title="Novo desenho (Ctrl+N)" onClick={() => files.newDrawing()}>
         <Icon name="new" />
       </button>
-      <button className="ibtn" title="Abrir projeto ou DXF (Ctrl+O)" onClick={() => files.open()}>
+      <button className="ibtn" title="Abrir projeto, DXF/DWG ou STEP (Ctrl+O)" onClick={() => files.open()}>
         <Icon name="open" />
       </button>
       <button className="ibtn" title="Salvar (Ctrl+S)" onClick={() => files.save()}>
@@ -93,6 +96,11 @@ export function TopBar({
         <button className={`ws-tab${ws === "modelo3d" ? " on" : ""}`} onClick={() => setWs("modelo3d")} title="AGTN 3D — modelagem de sólidos, montagens e STEP">
           3D
         </button>
+        {stepName && (
+          <button className={`ws-tab${ws === "step" ? " on" : ""}`} onClick={() => setWs("step")} title={`Documento STEP aberto (somente leitura): ${stepName}`} data-testid="ws-step">
+            STEP
+          </button>
+        )}
       </div>
     </div>
   );
