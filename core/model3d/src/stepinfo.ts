@@ -375,9 +375,13 @@ export function scanStep(text: string): StepScan {
 export const DISPLAY_UNITS = { mm: 1, cm: 10, m: 1000, in: 25.4 } as const;
 export type DisplayUnit = keyof typeof DISPLAY_UNITS;
 
-/** Formata um comprimento (mm) na unidade de exibição; `pow` 2 = área, 3 = volume. */
+/** Formata um comprimento (mm) na unidade de exibição; `pow` 2 = área, 3 = volume. Agrupa milhares (pt-BR). */
 export function fmtLen(mm: number, u: DisplayUnit, pow: 1 | 2 | 3 = 1, digits = 3): string {
   const v = mm / DISPLAY_UNITS[u] ** pow;
-  const s = Math.abs(v) >= 1e6 || (Math.abs(v) < 1e-3 && v !== 0) ? v.toExponential(digits) : v.toFixed(digits);
-  return `${s.replace(".", ",")} ${u}${pow === 1 ? "" : pow === 2 ? "²" : "³"}`;
+  const sfx = `${u}${pow === 1 ? "" : pow === 2 ? "²" : "³"}`;
+  if (!Number.isFinite(v)) return `— ${sfx}`;
+  if (Math.abs(v) >= 1e15 || (Math.abs(v) < 10 ** -digits && v !== 0)) return `${v.toExponential(digits).replace(".", ",")} ${sfx}`;
+  const [i, f] = Math.abs(v).toFixed(digits).split(".");
+  const g = i.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${v < 0 ? "-" : ""}${g}${f ? `,${f}` : ""} ${sfx}`;
 }

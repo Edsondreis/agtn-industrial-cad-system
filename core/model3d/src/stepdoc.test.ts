@@ -79,6 +79,9 @@ describe("STEP — unidades declaradas pelo arquivo", () => {
     expect(sum.bbox!.max.y - sum.bbox!.min.y).toBeCloseTo(25.4, 3);
     expect(sum.bbox!.max.z - sum.bbox!.min.z).toBeCloseTo(12.7, 3);
     expect(fmtLen(50.8, "in")).toBe("2,000 in");
+    expect(fmtLen(11739729.6, "mm", 3)).toBe("11.739.729,600 mm³");
+    expect(fmtLen(-1234.5, "mm")).toBe("-1.234,500 mm");
+    expect(fmtLen(5000, "cm", 2)).toBe("50,000 cm²");
   });
   it("milímetro, esquema, origem", () => {
     const s = scanStep(read("box_100x50x20.step"));
