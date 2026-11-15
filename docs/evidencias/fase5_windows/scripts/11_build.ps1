@@ -22,9 +22,9 @@ function Step($name, $dir, $cmd) {
 Log ("inicio; node " + (node --version) + "; " + (rustc --version) + "; " + (git --version) + "; C livre GB=$([math]::Round((Get-PSDrive C).Free/1GB,1)); D livre GB=$([math]::Round((Get-PSDrive D).Free/1GB,1))")
 git -C $S fetch $B feature/agtn-3d-ia 2>&1 | ForEach-Object { Log "  fetch: $_" }
 git -C $S merge --ff-only FETCH_HEAD 2>&1 | ForEach-Object { Log "  ff: $_" }
-$h = git -C $S rev-parse HEAD; $res.commit = $h
-Log "HEAD $h (esperado $Esperado); alteracoes locais: $((git -C $S status --porcelain | Measure-Object).Count)"
-if ($h -ne $Esperado) { Log "ERRO: commit divergente, parando"; Save; Set-Content "$L\11_FIM.txt" "divergente"; exit 3 }
+$head = git -C $S rev-parse HEAD; $res.commit = $head
+Log "HEAD $head (esperado $Esperado); alteracoes locais: $((git -C $S status --porcelain | Measure-Object).Count)"
+if ($head -ne $Esperado) { Log "ERRO: commit divergente, parando"; Save; Set-Content "$L\11_FIM.txt" "divergente"; exit 3 }
 $ver = (Get-Content "$S\apps\desktop\src-tauri\tauri.conf.json" -Raw | ConvertFrom-Json).version
 Log "versao tauri.conf.json: $ver"; if ($ver -ne $V) { Log "ERRO: versao $ver <> $V"; Save; Set-Content "$L\11_FIM.txt" "versao"; exit 4 }
 Step "npm_ci" $S "npm ci --no-audit --no-fund" | Out-Null
@@ -46,7 +46,7 @@ Copy-Item -LiteralPath $src.FullName -Destination $dst
 $vi = (Get-Item -LiteralPath $dst).VersionInfo
 $lin = @()
 foreach ($f in @($dst, "$S\apps\desktop\src-tauri\target\release\agtn-cad.exe", "$S\node_modules\occt-wasm\dist\occt-wasm.wasm")) { $lin += "{0}  {1}  {2} bytes" -f (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash, $f, (Get-Item -LiteralPath $f).Length }
-$lin += "versao produto: $($vi.ProductVersion); versao arquivo: $($vi.FileVersion); produto: $($vi.ProductName); commit: $h; data: $(Get-Date -Format s)"
+$lin += "versao produto: $($vi.ProductVersion); versao arquivo: $($vi.FileVersion); produto: $($vi.ProductName); commit: $head; data: $(Get-Date -Format s)"
 $lin | Set-Content "$H\SHA256SUMS_$V.txt" -Encoding UTF8
 $lin | ForEach-Object { Log "  $_" }
 $res.instalador = [ordered]@{ caminho = $dst; sha256 = (Get-FileHash -LiteralPath $dst -Algorithm SHA256).Hash; bytes = (Get-Item -LiteralPath $dst).Length; versaoProduto = $vi.ProductVersion }
