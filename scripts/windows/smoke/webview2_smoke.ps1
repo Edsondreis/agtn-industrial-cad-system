@@ -235,6 +235,12 @@ for ($rep = 1; $rep -le $Repeticoes; $rep++) {
       Cdp-Call "Log.enable" @{} | Out-Null
       Cdp-Call "Page.enable" @{} | Out-Null
       Cdp-Call "Target.setAutoAttach" @{ autoAttach = $true; waitForDebuggerOnStart = $false; flatten = $true } | Out-Null
+      # ETAPA 6: o /json/list já mostra a URL do app enquanto a página ainda está em about:blank com a navegação pendente;
+      # recarregar nesse instante recarrega o about:blank e cancela a abertura do app (visto no app nativo instalado).
+      # Espera a página do app de fato carregada antes de recarregar.
+      $carregou = $false
+      for ($i = 0; $i -lt 240 -and -not $carregou; $i++) { try { $carregou = [bool](Js-Eval "location.origin.indexOf('tauri') >= 0 && document.readyState === 'complete'" 5000) } catch { $carregou = $false }; if (-not $carregou) { Start-Sleep -Milliseconds 250 } }
+      if (-not $carregou) { throw "a página do app não carregou (continua em $(try { Js-Eval 'location.href' 5000 } catch { '?' }))" }
       # 2) recarrega com o ouvinte de CSP instalado desde o primeiro script (o arquivo da linha de comando reabre)
       Cdp-Call "Page.addScriptToEvaluateOnNewDocument" @{ source = $cspListener } | Out-Null
       $tr = Get-Date
