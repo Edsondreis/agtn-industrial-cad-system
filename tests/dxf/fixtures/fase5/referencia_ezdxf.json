@@ -1,0 +1,186 @@
+{
+ "cobertura_r12.dxf": {
+  "version": "AC1009",
+  "insunits": 0,
+  "counts": {
+   "LINE": 2,
+   "CIRCLE": 1,
+   "ARC": 1,
+   "POINT": 1,
+   "TEXT": 1,
+   "POLYLINE": 1,
+   "INSERT": 1,
+   "DIMENSION": 1
+  },
+  "layers": {
+   "0": 7,
+   "CORTE": 1,
+   "DOBRA": 3,
+   "TEXTO": 5,
+   "COTA": 2
+  },
+  "lines": [
+   [
+    -150.0,
+    -75.0,
+    250.5,
+    125.25,
+    "CORTE"
+   ],
+   [
+    10000000.0,
+    -10000000.0,
+    10000123.456,
+    -9999900.5,
+    "CORTE"
+   ]
+  ],
+  "circles": [
+   [
+    -40.0,
+    -40.0,
+    12.5,
+    "CORTE"
+   ]
+  ],
+  "arcs": [
+   [
+    60.0,
+    -20.0,
+    30.0,
+    15.0,
+    200.0
+   ]
+  ],
+  "points": [
+   [
+    -3.25,
+    -4.75
+   ]
+  ],
+  "texts": [
+   "PECA A-01 Ø12"
+  ],
+  "inserts": [
+   [
+    "FURO10",
+    300.0,
+    -200.0,
+    30.0,
+    2.0
+   ]
+  ]
+ },
+ "cobertura_r2000.dxf": {
+  "version": "AC1015",
+  "insunits": 4,
+  "counts": {
+   "LINE": 2,
+   "CIRCLE": 1,
+   "ARC": 1,
+   "POINT": 1,
+   "TEXT": 1,
+   "POLYLINE": 1,
+   "INSERT": 1,
+   "DIMENSION": 1,
+   "LWPOLYLINE": 1,
+   "ELLIPSE": 1,
+   "SPLINE": 1,
+   "MTEXT": 1,
+   "HATCH": 1,
+   "3DFACE": 1,
+   "RAY": 1,
+   "XLINE": 1
+  },
+  "layers": {
+   "0": 7,
+   "CORTE": 1,
+   "DOBRA": 3,
+   "TEXTO": 5,
+   "COTA": 2
+  },
+  "lines": [
+   [
+    -150.0,
+    -75.0,
+    250.5,
+    125.25,
+    "CORTE"
+   ],
+   [
+    10000000.0,
+    -10000000.0,
+    10000123.456,
+    -9999900.5,
+    "CORTE"
+   ]
+  ],
+  "circles": [
+   [
+    -40.0,
+    -40.0,
+    12.5,
+    "CORTE"
+   ]
+  ],
+  "arcs": [
+   [
+    60.0,
+    -20.0,
+    30.0,
+    15.0,
+    200.0
+   ]
+  ],
+  "points": [
+   [
+    -3.25,
+    -4.75
+   ]
+  ],
+  "texts": [
+   "PECA A-01 Ø12"
+  ],
+  "inserts": [
+   [
+    "FURO10",
+    300.0,
+    -200.0,
+    30.0,
+    2.0
+   ]
+  ]
+ },
+ "unidade_cm.dxf": {
+  "version": "AC1015",
+  "insunits": 5,
+  "counts": {
+   "LINE": 1,
+   "CIRCLE": 1
+  },
+  "layers": {
+   "0": 7
+  },
+  "lines": [
+   [
+    -1.0,
+    -2.0,
+    3.5,
+    4.25,
+    "0"
+   ]
+  ],
+  "circles": [
+   [
+    10.0,
+    10.0,
+    2.5,
+    "0"
+   ]
+  ],
+  "arcs": [],
+  "points": [],
+  "texts": [],
+  "inserts": []
+ }
+}
