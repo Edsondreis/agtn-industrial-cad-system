@@ -29,7 +29,11 @@ Mesmo conjunto homologado na ETAPA 6/FASE 5. As versões abaixo são as testadas
 rode a suíte inteira antes de confiar.
 
 1. **Git** 2.56+ (ou Git portátil) — `git clone https://github.com/Edsondreis/agtn-industrial-cad-system.git` e
-   `git checkout feature/agtn-3d-ia`. Com acesso ao GitHub no PC novo, **não precisa mais de git bundle**.
+   `git checkout feature/agtn-3d-ia`.
+   - **Atenção (16/11/2026):** os commits da sessão P-F5-01 + IA (de `85ae16c` até o topo da 3.2.0-3) foram feitos
+     numa sessão sem permissão de push. Eles foram entregues como `agtn-3.2.0-3.bundle`; aplique com
+     `git fetch <bundle> feature/agtn-3d-ia:sessao` + `git merge --ff-only sessao` e dê o push.
+   - Depois do push, o bundle não é mais necessário.
 2. **Node.js 22** (testado 22.23.5).
 3. **Visual Studio Build Tools 2022** (17.14, MSVC 14.44) com os componentes
    `Microsoft.VisualStudio.Component.VC.Tools.x86.x64` e `Microsoft.VisualStudio.Component.Windows11SDK.26100`
@@ -59,8 +63,8 @@ O instalador sai em `apps\desktop\src-tauri\target\release\bundle\nsis\AGTN Indu
 Ele usa o modo currentUser, sem UAC. O WASM do motor vai em `occt\occt-wasm.wasm`.
 
 **Testes de interface (Linux ou WSL, com Chrome e Playwright para Python):**
-- `tests/e2e/e2e_step.py`: STEP/DXF, 35 verificações;
-- `tests/e2e/step_smoke_chromium.py`: build de produção com a CSP real, 90 verificações;
+- `tests/e2e/e2e_step.py`: STEP/DXF, 40 verificações;
+- `tests/e2e/step_smoke_chromium.py`: build de produção com a CSP real, 114 verificações;
 - `tests/e2e/e2e3d.py` e `tests/e2e/e2e_sheet.py`;
 - `tests/e2e/e2e_ai.py`: painel do assistente com modelo roteirizado, sem rede, 20 verificações.
 
