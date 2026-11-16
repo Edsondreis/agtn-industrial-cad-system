@@ -71,9 +71,30 @@
  },
  "vessel_revolved.step": {
   "solids": 1,
+  "volume": 11739729.622605406,
+  "area": 4135203.6497592945,
+  "bbox": [
+   -1e-07,
+   -300.0000001,
+   -300.0000001,
+   1050.0000001,
+   300.0000001,
+   300.0000001
+  ],
+  "unidade": "mm",
+  "nota": "P-F5-01 corrigido (3.2.0-3): 2 laços normalizados; valores da referência independente do viewer"
+ },
+ "elipsoide_vertex_loop.step": {
+  "solids": 1,
+  "volume": 56548667.764616266,
+  "unidade": "mm",
+  "nota": "P-F5-01 (VERTEX_LOOP): meia cônica; fórmula fechada"
+ },
+ "vessel_inconsistente.step": {
+  "solids": 1,
   "invalid": 1,
   "unidade": "mm",
-  "nota": "OCCT 8 lê as calotas elípticas inválidas: deve SINALIZAR; volume/caixa da referência NÃO conferem"
+  "nota": "geometria incoerente proposital: BRepCheck aprova, verificação de arestas reprova; deve SINALIZAR e não mostrar volume"
  },
  "tank_assembly.step": {
   "solids": 4,

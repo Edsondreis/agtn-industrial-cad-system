@@ -183,8 +183,25 @@ async def main():
         await close_step(pg)
         r = await open_file(pg, REF + "vessel_revolved.step")
         banner = await pg.locator('[data-testid="step-invalid"]').count()
-        check("geometria inválida do motor é SINALIZADA (vessel_revolved)", r["phase"] == "pronto" and len(r["invalid"]) == 1 and banner == 1, f"inválidos {len(r['invalid'])}")
+        rep = await pg.evaluate("() => window.__agtnStep.repair")
+        grade = await pg.inner_text('[data-testid="step-grade"]')
+        ref_v = refs["vessel_revolved.step"]["volume"]
+        check("P-F5-01 corrigido: vessel_revolved válido, exato e sem aviso", r["phase"] == "pronto" and len(r["invalid"]) == 0 and banner == 0 and r["summary"]["grade"] == "exato" and "exato" in grade, f"inválidos {len(r['invalid'])} · {grade}")
+        check("P-F5-01: volume = referência independente (1e-6)", abs(r["summary"]["volume"] - ref_v) / ref_v < 1e-6, f"{r['summary']['volume']:.3f} × {ref_v:.3f}")
+        check("P-F5-01: correção registrada na tela (2 laços)", rep and rep["fixes"] == 2 and await pg.locator('[data-testid="step-repair"]').count() == 1, json.dumps(rep))
+        await pg.screenshot(path=f"{OUT}/05_p_f5_01_corrigido.png")
+        await close_step(pg)
+        r = await open_file(pg, "tests/step/p-f5-01/vessel_inconsistente.step")
+        banner = await pg.locator('[data-testid="step-invalid"]').count()
+        vol_ui = await pg.inner_text('[data-testid="step-volume"]')
+        faces_ui = await pg.inner_text('[data-testid="step-bad-faces"]') if await pg.locator('[data-testid="step-bad-faces"]').count() else ""
+        check("geometria incoerente (BRepCheck aprova) é SINALIZADA e o volume NÃO aparece como exato", r["phase"] == "pronto" and len(r["invalid"]) == 1 and banner == 1 and r["summary"]["grade"] == "invalido" and "não confiável" in vol_ui, vol_ui)
+        check("face afetada identificada (revolução, desvio)", "revolution" in faces_ui and "desvio" in faces_ui, faces_ui[:160])
         await pg.screenshot(path=f"{OUT}/05_invalido_sinalizado.png")
+        await close_step(pg)
+        r = await open_file(pg, "tests/step/p-f5-01/elipsoide_vertex_loop.step")
+        ref_e = 4 / 3 * 3.141592653589793 * 300 * 300 * 150
+        check("elipsoide VERTEX_LOOP: exato (meia cônica)", r["phase"] == "pronto" and r["summary"]["grade"] == "exato" and abs(r["summary"]["volume"] - ref_e) / ref_e < 1e-6, f"{r['summary']['volume']:.3f}")
         await close_step(pg)
 
         # ---------------------------------------------------------------- 5. inválidos

@@ -18,13 +18,15 @@ CSP = json.load(open(os.path.join(ROOT, "apps", "desktop", "src-tauri", "tauri.c
 JS = open(os.path.join(SMOKE, "step_smoke.js"), encoding="utf-8").read()
 REF = json.load(open(os.path.join(SMOKE, "referencias_step.json"), encoding="utf-8"))
 SRC = {f: os.path.join(ROOT, "tests", "step", "viewer_ref", f) for f in os.listdir(os.path.join(ROOT, "tests", "step", "viewer_ref"))}
+for f in os.listdir(os.path.join(ROOT, "tests", "step", "p-f5-01")):
+    SRC[f] = os.path.join(ROOT, "tests", "step", "p-f5-01", f)
 for f in ("grande_120_caixas.step", "grande_400_placas.step"):
     SRC[f] = os.path.join(ROOT, "tests", "output", "step", f)
 open(os.path.join(OUT, "nao_step.step"), "w").write("isto não é STEP\n")
 open(os.path.join(OUT, "vazio.stp"), "w").write("")
 SRC["nao_step.step"] = os.path.join(OUT, "nao_step.step")
 SRC["vazio.stp"] = os.path.join(OUT, "vazio.stp")
-FILES = sys.argv[1:] or ["box_100x50x20.step", "inch_block_2x1x0.5.step", "tank_assembly.step", "cone_sphere_torus.step", "vessel_revolved.step", "fusion_srr_assembly.step", "grande_400_placas.step", "nao_step.step", "vazio.stp"]
+FILES = sys.argv[1:] or ["box_100x50x20.step", "inch_block_2x1x0.5.step", "tank_assembly.step", "cone_sphere_torus.step", "vessel_revolved.step", "elipsoide_vertex_loop.step", "vessel_inconsistente.step", "fusion_srr_assembly.step", "grande_400_placas.step", "nao_step.step", "vazio.stp"]
 PORT = int(os.environ.get("CSP_PORT", "1478"))
 
 

@@ -19,8 +19,9 @@ param(
   [int]$Port = 9334,
   [string]$StepDir = "",
   [string]$BigDir = "",
+  [string]$PfDir = "",
   [string]$DxfDir = "",
-  [string[]]$Arquivos = @("box_100x50x20.step", "inch_block_2x1x0.5.step", "tank_assembly.step", "cone_sphere_torus.step", "vessel_revolved.step", "fusion_srr_assembly.step", "grande_120_caixas.step", "grande_400_placas.step", "nao_step.step", "vazio.stp", "cobertura_r12.dxf", "cobertura_r2000.dxf", "unidade_cm.dxf"),
+  [string[]]$Arquivos = @("box_100x50x20.step", "inch_block_2x1x0.5.step", "tank_assembly.step", "cone_sphere_torus.step", "vessel_revolved.step", "elipsoide_vertex_loop.step", "vessel_inconsistente.step", "fusion_srr_assembly.step", "grande_120_caixas.step", "grande_400_placas.step", "nao_step.step", "vazio.stp", "cobertura_r12.dxf", "cobertura_r2000.dxf", "unidade_cm.dxf"),
   [int]$TimeoutS = 600
 )
 $ErrorActionPreference = "Stop"
@@ -56,6 +57,7 @@ if (-not $Exe -or -not (Test-Path $Exe)) { Log "ERRO: app instalado não encontr
 $repo = Join-Path $here "..\..\.."
 if (-not $StepDir) { $StepDir = Join-Path $repo "tests\step\viewer_ref" }
 if (-not $BigDir) { $BigDir = Join-Path $repo "tests\output\step" }
+if (-not $PfDir) { $PfDir = Join-Path $repo "tests\step\p-f5-01" }
 if (-not $DxfDir) { $DxfDir = Join-Path $repo "tests\dxf\fixtures\fase5" }
 $js = [IO.File]::ReadAllText((Join-Path $here "step_smoke.js"), [Text.Encoding]::UTF8)
 $refAll = [IO.File]::ReadAllText((Join-Path $here "referencias_step.json"), [Text.Encoding]::UTF8) | ConvertFrom-Json
@@ -182,7 +184,7 @@ foreach ($f in $Arquivos) {
   $dst = Join-Path $pasta $f
   if (-not (Test-Path -LiteralPath $dst)) {
     $orig = $null
-    foreach ($d in @($StepDir, $BigDir, $DxfDir)) { $c = Join-Path $d $f; if (Test-Path -LiteralPath $c) { $orig = $c; break } }
+    foreach ($d in @($StepDir, $PfDir, $BigDir, $DxfDir)) { $c = Join-Path $d $f; if (Test-Path -LiteralPath $c) { $orig = $c; break } }
     if (-not $orig) { [void]$resultados.Add([ordered]@{ arquivo = $f; testes = @([ordered]@{ id = "SX"; nome = "arquivo de teste"; ok = $false; detalhe = "não encontrado em $StepDir / $BigDir / $DxfDir" }) }); Log "FAIL $f — arquivo de teste ausente"; continue }
     Copy-Item -LiteralPath $orig -Destination $dst -Force
   }
