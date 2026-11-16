@@ -46,6 +46,45 @@ export interface MassProps {
   readonly bbox: BBox3;
 }
 
+/** Face reprovada na verificação de geometria (índice na ordem de exploração do OCCT, igual à da seleção). */
+export interface FaceIssue {
+  readonly index: number;
+  /** tipo da superfície segundo o OCCT (plane, cylinder, revolution…) */
+  readonly surface: string;
+  /** invalida = BRepCheck reprova a face; fora_da_superficie = aresta não está sobre a superfície da face */
+  readonly reason: "invalida" | "fora_da_superficie";
+  /** mm — maior distância medida aresta → superfície (fora_da_superficie) */
+  readonly deviation?: number;
+  /** mm² */
+  readonly area: number;
+}
+
+/**
+ * Verificação de geometria de um corpo (P-F5-01, proteção contra resultado errado apresentado como exato):
+ * verificador de forma do OCCT (BRepCheck) + consistência das arestas com as superfícies das faces (ponto do meio
+ * de cada aresta projetado na superfície da face). O BRepCheck sozinho NÃO pega superfície incoerente com as
+ * arestas (caso medido: desvio de 60 mm aprovado como válido).
+ */
+export interface GeometryCheck {
+  /** BRepCheck */
+  readonly shapeValid: boolean;
+  /** mm — maior desvio aresta → superfície encontrado */
+  readonly maxDeviation: number;
+  /** mm — limite usado */
+  readonly tolerance: number;
+  readonly points: number;
+  /** pontos que não puderam ser projetados nem medidos (não conta como reprovado, mas impede "exato") */
+  readonly unmeasured: number;
+  readonly faces: readonly FaceIssue[];
+  /**
+   * sólido fechado: volume > 1e-6·área^1,5 (positivo e coerente com a área). Pega face sobreposta a si mesma e
+   * sólido do avesso, que o BRepCheck aprova. Cascas/compostos: sempre true (volume não se aplica).
+   */
+  readonly volumeOk: boolean;
+  /** shapeValid && volumeOk && maxDeviation ≤ tolerance && unmeasured === 0 */
+  readonly ok: boolean;
+}
+
 /** Grupo de triângulos/pontos pertencente a uma face/aresta topológica. `id` é estável enquanto o shape não muda. */
 export interface TopoRange {
   readonly start: number;

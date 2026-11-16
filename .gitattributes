@@ -5,3 +5,6 @@
 *.dwg binary
 scripts/windows/smoke/referencias.json -text
 tests/regressao2d/*.json -text
+# P-F5-01 — arquivos STEP de referência: comparados linha a linha / byte a byte nos testes
+*.step -text
+*.stp -text

@@ -1,6 +1,7 @@
 import type { PrimitiveSpec } from "./primitives";
 import type {
   EdgeBuffers,
+  GeometryCheck,
   MassProps,
   Measurement,
   MeshBuffers,
@@ -57,6 +58,8 @@ export interface SolidKernel {
   /** Aplica matriz afim 3×4 row-major (composição de conjuntos). */
   transform(ref: SolidRef, matrix: readonly number[]): SolidRef;
 
+  /** Verificação de geometria do corpo (forma + arestas sobre as superfícies). Ver `GeometryCheck`. */
+  checkGeometry(ref: SolidRef): GeometryCheck;
   /** Quantidade de faces/arestas/vértices (índices válidos 0..n-1, mesma ordem da malha). */
   count(ref: SolidRef, kind: TopoKind): number;
   /** Geometria exata de uma face/aresta/vértice. */
@@ -68,6 +71,11 @@ export interface SolidKernel {
 
   /** STEP com estrutura de montagem e nomes (XCAF). */
   importStepTree(data: string): StepNode[];
+  /**
+   * Registro da última leitura STEP: quantos laços de faces de revolução com polo foram normalizados antes do
+   * leitor (P-F5-01 — só a ordem cíclica do laço; nenhuma geometria muda) e os que ficaram como vieram.
+   */
+  lastStepRepair(): { readonly fixes: number; readonly halfConics: number; readonly poleFaces: number; readonly skipped: readonly string[] } | null;
   exportStepTree(nodes: readonly StepNode[]): string;
   /** STL binário (malha — só para impressão 3D/visualização, não é sólido CAD). */
   toStl(ref: SolidRef, deflection?: number): Uint8Array;

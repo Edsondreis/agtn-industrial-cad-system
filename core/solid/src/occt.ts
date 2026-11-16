@@ -1,11 +1,14 @@
 import { type InitOptions, OcctError, OcctKernel, type ShapeHandle } from "occt-wasm";
 import type { SolidKernel } from "./kernel";
 import { isIdentity, placementMatrix } from "./placement";
+import { type PoleNormalization, normalizeRevolutionPoleLoops } from "./step-pole";
 import { type PrimitiveSpec, type Pt2, profileSection, validatePrimitive } from "./primitives";
 import {
   type EdgeBuffers,
   type EdgeInfo,
   type FaceInfo,
+  type FaceIssue,
+  type GeometryCheck,
   type MassProps,
   type Measurement,
   type StepNode,
@@ -205,6 +208,83 @@ export class OcctSolidKernel implements SolidKernel {
     }
   }
 
+  /**
+   * Forma (BRepCheck) + arestas sobre as superfícies das faces. Limite: max(0,01 mm; 1e-5 × maior dimensão).
+   * 0,01 mm cobre a tolerância de aresta usual de arquivos de troca e é 1/10 da precisão de corte/dobra da AGTN;
+   * acima disso não é tolerância, é geometria errada. Arquivos sãos medem ≤ 1e-10 mm.
+   */
+  checkGeometry(ref: SolidRef): GeometryCheck {
+    return this.run("verificar geometria", () => {
+      const k = this.k;
+      const h = H(ref);
+      let shapeValid: boolean;
+      try {
+        shapeValid = k.isValid(h);
+      } catch {
+        shapeValid = false;
+      }
+      const b = k.getBoundingBox(h);
+      const size = Math.max(b.xmax - b.xmin, b.ymax - b.ymin, b.zmax - b.zmin);
+      const tolerance = Math.max(0.01, 1e-5 * (Number.isFinite(size) ? size : 0));
+      const faces = this.sub(ref, "face");
+      const issues: FaceIssue[] = [];
+      let maxDeviation = 0, points = 0, unmeasured = 0;
+      for (let i = 0; i < faces.length; i++) {
+        const f = faces[i];
+        let worst = 0;
+        for (const e of k.getSubShapes(f, "edge")) {
+          let mid: { x: number; y: number; z: number };
+          try {
+            const cd = k.curveData(e);
+            if (!(cd.last > cd.first)) continue; // aresta degenerada (polo, ápice): não tem curva para medir
+            mid = k.curvePointAtParam(e, (cd.first + cd.last) / 2);
+          } catch {
+            continue; // sem curva 3D (degenerada)
+          } finally {
+            k.release(e);
+          }
+          points++;
+          let d: number;
+          try {
+            const q = k.projectPointOnFace(f, mid);
+            d = Math.hypot(mid.x - q.x, mid.y - q.y, mid.z - q.z);
+          } catch {
+            const v = k.makeVertex(mid.x, mid.y, mid.z);
+            try {
+              d = k.distanceBetween(v, f);
+            } catch {
+              d = NaN;
+            } finally {
+              k.release(v);
+            }
+          }
+          if (!Number.isFinite(d)) unmeasured++;
+          else worst = Math.max(worst, d);
+        }
+        maxDeviation = Math.max(maxDeviation, worst);
+        let faceValid = true;
+        if (!shapeValid) {
+          try {
+            faceValid = k.isValid(f);
+          } catch {
+            faceValid = false;
+          }
+        }
+        if (!faceValid || worst > tolerance) {
+          issues.push({ index: i, surface: String(k.surfaceType(f)), reason: faceValid ? "fora_da_superficie" : "invalida", deviation: worst > tolerance ? worst : undefined, area: k.getSurfaceArea(f) });
+        }
+      }
+      // sólido fechado com volume negativo (do avesso) ou ~nulo para a área que tem (superfície sobreposta a si mesma)
+      let volumeOk = true;
+      const kind = k.getShapeType(h);
+      if (kind === "solid" || kind === "compsolid") {
+        const vol = k.getVolume(h), area = k.getSurfaceArea(h);
+        volumeOk = vol > 1e-6 * Math.pow(area, 1.5);
+      }
+      return { shapeValid, maxDeviation, tolerance, points, unmeasured, faces: issues, volumeOk, ok: shapeValid && volumeOk && maxDeviation <= tolerance && unmeasured === 0 };
+    });
+  }
+
   props(ref: SolidRef): MassProps {
     return this.run("propriedades", () => {
       const h = H(ref);
@@ -261,9 +341,22 @@ export class OcctSolidKernel implements SolidKernel {
   }
   fromStep(data: string | Uint8Array): SolidRef {
     return this.run("importar STEP", () => {
-      const input = typeof data === "string" ? data : data.slice().buffer;
-      return R(this.k.importStep(input));
+      const text = typeof data === "string" ? data : new TextDecoder("utf-8", { fatal: false }).decode(data);
+      return R(this.k.importStep(this.prepareStep(text)));
     });
+  }
+
+  /** P-F5-01: registro da última leitura STEP (laços com polo normalizados; nada mais é alterado). */
+  private lastPole: PoleNormalization | null = null;
+  lastStepRepair(): { readonly fixes: number; readonly halfConics: number; readonly poleFaces: number; readonly skipped: readonly string[] } | null {
+    const p = this.lastPole;
+    return p ? { fixes: p.fixes.length, halfConics: p.halfConics.length, poleFaces: p.poleFaces, skipped: p.skipped } : null;
+  }
+  /** Cópia em memória do texto, com os laços de faces de revolução com polo começando no polo (ver step-pole.ts). */
+  private prepareStep(text: string): string {
+    const n = normalizeRevolutionPoleLoops(text);
+    this.lastPole = n;
+    return n.text;
   }
   toBrep(ref: SolidRef): Uint8Array {
     return this.run("gravar BREP", () => this.k.toBREPBinary(H(ref)));
@@ -389,7 +482,7 @@ export class OcctSolidKernel implements SolidKernel {
 
   importStepTree(data: string): StepNode[] {
     return this.run("importar STEP", () => {
-      const doc = this.k.importXCAFFromSTEP(data);
+      const doc = this.k.importXCAFFromSTEP(this.prepareStep(data));
       try {
         const walk = (label: number, depth: number): StepNode | null => {
           if (depth > 64) return null;
