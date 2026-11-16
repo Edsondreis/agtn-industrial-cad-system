@@ -11,6 +11,8 @@
 
 pub mod cadconv;
 
+mod ai;
+
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -656,10 +658,44 @@ pub fn run() {
             dwg_read_as_dxf,
             dwg_write_from_dxf,
             is_default_app,
-            make_default_app
+            make_default_app,
+            ai_gemini_generate,
+            ai_key_status,
+            ai_key_set,
+            ai_key_clear
         ])
         .run(tauri::generate_context!())
         .expect("falha ao iniciar o AGTN CAD");
+}
+
+/* ------------------------- AGTN AI ASSISTANT (ver src/ai.rs) ------------------------- */
+
+/// Chamada ao Gemini (nível gratuito). A chave é lida aqui, do Gerenciador de Credenciais; o WebView não a vê.
+#[tauri::command]
+async fn ai_gemini_generate(model: String, body: String) -> ai::AiResponse {
+    tauri::async_runtime::spawn_blocking(move || ai::generate(&ai::CredStore, ai::ENDPOINT, &model, &body, ai::TIMEOUT))
+        .await
+        .unwrap_or(ai::AiResponse { status: 0, body: "{\"error\":{\"message\":\"falha interna\"}}".into() })
+}
+
+/// Só diz SE há chave guardada (nunca devolve a chave).
+#[tauri::command]
+fn ai_key_status() -> Result<bool, String> {
+    use ai::KeyStore;
+    ai::CredStore.get().map(|k| k.is_some())
+}
+
+#[tauri::command]
+fn ai_key_set(key: String) -> Result<(), String> {
+    use ai::KeyStore;
+    let k = ai::validate_key(&key)?;
+    ai::CredStore.set(&k)
+}
+
+#[tauri::command]
+fn ai_key_clear() -> Result<(), String> {
+    use ai::KeyStore;
+    ai::CredStore.clear()
 }
 
 #[cfg(test)]
