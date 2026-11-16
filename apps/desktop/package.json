@@ -22,6 +22,7 @@
     "@agtn/lasertext": "*",
     "@agtn/parts": "*",
     "@agtn/plot": "*",
+    "@agtn/ai": "*",
     "@agtn/solid": "*",
     "@agtn/model3d": "*",
     "three": "0.187.0"

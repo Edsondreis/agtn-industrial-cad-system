@@ -40,6 +40,10 @@ import type { StepFile } from "../stepview/StepViewer";
 import { recents } from "./recents";
 import { type AppPrefs, CAD_VERSIONS, type CadVersion, loadPrefs, savePrefs } from "./prefs";
 import { Toasts } from "../ui/toast";
+import type { AiProvider, ModelReply } from "@agtn/ai";
+import type { AiController } from "../ai/controller";
+// AGTN AI ASSISTANT: carregado só quando o usuário abre o painel (não pesa na abertura do CAD)
+const AiPanel = lazy(() => import("../ai/AiPanel").then((m) => ({ default: m.AiPanel })));
 
 type Dialog = null | "about" | "shortcuts" | "dxf" | "bytype" | "settings" | "export" | "exportdwg" | "lasertext" | "prefs" | "convert" | "plot";
 
@@ -57,6 +61,9 @@ export function App() {
   const files = useMemo(() => new FileActions(ctl), [ctl]);
   useCtl(ctl, "state");
   const [ws, setWs] = useState<Workspace>("desenho");
+  const wsRef = useRef(ws);
+  wsRef.current = ws;
+  const [aiOpen, setAiOpen] = useState(false);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [plotInit, setPlotInit] = useState<PlotSettings | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -331,6 +338,61 @@ export function App() {
     return out;
   }, [ctl]);
 
+  /* ------------------------------- AGTN AI ASSISTANT ------------------------------- */
+  const aiRef = useRef<AiController | null>(null);
+  const toggleAi = useCallback(() => {
+    if (aiRef.current) return setAiOpen((x) => !x);
+    void Promise.all([import("../ai/controller"), import("../ai/transport")]).then(([{ AiController }, { geminiTransport }]) => {
+      if (aiRef.current) return setAiOpen(true);
+      const testHook = import.meta.env.DEV || localStorage.getItem("agtn.e2e") === "1";
+      aiRef.current = new AiController(
+        {
+          ctl,
+          workspace: () => wsRef.current,
+          showDrawing: () => {
+            setWs("desenho");
+            window.setTimeout(() => ctl.zoomExtents(), 60); // mostra o que a IA acabou de inserir
+          },
+          fabLayerChanges: () => {
+            const out: Change[] = [];
+            let n = ctl.doc.layers.length;
+            for (const l of FAB_LAYERS) if (!ctl.doc.layer(l.name)) out.push({ kind: "layer-add", layer: l, index: n++ });
+            return out;
+          },
+          exportDxf: () => files.exportDxf(),
+          openPlot: () => openPlot(),
+          bodyFacts: async (ids) => {
+            // só lê o motor se a área 3D já o iniciou (sem sincronizar: não rouba geometria do viewport)
+            const { engine } = await import("../ws3d/engine");
+            if (!engine().alive) return null;
+            return engine().call("bodyFacts", { ids });
+          },
+        },
+        {
+          transport: geminiTransport,
+          storage: { get: (k) => localStorage.getItem(k), set: (k, v) => localStorage.setItem(k, v) },
+          // E2E: provedor roteirizado injetado pela página de teste (nunca no app instalado sem a flag de teste)
+          provider:
+            testHook && (window as unknown as { __agtnAiScript?: unknown }).__agtnAiScript
+              ? (): AiProvider => ({
+                  id: "e2e",
+                  model: "roteiro",
+                  generate: async (req) => {
+                    const w = window as unknown as { __agtnAiScript: ((r: unknown) => ModelReply | Promise<ModelReply>)[]; __agtnAiSeen?: unknown[] };
+                    (w.__agtnAiSeen ??= []).push(JSON.parse(JSON.stringify({ system: req.system, history: req.history })));
+                    const f = w.__agtnAiScript.shift();
+                    return f ? f(req) : { text: "(fim do roteiro)", calls: [] };
+                  },
+                })
+              : undefined,
+        },
+      );
+      if (testHook) (window as unknown as { __agtnAi?: unknown }).__agtnAi = aiRef.current;
+      setAiOpen(true);
+    }).catch((e) => toast(`Não foi possível carregar o assistente: ${String((e as Error)?.message ?? e)}`, "error"));
+  }, [ctl, files, openPlot]);
+
+
   /* ----------------------------------- menus ----------------------------------- */
   const run = (id: string) => () => {
     setWs("desenho");
@@ -481,7 +543,12 @@ export function App() {
 
   return (
     <div className={`app${ws === "modelo3d" || ws === "step" ? " app-3d" : ""}`}>
-      <TopBar ctl={ctl} files={files} ws={ws} setWs={setWs} onHome={goHome} stepName={stepFile?.name ?? null} />
+      <TopBar ctl={ctl} files={files} ws={ws} setWs={setWs} onHome={goHome} stepName={stepFile?.name ?? null} ai={{ open: aiOpen, toggle: toggleAi }} />
+      {aiOpen && aiRef.current && (
+        <Suspense fallback={null}>
+          <AiPanel ai={aiRef.current} onClose={() => setAiOpen(false)} />
+        </Suspense>
+      )}
       <MenuBar menus={menus} />
       {ws === "desenho" ? (
         <div className="work">

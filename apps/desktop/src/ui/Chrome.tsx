@@ -23,6 +23,7 @@ export function TopBar({
   setWs,
   onHome,
   stepName = null,
+  ai,
 }: {
   ctl: CadController;
   files: FileActions;
@@ -31,6 +32,8 @@ export function TopBar({
   onHome: () => void;
   /** documento STEP aberto (aba aparece só enquanto houver um) */
   stepName?: string | null;
+  /** AGTN AI ASSISTANT: painel lateral recolhível */
+  ai?: { open: boolean; toggle: () => void };
 }) {
   useCtl(ctl, "state");
   const [, force] = useState(0);
@@ -83,6 +86,12 @@ export function TopBar({
         {doc.dirty && <span className="unsaved">não salvo</span>}
       </div>
       <div className="spacer" />
+      {ai && (
+        <button className={`ibtn ai-btn${ai.open ? " on" : ""}`} title="AGTN AI Assistant — operar o CAD por conversa (Gemini, nível gratuito)" onClick={ai.toggle} data-testid="ai-toggle">
+          <span className="ai-logo">IA</span>
+          <span className="lbl">Assistente</span>
+        </button>
+      )}
       <div className="ws-tabs">
         <button className={`ws-tab${ws === "desenho" ? " on" : ""}`} onClick={() => setWs("desenho")}>
           DESENHO
