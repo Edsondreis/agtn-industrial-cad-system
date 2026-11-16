@@ -66,7 +66,10 @@ describe("scripts de homologação do Windows", () => {
       expect(ref[f], f).toBeDefined();
       // gerados na hora (pasta de saída/teste), não versionados
       if (/^(grande_|nao_step|vazio)/.test(f)) continue;
-      expect(() => statSync(join(ROOT, "tests/step/viewer_ref", f))).not.toThrow();
+      // P-F5-01: arquivos próprios da correção ficam em tests/step/p-f5-01 (o script procura lá também: $PfDir)
+      const dirs = ["tests/step/viewer_ref", "tests/step/p-f5-01"];
+      expect(dirs.some((d) => { try { statSync(join(ROOT, d, f)); return true; } catch { return false; } }), f).toBe(true);
+      if (!/^(vessel_inconsistente|elipsoide_vertex_loop)\.step$/.test(f)) expect(() => statSync(join(ROOT, "tests/step/viewer_ref", f))).not.toThrow();
     }
   });
 });
