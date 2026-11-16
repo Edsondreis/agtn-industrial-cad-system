@@ -1,6 +1,6 @@
 # AGTN Industrial CAD — guia de continuidade (outro computador)
 
-Atualizado em 2026-11-15, no fechamento da FASE 5. Este guia existe porque o PC usado até aqui (desktop-p4d6iou, usuário
+Atualizado em 2026-11-16 (P-F5-01 corrigido + AGTN AI ASSISTANT, versão de homologação 3.2.0-3). Antes: 2026-11-15, fechamento da FASE 5. Este guia existe porque o PC usado até aqui (desktop-p4d6iou, usuário
 Luiza, `D:\AGTN_DEV`) **deixa de estar disponível**. Nada do que precisa ser preservado depende dele: código, scripts,
 relatórios e evidências estão no GitHub, e os instaladores de homologação foram entregues fora do PC (ver §5).
 
@@ -10,10 +10,10 @@ relatórios e evidências estão no GitHub, e os instaladores de homologação f
 |---|---|
 | Repositório | `github.com/Edsondreis/agtn-industrial-cad-system` (privado) |
 | Versão publicada (estável) | `main` = 23a2540 → **3.1.1**. Intocada desde a FASE 1 do 3D |
-| Desenvolvimento 3D + DXF/STEP | branch `feature/agtn-3d-ia` → **3.2.0-2 (homologação, não publicar)** |
+| Desenvolvimento 3D + DXF/STEP + IA | branch `feature/agtn-3d-ia` → **3.2.0-3 (homologação, não publicar; instalador ainda não gerado)** |
 | Plano e histórico | `docs/PLANO_3D_IA.md`, `docs/CHANGELOG.md`, relatórios `docs/FASE*.md` |
-| Última fase | `docs/FASE5_AUDITORIA_INTEGRACAO_DXF_STEP.md`, `docs/FASE5_DXF_STEP_HOMOLOGACAO.md` |
-| Notas de versão | `docs/release-notes/v3.2.0-1.md`, `v3.2.0-2.md` |
+| Última etapa | `docs/P-F5-01_CAUSA_RAIZ.md`, `docs/IA_ASSISTENTE.md` (antes: `docs/FASE5_*.md`) |
+| Notas de versão | `docs/release-notes/v3.2.0-1.md`, `v3.2.0-2.md`, `v3.2.0-3.md` |
 | Scripts de homologação Windows | `scripts/windows/` (fumaças WebView2), `docs/evidencias/etapa6_windows/scripts/` (instalar ambiente) e `docs/evidencias/fase5_windows/scripts/` (build + ciclo do instalador) |
 | Evidências | `docs/evidencias/` (ETAPA 5, ETAPA 6, FASE 5 Chromium e Windows) |
 | Referência do visualizador STEP | repositório `Edsondreis/agtn-cad-tank-viewer` (Kotlin) — o corpus de testes já foi copiado para `tests/step/viewer_ref/` |
@@ -47,9 +47,9 @@ Para outro caminho, troque `$R` no topo de cada `.ps1`.
 ```powershell
 npm ci
 npm run typecheck
-npx vitest run                     # 702 testes: 699 ok, 1 "falha esperada" (vessel_revolved, ver §6), 2 pulados
+npx vitest run                     # 778 testes: 776 ok, 2 pulados (P-F5-01 corrigido: não há mais falha esperada)
 npm run test:sem-eval              # mesma suíte com geração dinâmica de código proibida
-cd apps\desktop\src-tauri; cargo test --release; cd ..\..\..
+cd apps\desktop\src-tauri; cargo test --release; cd ..\..\..   # inclui src/ai.rs (8 testes, servidor HTTP local)
 npm run dev                        # app no navegador (http://localhost:1420)
 npm run tauri dev                  # app desktop
 npm run tauri build -- --bundles nsis   # instalador; só NSIS (MSI fora do escopo)
@@ -61,7 +61,8 @@ Ele usa o modo currentUser, sem UAC. O WASM do motor vai em `occt\occt-wasm.wasm
 **Testes de interface (Linux ou WSL, com Chrome e Playwright para Python):**
 - `tests/e2e/e2e_step.py`: STEP/DXF, 35 verificações;
 - `tests/e2e/step_smoke_chromium.py`: build de produção com a CSP real, 90 verificações;
-- `tests/e2e/e2e3d.py` e `tests/e2e/e2e_sheet.py`.
+- `tests/e2e/e2e3d.py` e `tests/e2e/e2e_sheet.py`;
+- `tests/e2e/e2e_ai.py`: painel do assistente com modelo roteirizado, sem rede, 20 verificações.
 
 **App instalado (WebView2 real):**
 - `scripts/windows/smoke/webview2_smoke.ps1`: 2D, 3D, planificação, DXF, DWG e .agtncad;
@@ -102,25 +103,29 @@ Para gerar de novo em qualquer PC: `git checkout <commit>` e depois `npm ci && n
 
 ## 6. Pendências em aberto (prioridade)
 
-1. **F-08 / P-06:** decidir a versão comercial. Publicar a 3.1.1 pela `main` antes de qualquer merge.
-2. **P-F5-01:** o leitor STEP do OCCT 8 (occt-wasm 5.17.1) lê errado superfície de revolução com geratriz elíptica
-   (`vessel_revolved.step`).
-   - O app sinaliza a forma inválida, mas não corrige.
-   - Caminhos possíveis: versão nova do occt-wasm; reconstrução da face a partir da geratriz; ou ler esse caso com o
-     parser do viewer Kotlin.
-   - O teste `it.fails` em `core/model3d/src/stepdoc.test.ts` avisa quando o motor passar a ler certo.
-3. **P-01:** certificado de assinatura de código (`docs/ASSINATURA.md`).
-4. **P-02/P-03:** resíduos de associação `.agtncad`/`.dxf`/`.dwg` depois de desinstalar uma versão atualizada.
+1. **Build e ciclo da 3.2.0-3 no Windows**, que nunca rodaram: o PC da FASE 5 saiu.
+   - `11_build.ps1` + `12_ciclo.ps1`, incluindo `webview2_step_smoke.ps1`, que já lista `elipsoide_vertex_loop.step` e
+     `vessel_inconsistente.step` (pasta `tests/step/p-f5-01`, parâmetro `$PfDir`).
+   - É a primeira compilação MSVC das dependências novas `ureq` (rustls) e `keyring` (windows-native) e da ligação
+     `ai_*` no `lib.rs`.
+2. **Assistente com o Gemini real**: guardar uma chave de projeto SEM faturamento, aceitar o aviso e repetir o diálogo do
+   exemplo (perfil U → planificação). O formato da API foi conferido na documentação de 16/11/2026, mas não com chamada
+   real.
+3. **F-08 / P-06:** decidir a versão comercial. Publicar a 3.1.1 pela `main` antes de qualquer merge.
+4. **P-01:** certificado de assinatura de código (`docs/ASSINATURA.md`).
+5. **P-02/P-03:** resíduos de associação `.agtncad`/`.dxf`/`.dwg` depois de desinstalar uma versão atualizada.
    A correção está proposta no `hooks.nsh` e não foi executada.
-5. **P-12:**
+6. **P-12:**
    - fichas CAD/CAM (D3–D5);
-   - 5–10 peças reais (I2);
+   - 5–10 peças reais (I2), incluindo STEP de tampos reais;
    - impressão real;
    - DWG/DXF 2000 no AutoCAD e no ZWCAD;
    - monitor da CNC.
-6. **2D:**
+7. **2D:**
    - MULTILEADER/MLINE;
    - cotas associativas no DXF 2000;
    - hachura por ponto interno;
    - cone calandrado;
    - modo touch.
+
+**Fechado nesta etapa:** P-F5-01 (`docs/P-F5-01_CAUSA_RAIZ.md`). Ficam só as limitações registradas lá (§9).

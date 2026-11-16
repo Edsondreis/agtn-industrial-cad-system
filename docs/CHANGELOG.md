@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.2.0-3 (homologação, branch `feature/agtn-3d-ia`, não publicado) — P-F5-01 + AGTN AI ASSISTANT
+- **P-F5-01 corrigido** (`docs/P-F5-01_CAUSA_RAIZ.md`): STEP com faces de revolução que fecham num polo (tampos
+  elípticos/torisféricos, calotas, elipsoide numa face só) passa a ser lido exato. Causa: o tradutor STEP do OCCT (7.8,
+  8.0, occt-wasm 5.17.1/5.17.2) perdia a costura conforme o início do laço. Correção sem alterar geometria: o laço
+  começa no polo; elipsoide com VERTEX_LOOP recebe a geratriz recortada à meia cônica. vessel_revolved: −28,47 % →
+  erro 3,4e-8.
+- **Verificação de geometria** por corpo (`checkGeometry`): forma do motor + arestas sobre as superfícies + volume
+  coerente. O BRepCheck aprovava superfície incoerente com as arestas (desvio de 60 mm). Tela STEP: classe da medida
+  (exato/aproximado/inválido/não calculável/não verificado); só "exato" mostra volume, área e dimensões.
+- **AGTN AI ASSISTANT** (`docs/IA_ASSISTENTE.md`): painel lateral; Gemini só nível gratuito; 16 ferramentas reais
+  (chapa/planificação com K confirmado, chapa retangular, A4, medir, área, volume 3D, mover, apagar, DXF, PDF,
+  desfazer); prévia + confirmação para toda alteração; chave no Gerenciador de Credenciais (Rust); carregado só ao
+  abrir o painel.
+- `FileActions.exportDxf` passa a devolver o resultado real (caminho salvo / cancelado / erro).
+
 ## Em desenvolvimento (branch `feature/agtn-3d-ia`, não publicado) — FASE 4 · ETAPA 2: recursos de chapa 3D
 - **Aba de borda** (antes "Aba lateral"): recuos de início e fim (faixa parcial); posição do material (por dentro,
   por fora, dobra por fora); várias arestas; cantos detectados e mostrados no painel.
