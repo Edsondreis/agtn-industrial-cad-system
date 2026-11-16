@@ -1,6 +1,6 @@
 [package]
 name = "agtn-cad"
-version = "3.2.0-3"
+version = "3.2.0-4"
 description = "AGTN Industrial CAD"
 authors = ["AGTN"]
 edition = "2021"

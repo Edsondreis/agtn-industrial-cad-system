@@ -67,14 +67,15 @@ impl KeyStore for CredStore {
     }
 }
 
-/// Formato da chave: 20–200 caracteres [A-Za-z0-9_-] (chaves do AI Studio). Não diz se é válida no Google.
+/// Formato da chave: 20–200 caracteres [A-Za-z0-9._-]. Aceita a chave antiga "AIza…" e a nova "Auth key" do AI Studio
+/// ("AQ.Ab…", que tem ponto). Não diz se é válida no Google.
 pub fn validate_key(key: &str) -> Result<String, String> {
     let k = key.trim();
     if k.len() < 20 || k.len() > 200 {
         return Err("chave com tamanho inesperado".into());
     }
-    if !k.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
-        return Err("a chave só pode ter letras, números, - e _".into());
+    if !k.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.') {
+        return Err("a chave só pode ter letras, números, ponto, - e _".into());
     }
     Ok(k.to_string())
 }
@@ -216,6 +217,10 @@ mod tests {
         assert!(validate_key("curta").is_err());
         assert!(validate_key("AIza com espaço 0123456789012345").is_err());
         assert!(validate_key("AIza\";DROP TABLE-0123456789012").is_err());
+        // chave nova do AI Studio (Auth key, com ponto) — exemplo inventado
+        assert!(validate_key("AQ.Ab8TESTE_0123456789-abcdefghijklmnopqrstuvwxyzAB").is_ok());
+        assert!(validate_key("AQ.Ab8TESTE 0123456789abcdefghijklmnopqrstuvwxyzAB").is_err());
+        assert!(validate_key("AQ.Ab8TESTE\r\nX-Injetado: 1-abcdefghijklmnop").is_err());
     }
     #[test]
     fn chave_nunca_aparece_em_erro() {

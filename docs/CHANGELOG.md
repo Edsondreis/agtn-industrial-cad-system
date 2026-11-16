@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.2.0-4 — homologação (16/11/2026)
+
+- Assistente IA: aceita a chave nova do AI Studio (`AQ.Ab…`, com ponto). A 3.2.0-3 recusava esse formato.
+
 ## 3.2.0-3 (homologação, branch `feature/agtn-3d-ia`, não publicado) — P-F5-01 + AGTN AI ASSISTANT
 - **P-F5-01 corrigido** (`docs/P-F5-01_CAUSA_RAIZ.md`): STEP com faces de revolução que fecham num polo (tampos
   elípticos/torisféricos, calotas, elipsoide numa face só) passa a ser lido exato. Causa: o tradutor STEP do OCCT (7.8,

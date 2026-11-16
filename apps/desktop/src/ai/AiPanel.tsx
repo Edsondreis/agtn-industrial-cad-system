@@ -193,7 +193,7 @@ function AiSettings({ ai, onDone }: { ai: AiController; onDone: () => void }) {
             )}
           </div>
           <div className="ai-row">
-            <input type="password" value={key} placeholder="Colar a chave (AIza…)" onChange={(e) => setKey(e.target.value)} onKeyDown={(e) => e.stopPropagation()} autoComplete="off" />
+            <input type="password" value={key} placeholder="Colar a chave (AQ.… ou AIza…)" onChange={(e) => setKey(e.target.value)} onKeyDown={(e) => e.stopPropagation()} autoComplete="off" />
             <button
               className="btn primary"
               disabled={!key.trim()}
