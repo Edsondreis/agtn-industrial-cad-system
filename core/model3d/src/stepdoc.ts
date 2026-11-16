@@ -6,7 +6,7 @@
  * em base64, `source: brep`), não uma malha: volume, área e caixa vêm da geometria exata; a malha serve só
  * para desenhar.
  */
-import type { BBox3, MassProps, StepNode } from "@agtn/solid";
+import type { BBox3, GeometryCheck, MassProps, StepNode } from "@agtn/solid";
 import { insertStepTree } from "./step";
 import { type Model3D, type NodeId, emptyModel } from "./model";
 import { type StepScan, scanStep } from "./stepinfo";
@@ -49,6 +49,35 @@ export interface BodyFacts {
   readonly topo: { readonly solids: number; readonly faces: number; readonly edges: number; readonly vertices: number };
   /** resultado do verificador de forma do OCCT (BRepCheck); undefined = não verificado */
   readonly valid?: boolean;
+  /** verificação completa (forma + arestas sobre as superfícies + volume coerente) — P-F5-01 */
+  readonly check?: GeometryCheck;
+}
+
+/**
+ * Classificação de uma medida (P-F5-01 §1.6). Só "exato" pode ser apresentado como resultado de engenharia.
+ *  - exato: B-rep aprovado na verificação completa; volume/área/caixa do B-rep.
+ *  - aproximado: valor derivado da malha de exibição (triangulação). No documento STEP nenhuma medida é desse tipo:
+ *    a malha só desenha. O rótulo existe para deixar isso explícito na interface.
+ *  - invalido: geometria reprovada (forma, aresta fora da superfície ou volume incoerente): o número do motor existe,
+ *    mas NÃO é confiável e não é mostrado como medida.
+ *  - nao_calculavel: não há volume a calcular (casca/superfície aberta) ou o motor não devolveu valor finito.
+ *  - nao_verificado: a verificação ainda não rodou ou não conseguiu medir tudo.
+ */
+export type MeasureGrade = "exato" | "aproximado" | "invalido" | "nao_calculavel" | "nao_verificado";
+export const MEASURE_GRADE_LABEL: Record<MeasureGrade, string> = {
+  exato: "exato (B-rep verificado)",
+  aproximado: "aproximado (malha)",
+  invalido: "inválido — não apto para engenharia/fabricação",
+  nao_calculavel: "não calculável",
+  nao_verificado: "não verificado",
+};
+
+/** Classe do VOLUME de um corpo. */
+export function gradeBody(b: BodyFacts): MeasureGrade {
+  if (b.valid === false || (b.check && (!b.check.shapeValid || b.check.faces.length > 0 || !b.check.volumeOk))) return "invalido";
+  if (b.topo.solids === 0 || !Number.isFinite(b.props.volume) || !(Math.abs(b.props.volume) > 0)) return "nao_calculavel";
+  if (!b.check || b.check.unmeasured > 0 || !b.check.ok) return "nao_verificado";
+  return "exato";
 }
 
 export interface StepSummary {
@@ -64,12 +93,21 @@ export interface StepSummary {
   readonly bbox: BBox3 | null;
   /** corpos sem volume (cascas/superfícies abertas) */
   readonly open: number;
-  /** corpos reprovados pelo verificador de forma: medidas podem estar erradas */
+  /** corpos reprovados pelo verificador: medidas podem estar erradas */
   readonly invalid: number;
+  /** contagem por classe de medida (P-F5-01 §1.6) */
+  readonly grades: Readonly<Record<MeasureGrade, number>>;
+  /** pior classe entre os corpos: só "exato" permite mostrar volume/área como resultado */
+  readonly grade: MeasureGrade;
+  /** mm³ — soma só dos corpos "exato" */
+  readonly volumeExact: number;
 }
 
+const GRADE_ORDER: readonly MeasureGrade[] = ["invalido", "nao_calculavel", "nao_verificado", "aproximado", "exato"];
+
 export function summarize(list: readonly BodyFacts[]): StepSummary {
-  let solids = 0, faces = 0, edges = 0, vertices = 0, volume = 0, area = 0, open = 0, invalid = 0;
+  let solids = 0, faces = 0, edges = 0, vertices = 0, volume = 0, area = 0, open = 0, invalid = 0, volumeExact = 0;
+  const grades: Record<MeasureGrade, number> = { exato: 0, aproximado: 0, invalido: 0, nao_calculavel: 0, nao_verificado: 0 };
   let min: [number, number, number] | null = null;
   let max: [number, number, number] = [0, 0, 0];
   for (const b of list) {
@@ -80,7 +118,10 @@ export function summarize(list: readonly BodyFacts[]): StepSummary {
     volume += b.props.volume;
     area += b.props.area;
     if (b.topo.solids === 0 || !(Math.abs(b.props.volume) > 0)) open++;
-    if (b.valid === false) invalid++;
+    const g = gradeBody(b);
+    grades[g]++;
+    if (g === "invalido") invalid++;
+    if (g === "exato") volumeExact += b.props.volume;
     const { min: a, max: z } = b.props.bbox;
     if (![a.x, a.y, a.z, z.x, z.y, z.z].every(Number.isFinite)) continue;
     if (!min) {
@@ -102,5 +143,8 @@ export function summarize(list: readonly BodyFacts[]): StepSummary {
     bbox: min ? { min: { x: min[0], y: min[1], z: min[2] }, max: { x: max[0], y: max[1], z: max[2] } } : null,
     open,
     invalid,
+    grades,
+    grade: list.length ? GRADE_ORDER.find((g) => grades[g] > 0)! : "nao_calculavel",
+    volumeExact,
   };
 }

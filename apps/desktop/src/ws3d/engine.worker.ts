@@ -6,7 +6,7 @@
 import { BodyCache, type Model3D, modelToStepTree, partOf, scanStep, worldMatrix } from "@agtn/model3d";
 import { type SheetState, createSheetBackend, edgeFromFaces } from "@agtn/sheet3d";
 import { type Loop2, flatPattern, genericOpReason, sheetMath as SM } from "@agtn/sheetgraph";
-import { OcctSolidKernel, PartEvaluator, type PartResult, SolidError, type SolidRef, invertRigid } from "@agtn/solid";
+import { type GeometryCheck, OcctSolidKernel, PartEvaluator, type PartResult, SolidError, type SolidRef, invertRigid } from "@agtn/solid";
 import type { ShapeHandle } from "occt-wasm";
 import type { BodyGeom, EngineApi, EngineRequest, EngineResponse, SheetInfo, TopoRefMsg } from "./protocol";
 
@@ -266,18 +266,20 @@ const api: Omit<EngineApi, "init"> = {
   openStep({ text }) {
     const scan = scanStep(text);
     if (!scan.valid) throw new SolidError("IO", "O arquivo não é um STEP válido (cabeçalho ISO-10303-21 ausente).");
-    return { scan, nodes: K().k.importStepTree(text) };
+    const nodes = K().k.importStepTree(text);
+    return { scan, nodes, repair: K().k.lastStepRepair() };
   },
   checkBodies({ ids }) {
     const { k, c } = K();
-    const out: Record<string, boolean> = {};
+    const out: Record<string, GeometryCheck> = {};
     for (const id of ids) {
       const r = c.get(id);
       if (r === undefined) continue;
       try {
-        out[id] = k.isValid(r);
+        out[id] = k.checkGeometry(r);
       } catch {
-        out[id] = false;
+        // falha do próprio verificador: não dá para afirmar nada — conta como reprovado (nunca "exato")
+        out[id] = { shapeValid: false, maxDeviation: NaN, tolerance: NaN, points: 0, unmeasured: 1, faces: [], volumeOk: false, ok: false };
       }
     }
     return out;

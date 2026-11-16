@@ -12,3 +12,8 @@
 .stepdoc .v3-partial > span { display: flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: var(--r); background: rgba(60, 22, 22, 0.94); border: 1px solid rgba(217, 87, 87, 0.7); color: #ffd0d0; font-size: 11.5px; }
 .stepdoc .v3-partial svg { width: 15px; height: 15px; flex: none; color: #ff8c8c; }
 .stepdoc .rb-seg button { width: auto; padding: 0 9px; white-space: nowrap; font-size: 11px; height: 26px; }
+/* P-F5-01 — classe da medida: só "exato" é resultado de engenharia */
+.sv-grade { padding: 1px 6px; border-radius: 3px; font-size: 10.5px; }
+.sv-grade-exato { background: rgba(80, 180, 110, 0.18); color: #a9e7bd; }
+.sv-grade-invalido { background: rgba(217, 87, 87, 0.25); color: #ffd0d0; font-weight: 600; }
+.sv-grade-nao_verificado, .sv-grade-nao_calculavel, .sv-grade-aproximado { background: rgba(255, 200, 87, 0.15); color: #ffe2a3; }

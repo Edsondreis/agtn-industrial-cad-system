@@ -1,6 +1,6 @@
 import type { Model3D, NodeId, StepScan } from "@agtn/model3d";
 import type { FlatPattern, SheetMat } from "@agtn/sheetgraph";
-import type { EdgeRef, FaceRef, Feature, FeatureStatus, Frame, MassProps, Measurement, SheetEdgeRef, StepNode, TopoInfo, TopoKind } from "@agtn/solid";
+import type { EdgeRef, FaceRef, Feature, FeatureStatus, Frame, GeometryCheck, MassProps, Measurement, SheetEdgeRef, StepNode, TopoInfo, TopoKind } from "@agtn/solid";
 
 /** Peça de chapa: resumo do grafo resolvido (dados puros) para a interface. */
 export interface SheetInfo {
@@ -79,6 +79,14 @@ export interface TopoRefMsg {
 }
 
 /** Operações do worker (pedido → resposta). */
+/** P-F5-01: o que foi normalizado no texto antes do leitor do OCCT (só ordem de laço / meia cônica; ver step-pole.ts). */
+export interface StepRepair {
+  readonly fixes: number;
+  readonly halfConics: number;
+  readonly poleFaces: number;
+  readonly skipped: readonly string[];
+}
+
 export interface EngineApi {
   init(a: { wasm: ArrayBuffer }): { kernel: string; ms: number };
   /** `full`: descarta o cache e devolve a geometria de todos os corpos (viewport recém-criado). */
@@ -95,9 +103,9 @@ export interface EngineApi {
   sheetFlat(a: { body: NodeId; model?: Model3D }): { readonly geom: BodyGeom; readonly bendLines: Float32Array; readonly regionLines: Float32Array };
   importStep(a: { text: string }): StepNode[];
   /** FASE 5 — abrir STEP como documento: cabeçalho/unidades (leitura própria) + árvore do OCCT, tudo no worker */
-  openStep(a: { text: string }): { readonly scan: StepScan; readonly nodes: StepNode[] };
-  /** verificador de forma do OCCT (BRepCheck) por corpo exibido: false = geometria inválida */
-  checkBodies(a: { ids: NodeId[] }): Record<NodeId, boolean>;
+  openStep(a: { text: string }): { readonly scan: StepScan; readonly nodes: StepNode[]; readonly repair: StepRepair | null };
+  /** verificação de geometria por corpo exibido (forma + arestas sobre as superfícies + volume coerente) — P-F5-01 */
+  checkBodies(a: { ids: NodeId[] }): Record<NodeId, GeometryCheck>;
   exportStep(a: { model: Model3D; ids?: NodeId[] }): string;
   exportStl(a: { ids: NodeId[] }): Uint8Array;
   stats(a: Record<string, never>): EngineStats;

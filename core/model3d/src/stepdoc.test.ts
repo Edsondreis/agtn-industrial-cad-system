@@ -40,11 +40,9 @@ function open(file: string, text = read(file)) {
 }
 
 describe("STEP — leitura pelo OCCT contra referência independente", () => {
-  // vessel_revolved: limitação CONHECIDA do leitor STEP do OCCT 8 (occt-wasm 5.17.1) — ver bloco abaixo.
-  const KNOWN_BAD = new Set(["vessel_revolved.step"]);
+  // vessel_revolved era a falha conhecida P-F5-01; corrigida pela normalização de laços (core/solid/src/step-pole.ts).
   for (const [file, ref] of Object.entries(REF)) {
-    const t = KNOWN_BAD.has(file) ? it.fails : it;
-    t(`${file}: volume${ref.area ? ", área" : ""}${ref.bbox ? ", caixa" : ""}${ref.solids ? ", sólidos" : ""}${KNOWN_BAD.has(file) ? " (FALHA CONHECIDA do OCCT)" : ""}`, () => {
+    it(`${file}: volume${ref.area ? ", área" : ""}${ref.bbox ? ", caixa" : ""}${ref.solids ? ", sólidos" : ""}`, () => {
       const { sum, rep } = open(file);
       expect(Object.keys(rep.errors)).toEqual([]);
       expect(sum.invalid).toBe(0);
@@ -61,11 +59,18 @@ describe("STEP — leitura pelo OCCT contra referência independente", () => {
 });
 
 describe("STEP — geometria inválida é detectada e sinalizada (não escondida)", () => {
-  it("vessel_revolved: calotas elípticas (SURFACE_OF_REVOLUTION de ELLIPSE) saem inválidas do OCCT — o verificador reprova", () => {
+  it("vessel_revolved lido pelo OCCT SEM a normalização P-F5-01: calotas colapsam, o verificador reprova", () => {
+    const h = k.raw.importStep(read("vessel_revolved.step"));
+    // referência independente: 11 739 729,6 mm³, caixa até x = 1050. O leitor cru entrega x até 900 e volume errado.
+    expect(k.raw.isValid(h)).toBe(false);
+    expect(rel(k.raw.getVolume(h), REF["vessel_revolved.step"].volume)).toBeGreaterThan(0.1);
+    k.raw.release(h);
+  });
+  it("vessel_revolved pelo caminho do app: P-F5-01 corrigido (2 laços normalizados), válido e exato", () => {
     const { sum } = open("vessel_revolved.step");
-    // referência independente: 11 739 729,6 mm³, caixa até x = 1050. O OCCT entrega x até 900 e volume errado.
-    expect(sum.invalid).toBe(1);
-    expect(rel(sum.volume, REF["vessel_revolved.step"].volume)).toBeGreaterThan(0.1);
+    expect(k.lastStepRepair()).toMatchObject({ fixes: 2, halfConics: 0, poleFaces: 2, skipped: [] });
+    expect(sum.invalid).toBe(0);
+    expect(rel(sum.volume, REF["vessel_revolved.step"].volume)).toBeLessThan(1e-6);
   });
 });
 
