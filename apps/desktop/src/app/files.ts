@@ -282,11 +282,11 @@ export class FileActions {
    */
   async exportDxf(
     opts: { layers?: string[]; entities?: Entity[]; layerDefs?: Layer[]; suggested?: string; format?: "dxf" | "dwg"; dxfVersion?: DxfVersion } = {},
-  ) {
+  ): Promise<{ readonly ok: true; readonly path: string; readonly version: string } | { readonly ok: false; readonly error: string | null }> {
     const format = opts.format ?? "dxf";
     const suggested = (opts.suggested ?? `${this.file.name}.dxf`).replace(/\.(dxf|dwg)$/i, `.${format}`);
     const p = await pickSavePath(format, suggested);
-    if (!p) return;
+    if (!p) return { ok: false, error: null }; // cancelado na janela de salvar
     const path = new RegExp(`\\.${format}$`, "i").test(p) ? p : `${p}.${format}`;
     try {
       const doc = this.ctl.doc;
@@ -303,15 +303,17 @@ export class FileActions {
         await this.withBusy(`Gravando ${baseName(path)}…`, () => writeDwgFromDxf(path, dxfBytes(txt), this.dwgVersion));
         this.ctl.message(`DWG exportado: ${baseName(path)} (${this.dwgVersion}, unidades: mm).`);
         toast(`DWG exportado: ${baseName(path)}`, "ok");
-        return;
+        return { ok: true, path, version: this.dwgVersion };
       }
       await writeBytes(path, dxfBytes(txt));
       this.ctl.message(`DXF ${version === "R2000" ? "2000" : "R12"} exportado: ${baseName(path)} (unidades: mm).`);
       toast(`DXF exportado: ${baseName(path)}`, "ok");
+      return { ok: true, path, version };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       this.ctl.message(`Falha ao exportar ${format.toUpperCase()}: ${msg}`, "error");
       toast(`Falha ao exportar ${format.toUpperCase()}: ${msg}`, "error");
+      return { ok: false, error: msg };
     }
   }
 

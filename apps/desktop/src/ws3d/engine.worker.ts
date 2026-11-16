@@ -284,6 +284,20 @@ const api: Omit<EngineApi, "init"> = {
     }
     return out;
   },
+  bodyFacts({ ids }) {
+    const { k, c } = K();
+    const out: Record<string, { props: ReturnType<typeof k.props>; topo: ReturnType<typeof k.topology>; check: GeometryCheck }> = {};
+    for (const id of ids) {
+      const r = c.get(id);
+      if (r === undefined) continue;
+      try {
+        out[id] = { props: k.props(r), topo: k.topology(r), check: k.checkGeometry(r) };
+      } catch {
+        // sem fato confiável: fica de fora (a ferramenta informa "não calculável")
+      }
+    }
+    return out;
+  },
   exportStep({ model, ids }) {
     const { k } = K();
     const { c } = K();

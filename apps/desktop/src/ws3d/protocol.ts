@@ -106,6 +106,8 @@ export interface EngineApi {
   openStep(a: { text: string }): { readonly scan: StepScan; readonly nodes: StepNode[]; readonly repair: StepRepair | null };
   /** verificação de geometria por corpo exibido (forma + arestas sobre as superfícies + volume coerente) — P-F5-01 */
   checkBodies(a: { ids: NodeId[] }): Record<NodeId, GeometryCheck>;
+  /** AI ASSISTANT: fatos EXATOS dos corpos já carregados no motor (B-rep), sem sincronizar nada. Ausente = não carregado. */
+  bodyFacts(a: { ids: NodeId[] }): Record<NodeId, { readonly props: MassProps; readonly topo: { solids: number; faces: number; edges: number; vertices: number }; readonly check: GeometryCheck }>;
   exportStep(a: { model: Model3D; ids?: NodeId[] }): string;
   exportStl(a: { ids: NodeId[] }): Uint8Array;
   stats(a: Record<string, never>): EngineStats;
