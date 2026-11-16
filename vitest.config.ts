@@ -27,6 +27,7 @@ export default defineConfig({
       "@agtn/lasertext": r("./modules/lasertext/src/index.ts"),
       "@agtn/parts": r("./modules/parts/src/index.ts"),
       "@agtn/plot": r("./modules/plot/src/index.ts"),
+      "@agtn/ai": r("./modules/ai/src/index.ts"),
       "@agtn/solid": r("./core/solid/src/index.ts"),
       "@agtn/model3d": r("./core/model3d/src/index.ts"),
       "@agtn/sketch": r("./core/sketch/src/index.ts"),
